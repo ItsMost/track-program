@@ -34,6 +34,7 @@ import {
   Gauge,
   Dumbbell,
   ShieldCheck,
+  Sliders,
 } from 'lucide-react';
 
 import Header from './Header.jsx';
@@ -42,14 +43,15 @@ import TimelineCard from './TimelineCard.jsx';
 import ExerciseLibrary from './ExerciseLibrary.jsx';
 import AthleteProfileModal from './AthleteProfileModal.jsx';
 import { INITIAL_ATHLETES, INITIAL_LIBRARY } from '../../data/constants.js';
-import { supabase } from '../../supabaseClient.js';
+import { supabase, isRealSupabase } from '../../supabaseClient.js';
 
 // 1. Updated Track & Field Specific Categories
 const EXERCISE_CATEGORIES = {
   speed: 'Speed (Track)',
-  plyometrics: 'Plyometrics (Jumps)',
+  plyometrics: 'Plyometrics',
   power: 'Power (Gym)',
   strength: 'Strength (Gym)',
+  isometric: 'Isometric (Stability)',
   mobility: 'Mobility',
   core: 'Core',
   physical: 'Physical',
@@ -79,12 +81,12 @@ export default function TrackFieldPlanner() {
   const [isMobileView, setIsMobileView] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [athletes, setAthletes] = useState(INITIAL_ATHLETES);
+  const [athletes, setAthletes] = useState([]);
   const [selectedAthleteId, setSelectedAthleteId] = useState(
     () => localStorage.getItem('lastSelectedAthlete') || null
   );
   const selectedAthlete =
-    athletes.find((a) => a.id === selectedAthleteId) || athletes[0] || null;
+    athletes?.find((a) => a.id === selectedAthleteId) || athletes?.[0] || null;
 
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [newAthleteData, setNewAthleteData] = useState({
@@ -113,6 +115,7 @@ export default function TrackFieldPlanner() {
   const [historyIndex, setHistoryIndex] = useState(-1);
 
   const [toastMessage, setToastMessage] = useState(null);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showAddAthleteModal, setShowAddAthleteModal] = useState(false);
   const [showMonthCalendar, setShowMonthCalendar] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
@@ -131,6 +134,7 @@ export default function TrackFieldPlanner() {
     name: '',
   });
   const [showStatsModal, setShowStatsModal] = useState(false);
+  const [showMobileTools, setShowMobileTools] = useState(false);
 
   const [draggedItem, setDraggedItem] = useState(null);
   const [createProgramModal, setCreateProgramModal] = useState({
@@ -161,6 +165,7 @@ export default function TrackFieldPlanner() {
     isNew: false,
   });
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [activeMobileDay, setActiveMobileDay] = useState('Saturday');
 
   const handleToast = (msg) => {
     setToastMessage(msg);
@@ -171,6 +176,19 @@ export default function TrackFieldPlanner() {
     if (isDarkMode) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
   }, [isDarkMode]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setIsMobileView(true);
+      } else {
+        setIsMobileView(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Initial check
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const getDbDateStr = (date) =>
     `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
@@ -190,6 +208,40 @@ export default function TrackFieldPlanner() {
     year: 'numeric',
   });
   const weekStartDateStr = getDbDateStr(currentWeekStart);
+
+  const formatDateRange = () => {
+    const start = new Date(currentWeekStart);
+    const end = new Date(currentWeekStart);
+    end.setDate(end.getDate() + 6);
+
+    const startMonth = start.toLocaleString('en-US', { month: 'short' });
+    const startDay = start.getDate();
+    const startYear = start.getFullYear();
+
+    const endMonth = end.toLocaleString('en-US', { month: 'short' });
+    const endDay = end.getDate();
+    const endYear = end.getFullYear();
+
+    if (startYear !== endYear) {
+      return `${startMonth} ${startDay}, ${startYear} – ${endMonth} ${endDay}, ${endYear}`;
+    }
+    if (startMonth !== endMonth) {
+      return `${startMonth} ${startDay} – ${endMonth} ${endDay}, ${startYear}`;
+    }
+    return `${startMonth} ${startDay} – ${endDay}, ${startYear}`;
+  };
+
+  const handlePrevWeek = () => {
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() - 7);
+    setCurrentDate(d);
+  };
+
+  const handleNextWeek = () => {
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() + 7);
+    setCurrentDate(d);
+  };
 
   const getDatesForWeek = () => {
     const dates = [];
@@ -217,28 +269,119 @@ export default function TrackFieldPlanner() {
 
   useEffect(() => {
     const fetchAthletes = async () => {
-      const { data } = await supabase
-        .from('track_athletes')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (data && data.length > 0) {
-        const formattedData = data.map((a) => ({
-          ...a,
-          birthYear: a.birth_year,
-          bodyFat: a.body_fat,
-          verticalJump: a.vertical_jump,
-          standingLongJump: a.standing_long_jump,
-          squatJump: a.squat_jump,
-          halfSquat: a.half_squat,
-          quarterSquat: a.quarter_squat,
-          fullSquat: a.full_squat,
-          deadlift: a.deadlift,
-        }));
-        setAthletes(formattedData);
-        const savedId = localStorage.getItem('lastSelectedAthlete');
-        if (savedId && formattedData.some((a) => a.id === savedId))
-          setSelectedAthleteId(savedId);
-        else setSelectedAthleteId(formattedData[0].id);
+      try {
+        const { data, error } = await supabase
+          .from('track_athletes')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const formattedData = data.map((a) => ({
+            ...a,
+            birthYear: a.birth_year,
+            bodyFat: a.body_fat,
+            verticalJump: a.vertical_jump,
+            standingLongJump: a.standing_long_jump,
+            squatJump: a.squat_jump,
+            halfSquat: a.half_squat,
+            quarterSquat: a.quarter_squat,
+            fullSquat: a.full_squat,
+            deadlift: a.deadlift,
+          }));
+          setAthletes(formattedData);
+          const savedId = localStorage.getItem('lastSelectedAthlete');
+          if (savedId && formattedData.some((a) => a.id === savedId))
+            setSelectedAthleteId(savedId);
+          else setSelectedAthleteId(formattedData[0].id);
+        } else {
+          // Real database is empty, seed it with INITIAL_ATHLETES to prevent FK constraint violations!
+          const initialAthletesFormatted = INITIAL_ATHLETES.map(a => ({
+            id: a.id,
+            name: a.name,
+            birth_year: a.birthYear || null,
+            weight: a.weight || null,
+            height: a.height || null,
+            body_fat: a.bodyFat || null,
+            vertical_jump: a.verticalJump || null,
+            standing_long_jump: a.standingLongJump || null,
+            squat_jump: a.squatJump || null,
+            clean: a.clean || null,
+            half_squat: a.halfSquat || null,
+            quarter_squat: a.quarterSquat || null,
+            full_squat: a.fullSquat || null,
+            bench: a.bench || null,
+            deadlift: a.deadlift || null,
+            m100: a.m100 || null,
+            m150: a.m150 || null,
+            m200: a.m200 || null,
+            m300: a.m300 || null,
+            m400: a.m400 || null,
+          }));
+          
+          let { data: seededAthletes, error: seedError } = await supabase
+            .from('track_athletes')
+            .insert(initialAthletesFormatted)
+            .select();
+            
+          if (seedError) {
+            console.warn("Failed to seed initial athletes with speed columns, retrying without speed columns:", seedError);
+            
+            // Fallback: Retrying insert WITHOUT the speed columns!
+            const fallbackAthletes = INITIAL_ATHLETES.map(a => ({
+              id: a.id,
+              name: a.name,
+              birth_year: a.birthYear || null,
+              weight: a.weight || null,
+              height: a.height || null,
+              body_fat: a.bodyFat || null,
+              vertical_jump: a.verticalJump || null,
+              standing_long_jump: a.standingLongJump || null,
+              squat_jump: a.squatJump || null,
+              clean: a.clean || null,
+              half_squat: a.halfSquat || null,
+              quarter_squat: a.quarterSquat || null,
+              full_squat: a.fullSquat || null,
+              bench: a.bench || null,
+              deadlift: a.deadlift || null,
+            }));
+            
+            const { data: fallbackSeeded, error: fallbackError } = await supabase
+              .from('track_athletes')
+              .insert(fallbackAthletes)
+              .select();
+              
+            if (fallbackError) {
+              console.error("Fallback seeding failed:", fallbackError);
+              handleToast(`Seeding Athletes Error: ${fallbackError.message}`);
+            } else {
+              seededAthletes = fallbackSeeded;
+            }
+          }
+          
+          if (seededAthletes && seededAthletes.length > 0) {
+            const formattedData = seededAthletes.map((a) => ({
+              ...a,
+              birthYear: a.birth_year,
+              bodyFat: a.body_fat,
+              verticalJump: a.vertical_jump,
+              standingLongJump: a.standing_long_jump,
+              squatJump: a.squat_jump,
+              halfSquat: a.half_squat,
+              quarterSquat: a.quarter_squat,
+              fullSquat: a.full_squat,
+              deadlift: a.deadlift,
+            }));
+            setAthletes(formattedData);
+            setSelectedAthleteId(formattedData[0].id);
+            handleToast("☁️ Seeded initial athlete profiles to cloud");
+          }
+        }
+      } catch (err) {
+        console.error("Error in fetchAthletes:", err);
+        handleToast(`Athletes Error: ${err.message || err}`);
+        setIsLoading(false);
       }
     };
     fetchAthletes();
@@ -250,14 +393,69 @@ export default function TrackFieldPlanner() {
   }, [selectedAthleteId]);
 
   const fetchLibraryData = async () => {
-    const { data: drillsData } = await supabase
+    let { data: drillsData, error: drillsError } = await supabase
       .from('track_library_drills')
       .select('*')
       .order('created_at', { ascending: false });
-    const { data: templatesData } = await supabase
+    
+    if (drillsError) {
+      console.error("Supabase drills fetch error:", drillsError);
+      handleToast(`Drills Error: ${drillsError.message}`);
+    }
+    
+    // Auto-seed drills if database is empty (fresh connection)
+    if (!drillsError && (!drillsData || drillsData.length === 0)) {
+      const initialDrillsFormatted = INITIAL_LIBRARY.drills.map(d => ({
+        id: d.id,
+        title: d.title,
+        details: d.details,
+        type: d.type,
+        percentage: d.percentage,
+        sets: d.sets,
+        reps: d.reps,
+        distance: d.distance,
+        rest: d.rest,
+        unit: d.unit
+      }));
+      const { data: seeded, error: seedError } = await supabase
+        .from('track_library_drills')
+        .insert(initialDrillsFormatted)
+        .select();
+      if (seedError) {
+        console.error("Supabase drills seeding error:", seedError);
+        handleToast(`Seeding Error: ${seedError.message}`);
+      } else if (seeded) {
+        drillsData = seeded;
+      }
+    }
+
+    let { data: templatesData, error: templatesError } = await supabase
       .from('track_week_templates')
       .select('*')
       .order('created_at', { ascending: false });
+
+    if (templatesError) {
+      console.error("Supabase templates fetch error:", templatesError);
+    }
+
+    // Auto-seed templates if database is empty
+    if (!templatesError && (!templatesData || templatesData.length === 0)) {
+      const initialTemplatesFormatted = INITIAL_LIBRARY.templates.map(t => ({
+        template_name: t.title,
+        template_type: t.type,
+        drills: t.drills
+      }));
+      const { data: seededTpl, error: seedTplError } = await supabase
+        .from('track_week_templates')
+        .insert(initialTemplatesFormatted)
+        .select();
+      if (seedTplError) {
+        console.error("Supabase templates seeding error:", seedTplError);
+      } else if (seededTpl) {
+        templatesData = seededTpl;
+      }
+    }
+
     const formattedTemplates = (templatesData || []).map((t) => ({
       id: t.id,
       title: t.template_name,
@@ -265,53 +463,98 @@ export default function TrackFieldPlanner() {
       drills: t.drills,
     }));
     setLibrary({ drills: drillsData || [], templates: formattedTemplates });
-    const { data: progData } = await supabase
+    const { data: progData, error: progError } = await supabase
       .from('track_macro_programs')
       .select('*')
       .order('created_at', { ascending: false });
+    
+    if (progError) {
+      console.error("Supabase programs fetch error:", progError);
+    }
     setPrograms(progData || []);
   };
   useEffect(() => {
     fetchLibraryData();
+    if (isRealSupabase) {
+      handleToast("☁️ Live Sync Active (Supabase Cloud Connected)");
+    } else {
+      handleToast("💾 Local Offline Mode (LocalStorage Mock)");
+    }
   }, []);
+
+  // Listen to PWA custom install prompt events
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      // Prevent browser default mini-prompt
+      e.preventDefault();
+      // Store event
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    window.addEventListener('appinstalled', () => {
+      setDeferredPrompt(null);
+      handleToast('🎉 Track Lab installed successfully!');
+    });
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`PWA install user choice outcome: ${outcome}`);
+    setDeferredPrompt(null);
+  };
 
   useEffect(() => {
     const fetchWeekData = async () => {
-      if (!selectedAthleteId) return;
-      setIsLoading(true);
-      const endStr = getDbDateStr(weekDatesFull[6]);
-      const { data } = await supabase
-        .from('agilitylap_workouts')
-        .select('*')
-        .eq('athlete_id', selectedAthleteId)
-        .gte('workout_date', weekStartDateStr)
-        .lte('workout_date', endStr);
-      const newSchedule = {};
-      const newTitles = {};
-      DAYS_OF_WEEK.forEach((day) => {
-        newSchedule[day] = [];
-        newTitles[day] = '';
-      });
-      if (data) {
-        data.forEach((record) => {
-          const recordDate = new Date(record.workout_date);
-          const dayName = JS_DAYS[recordDate.getDay()];
-          if (dayName && DAYS_OF_WEEK.includes(dayName)) {
-            newSchedule[dayName] = record.drills || [];
-            newTitles[dayName] = record.workout_title || '';
-          }
-        });
+      if (!selectedAthleteId) {
+        setIsLoading(false);
+        return;
       }
-      setSchedule(newSchedule);
-      setDayTitles(newTitles);
-      setHistory([
-        {
-          schedule: JSON.parse(JSON.stringify(newSchedule)),
-          titles: JSON.parse(JSON.stringify(newTitles)),
-        },
-      ]);
-      setHistoryIndex(0);
-      setIsLoading(false);
+      setIsLoading(true);
+      try {
+        const endStr = getDbDateStr(weekDatesFull[6]);
+        const { data } = await supabase
+          .from('track_athlete_workouts')
+          .select('*')
+          .eq('athlete_id', selectedAthleteId)
+          .gte('workout_date', weekStartDateStr)
+          .lte('workout_date', endStr);
+        const newSchedule = {};
+        const newTitles = {};
+        DAYS_OF_WEEK.forEach((day) => {
+          newSchedule[day] = [];
+          newTitles[day] = '';
+        });
+        if (data) {
+          data.forEach((record) => {
+            const recordDate = new Date(record.workout_date);
+            const dayName = JS_DAYS[recordDate.getDay()];
+            if (dayName && DAYS_OF_WEEK.includes(dayName)) {
+              newSchedule[dayName] = record.drills || [];
+              newTitles[dayName] = record.workout_title || '';
+            }
+          });
+        }
+        setSchedule(newSchedule);
+        setDayTitles(newTitles);
+        setHistory([
+          {
+            schedule: JSON.parse(JSON.stringify(newSchedule)),
+            titles: JSON.parse(JSON.stringify(newTitles)),
+          },
+        ]);
+        setHistoryIndex(0);
+      } catch (err) {
+        console.error("Error in fetchWeekData:", err);
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetchWeekData();
   }, [selectedAthleteId, weekStartDateStr]);
@@ -326,7 +569,7 @@ export default function TrackFieldPlanner() {
         new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
       );
       const { data } = await supabase
-        .from('agilitylap_workouts')
+        .from('track_athlete_workouts')
         .select('workout_date, workout_title, drills')
         .eq('athlete_id', selectedAthleteId)
         .gte('workout_date', startStr)
@@ -357,7 +600,7 @@ export default function TrackFieldPlanner() {
       titleToSave !== undefined ? titleToSave : dayTitles[day] || '';
     const finalDrills =
       drillsToSave !== undefined ? drillsToSave : schedule[day] || [];
-    await supabase.from('agilitylap_workouts').upsert(
+    const { error } = await supabase.from('track_athlete_workouts').upsert(
       {
         athlete_id: selectedAthleteId,
         workout_date: dateStr,
@@ -366,6 +609,10 @@ export default function TrackFieldPlanner() {
       },
       { onConflict: 'athlete_id,workout_date' }
     );
+    if (error) {
+      console.error("Supabase auto-save error:", error);
+      handleToast(`Database save failed: ${error.message}`);
+    }
   };
 
   const handleUndo = () => {
@@ -472,20 +719,22 @@ export default function TrackFieldPlanner() {
 
     dayDrills.forEach((drill) => {
       const type = (drill.type || '').toLowerCase();
-      const intensity = parseInt(drill.percentage) || 0;
-      let s = parseInt(String(drill.sets).replace(/\D/g, '')) || 0;
-      let r = parseInt(String(drill.reps).replace(/\D/g, '')) || 0;
-      let dist = parseInt(String(drill.distance).replace(/\D/g, '')) || 0;
+      if (type === 'isometric' || type === 'core' || type === 'mobility') {
+        return; // Exclude completely from day and week load metrics
+      }
+      const intensity = parseFloat(drill.percentage) || 0;
+      let s = parseFloat(String(drill.sets).replace(/[^\d.]/g, '')) || 0;
+      let r = parseFloat(String(drill.reps).replace(/[^\d.]/g, '')) || 0;
+      let dist = parseFloat(String(drill.distance).replace(/[^\d.]/g, '')) || 0;
 
       if (s > 0 && r === 0 && type !== 'speed') r = 1;
       if (r > 0 && s === 0 && type !== 'speed') s = 1;
-      if (s > 0 && dist === 0 && type === 'speed') dist = 10; // Default min distance
+      if (s > 0 && dist === 0 && type === 'speed') dist = 10; 
       if (dist > 0 && s === 0 && type === 'speed') s = 1;
 
-      let repsMultiplier = s * r;
       let drillLoad = 0;
 
-      // 1. SPEED (Sprints): Power/CNS Exponential Formula
+      // 1. SPEED (TRACK)
       if (type === 'speed') {
         const sprintVolume = s * dist;
         totalMeters += sprintVolume;
@@ -493,42 +742,53 @@ export default function TrackFieldPlanner() {
           validIntensityCount++;
           sumIntensity += intensity;
         }
-        // Speed Load Formula: (Distance) * (%MaxV)^2 * 0.2
-        drillLoad =
-          sprintVolume * Math.pow(intensity > 0 ? intensity / 100 : 1, 2) * 0.2;
+        // Load = (sets * distance * (intensity/100)^2) * 0.2
+        drillLoad = (s * dist * Math.pow(intensity > 0 ? intensity / 100 : 1, 2)) * 0.2;
         cnsLoad += drillLoad * 0.8; // 80% CNS
         structuralLoad += drillLoad * 0.2; // 20% Structural
       }
-      // 2. PLYOMETRICS (Jumps): High Mechanical Impact
+      // 2. PLYOMETRICS
       else if (type === 'plyometrics') {
-        totalContacts += repsMultiplier;
+        totalContacts += s * r;
         if (intensity > 0) {
           validIntensityCount++;
           sumIntensity += intensity;
         }
-        drillLoad = repsMultiplier * 2.5; // Fixed load per contact
+        // Load = sets * reps * 2.5
+        drillLoad = s * r * 2.5;
         cnsLoad += drillLoad * 0.5; // 50% CNS
         structuralLoad += drillLoad * 0.5; // 50% Structural
       }
-      // 3. POWER (Gym Lifts): Pure Neuromuscular
+      // 3. POWER (GYM)
       else if (type === 'power') {
         if (intensity > 0) {
           validIntensityCount++;
           sumIntensity += intensity;
         }
-        drillLoad =
-          repsMultiplier * 2.0 * (intensity > 0 ? intensity / 100 : 1) * 10;
+        // Load = (sets * reps * 2.0 * intensity/100) * 10
+        drillLoad = (s * r * 2.0 * (intensity > 0 ? intensity / 100 : 1)) * 10;
         cnsLoad += drillLoad; // 100% CNS
       }
-      // 4. STRENGTH (Gym Lifts): Pure Structural
+      // 4. STRENGTH (GYM)
       else if (type === 'strength') {
         if (intensity > 0) {
           validIntensityCount++;
           sumIntensity += intensity;
         }
-        drillLoad =
-          repsMultiplier * 1.5 * (intensity > 0 ? intensity / 100 : 1) * 10;
+        // Load = (sets * reps * 1.5 * intensity/100) * 10
+        drillLoad = (s * r * 1.5 * (intensity > 0 ? intensity / 100 : 1)) * 10;
         structuralLoad += drillLoad; // 100% Structural
+      }
+      // 5. ISOMETRIC (STABILITY)
+      else if (type === 'isometric') {
+        if (intensity > 0) {
+          validIntensityCount++;
+          sumIntensity += intensity;
+        }
+        // Load = sets * duration (reps) * 0.5
+        drillLoad = s * r * 0.5;
+        cnsLoad += drillLoad * 0.3; // 30% CNS
+        structuralLoad += drillLoad * 0.7; // 70% Structural
       }
 
       totalVolumeScore += drillLoad;
@@ -616,7 +876,7 @@ export default function TrackFieldPlanner() {
     if (!createProgramModal.name.trim()) return;
     const compiledWeeks = createProgramModal.weeksChain
       .map((tplId) => {
-        const found = library.templates.find(
+        const found = library?.templates?.find(
           (t) => t.id === parseInt(tplId) || t.id === tplId
         );
         return found ? { title: found.title, drills: found.drills } : null;
@@ -633,7 +893,10 @@ export default function TrackFieldPlanner() {
     const { error } = await supabase
       .from('track_macro_programs')
       .insert([payload]);
-    if (!error) {
+    if (error) {
+      console.error("Supabase insert program error:", error);
+      handleToast(`Failed to save program: ${error.message}`);
+    } else {
       setCreateProgramModal({
         isOpen: false,
         name: '',
@@ -663,7 +926,7 @@ export default function TrackFieldPlanner() {
             id: `block-${Date.now()}-${i}-${j}-${idx}`,
           })
         );
-        await supabase.from('agilitylap_workouts').upsert(
+        await supabase.from('track_athlete_workouts').upsert(
           {
             athlete_id: selectedAthleteId,
             workout_date: getDbDateStr(dayDate),
@@ -675,7 +938,7 @@ export default function TrackFieldPlanner() {
       }
     }
     const { data } = await supabase
-      .from('agilitylap_workouts')
+      .from('track_athlete_workouts')
       .select('*')
       .eq('athlete_id', selectedAthleteId)
       .gte('workout_date', weekStartDateStr)
@@ -705,7 +968,10 @@ export default function TrackFieldPlanner() {
       .from('track_macro_programs')
       .delete()
       .eq('id', id);
-    if (!error) {
+    if (error) {
+      console.error("Supabase delete program error:", error);
+      handleToast(`Failed to delete program: ${error.message}`);
+    } else {
       setPrograms((prev) => prev.filter((p) => p.id !== id));
       handleToast('Block removed');
     }
@@ -757,7 +1023,7 @@ export default function TrackFieldPlanner() {
         const { item, isTemplate } = draggedItem;
         newSchedule[targetDay] = [...newSchedule[targetDay]];
         if (isTemplate) {
-          const newDrills = item.drills.map((d, i) => ({
+          const newDrills = (item?.drills || []).map((d, i) => ({
             ...d,
             id: `lib-tpl-${Date.now()}-${i}`,
           }));
@@ -783,10 +1049,10 @@ export default function TrackFieldPlanner() {
     if (!draggedItem || draggedItem.source !== 'timeline') return;
     const { drill } = draggedItem;
     const drillData = {
-      title: drill.title,
+      title: drill.title || '',
       details: drill.details || '',
       type: drill.type || 'speed',
-      percentage: drill.percentage ? parseFloat(drill.percentage) : null,
+      percentage: drill.percentage && !isNaN(parseFloat(drill.percentage)) ? parseFloat(drill.percentage) : null,
       sets: drill.sets || '',
       reps: drill.reps || '',
       distance: drill.distance || '',
@@ -797,8 +1063,11 @@ export default function TrackFieldPlanner() {
       .from('track_library_drills')
       .insert([drillData])
       .select();
-    if (!error && data) {
-      setLibrary((prev) => ({ ...prev, drills: [data[0], ...prev.drills] }));
+    if (error) {
+      console.error("Supabase insert library drill error:", error);
+      handleToast(`Failed to save drill: ${error.message}`);
+    } else if (data) {
+      setLibrary((prev) => ({ ...prev, drills: [data[0], ...(prev?.drills || [])] }));
       handleToast('Saved to library archive!');
     }
     setDraggedItem(null);
@@ -927,7 +1196,10 @@ export default function TrackFieldPlanner() {
       .from('track_week_templates')
       .insert([newTemplate])
       .select();
-    if (!error && data) {
+    if (error) {
+      console.error("Supabase save template error:", error);
+      handleToast(`Failed to save template: ${error.message}`);
+    } else if (data) {
       const formatted = {
         id: data[0].id,
         title: data[0].template_name,
@@ -954,11 +1226,14 @@ export default function TrackFieldPlanner() {
       template_type: 'week',
       drills: allDrills,
     };
-    const { data, error } = await supabase
-      .from('agilitylap_templates')
+    const { error, data } = await supabase
+      .from('track_week_templates')
       .insert([newTemplate])
       .select();
-    if (!error && data) {
+    if (error) {
+      console.error("Supabase save week template error:", error);
+      handleToast(`Failed to save week template: ${error.message}`);
+    } else if (data) {
       const formatted = {
         id: data[0].id,
         title: data[0].template_name,
@@ -975,7 +1250,9 @@ export default function TrackFieldPlanner() {
   };
   const handleAddAthlete = async () => {
     if (newAthleteData.name.trim()) {
+      const addedId = `athlete-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       const newAthlete = {
+        id: addedId,
         name: newAthleteData.name,
         birth_year: newAthleteData.birthYear
           ? parseInt(newAthleteData.birthYear)
@@ -984,11 +1261,14 @@ export default function TrackFieldPlanner() {
           ? parseFloat(newAthleteData.weight)
           : null,
       };
-      const { data } = await supabase
-        .from('agilitylap_athletes')
+      const { data, error } = await supabase
+        .from('track_athletes')
         .insert([newAthlete])
         .select();
-      if (data && data.length > 0) {
+      if (error) {
+        console.error("Supabase add athlete error:", error);
+        handleToast(`Failed to add athlete: ${error.message}`);
+      } else if (data && data.length > 0) {
         const addedAthlete = {
           ...data[0],
           birthYear: data[0].birth_year,
@@ -997,7 +1277,7 @@ export default function TrackFieldPlanner() {
           halfSquat: data[0].half_squat,
           quarterSquat: data[0].quarter_squat,
         };
-        setAthletes([addedAthlete, ...athletes]);
+        setAthletes([addedAthlete, ...(athletes || [])]);
         setSelectedAthleteId(addedAthlete.id);
         setNewAthleteData({ name: '', birthYear: '', weight: '' });
         setShowAddAthleteModal(false);
@@ -1005,50 +1285,75 @@ export default function TrackFieldPlanner() {
     }
   };
   const handleSaveProfile = async (updatedProfile) => {
+    const payload = {
+      name: updatedProfile.name,
+      birth_year: updatedProfile.birthYear
+        ? parseInt(updatedProfile.birthYear)
+        : null,
+      weight: updatedProfile.weight
+        ? parseFloat(updatedProfile.weight)
+        : null,
+      height: updatedProfile.height
+        ? parseFloat(updatedProfile.height)
+        : null,
+      body_fat: updatedProfile.bodyFat
+        ? parseFloat(updatedProfile.bodyFat)
+        : null,
+      vertical_jump: updatedProfile.verticalJump
+        ? parseFloat(updatedProfile.verticalJump)
+        : null,
+      standing_long_jump: updatedProfile.standingLongJump
+        ? parseFloat(updatedProfile.standingLongJump)
+        : null,
+      squat_jump: updatedProfile.squatJump
+        ? parseFloat(updatedProfile.squatJump)
+        : null,
+      clean: updatedProfile.clean ? parseFloat(updatedProfile.clean) : null,
+      half_squat: updatedProfile.halfSquat
+        ? parseFloat(updatedProfile.halfSquat)
+        : null,
+      quarter_squat: updatedProfile.quarterSquat
+        ? parseFloat(updatedProfile.quarterSquat)
+        : null,
+      full_squat: updatedProfile.fullSquat
+        ? parseFloat(updatedProfile.fullSquat)
+        : null,
+      bench: updatedProfile.bench ? parseFloat(updatedProfile.bench) : null,
+      deadlift: updatedProfile.deadlift
+        ? parseFloat(updatedProfile.deadlift)
+        : null,
+    };
+    const speedPayload = {
+      ...payload,
+      m100: updatedProfile.m100 ? parseFloat(updatedProfile.m100) : null,
+      m150: updatedProfile.m150 ? parseFloat(updatedProfile.m150) : null,
+      m200: updatedProfile.m200 ? parseFloat(updatedProfile.m200) : null,
+      m300: updatedProfile.m300 ? parseFloat(updatedProfile.m300) : null,
+      m400: updatedProfile.m400 ? parseFloat(updatedProfile.m400) : null,
+    };
     const { error } = await supabase
       .from('track_athletes')
-      .update({
-        name: updatedProfile.name,
-        birth_year: updatedProfile.birthYear
-          ? parseInt(updatedProfile.birthYear)
-          : null,
-        weight: updatedProfile.weight
-          ? parseFloat(updatedProfile.weight)
-          : null,
-        height: updatedProfile.height
-          ? parseFloat(updatedProfile.height)
-          : null,
-        body_fat: updatedProfile.bodyFat
-          ? parseFloat(updatedProfile.bodyFat)
-          : null,
-        vertical_jump: updatedProfile.verticalJump
-          ? parseFloat(updatedProfile.verticalJump)
-          : null,
-        standing_long_jump: updatedProfile.standingLongJump
-          ? parseFloat(updatedProfile.standingLongJump)
-          : null,
-        squat_jump: updatedProfile.squatJump
-          ? parseFloat(updatedProfile.squatJump)
-          : null,
-        clean: updatedProfile.clean ? parseFloat(updatedProfile.clean) : null,
-        half_squat: updatedProfile.halfSquat
-          ? parseFloat(updatedProfile.halfSquat)
-          : null,
-        quarter_squat: updatedProfile.quarterSquat
-          ? parseFloat(updatedProfile.quarterSquat)
-          : null,
-        full_squat: updatedProfile.fullSquat
-          ? parseFloat(updatedProfile.fullSquat)
-          : null,
-        bench: updatedProfile.bench ? parseFloat(updatedProfile.bench) : null,
-        deadlift: updatedProfile.deadlift
-          ? parseFloat(updatedProfile.deadlift)
-          : null,
-      })
+      .update(speedPayload)
       .eq('id', updatedProfile.id);
-    if (!error) {
+    if (error) {
+      console.warn("Supabase update athlete error with speed columns, retrying without speed columns:", error);
+      const { error: fallbackError } = await supabase
+        .from('track_athletes')
+        .update(payload)
+        .eq('id', updatedProfile.id);
+      if (fallbackError) {
+        console.error("Fallback update failed:", fallbackError);
+        handleToast(`Failed to update profile: ${fallbackError.message}`);
+      } else {
+        setAthletes((prev) =>
+          (prev || []).map((a) => (a.id === updatedProfile.id ? updatedProfile : a))
+        );
+        setShowProfileModal(false);
+        handleToast('Profile updated (excluding speed metrics)');
+      }
+    } else {
       setAthletes((prev) =>
-        prev.map((a) => (a.id === updatedProfile.id ? updatedProfile : a))
+        (prev || []).map((a) => (a.id === updatedProfile.id ? updatedProfile : a))
       );
       setShowProfileModal(false);
       handleToast('Profile updated');
@@ -1062,7 +1367,7 @@ export default function TrackFieldPlanner() {
     if (!error) {
       setLibrary((prev) => ({
         ...prev,
-        drills: prev.drills.filter((d) => d.id !== id),
+        drills: (prev?.drills || []).filter((d) => d.id !== id),
       }));
     }
   };
@@ -1089,7 +1394,7 @@ export default function TrackFieldPlanner() {
     if (!error) {
       setLibrary((prev) => ({
         ...prev,
-        templates: prev.templates.filter((t) => t.id !== id),
+        templates: (prev?.templates || []).filter((t) => t.id !== id),
       }));
     }
   };
@@ -1100,17 +1405,17 @@ export default function TrackFieldPlanner() {
   const handleSaveLibraryExercise = async () => {
     if (!addExerciseModal.title.trim()) return;
     const drillData = {
-      title: addExerciseModal.title,
-      details: addExerciseModal.details,
-      type: addExerciseModal.type,
-      percentage: addExerciseModal.percentage
+      title: addExerciseModal.title || '',
+      details: addExerciseModal.details || '',
+      type: addExerciseModal.type || 'speed',
+      percentage: addExerciseModal.percentage && !isNaN(parseFloat(addExerciseModal.percentage))
         ? parseFloat(addExerciseModal.percentage)
         : null,
-      sets: addExerciseModal.sets,
-      reps: addExerciseModal.reps,
-      distance: addExerciseModal.distance,
-      rest: addExerciseModal.rest,
-      unit: addExerciseModal.unit,
+      sets: addExerciseModal.sets || '',
+      reps: addExerciseModal.reps || '',
+      distance: addExerciseModal.distance || '',
+      rest: addExerciseModal.rest || '',
+      unit: addExerciseModal.unit || 'meters',
     };
     if (addExerciseModal.id) {
       const { data, error } = await supabase
@@ -1121,7 +1426,7 @@ export default function TrackFieldPlanner() {
       if (!error && data) {
         setLibrary((prev) => ({
           ...prev,
-          drills: prev.drills.map((d) =>
+          drills: (prev?.drills || []).map((d) =>
             d.id === addExerciseModal.id ? data[0] : d
           ),
         }));
@@ -1139,6 +1444,9 @@ export default function TrackFieldPlanner() {
           unit: 'meters',
         });
         handleToast('Exercise updated');
+      } else if (error) {
+        console.error("Supabase update library drill error:", error);
+        handleToast(`Failed to update drill: ${error.message}`);
       }
     } else {
       const { data, error } = await supabase
@@ -1146,7 +1454,7 @@ export default function TrackFieldPlanner() {
         .insert([drillData])
         .select();
       if (!error && data) {
-        setLibrary((prev) => ({ ...prev, drills: [data[0], ...prev.drills] }));
+        setLibrary((prev) => ({ ...prev, drills: [data[0], ...(prev?.drills || [])] }));
         setAddExerciseModal({
           isOpen: false,
           id: null,
@@ -1161,16 +1469,56 @@ export default function TrackFieldPlanner() {
           unit: 'meters',
         });
         handleToast('Exercise added');
+      } else if (error) {
+        console.error("Supabase insert library drill error:", error);
+        handleToast(`Failed to add drill: ${error.message}`);
       }
     }
   };
+
+  const handleDeleteAthlete = async (id) => {
+    const { error } = await supabase.from('track_athletes').delete().eq('id', id);
+    if (!error) {
+      const remaining = (athletes || []).filter((a) => a.id !== id);
+      setAthletes(remaining);
+      if (remaining.length > 0) {
+        setSelectedAthleteId(remaining[0].id);
+      } else {
+        setSelectedAthleteId(null);
+      }
+      handleToast('Athlete profile deleted');
+    }
+  };
+
+  const handlePrintLandscape = () => {
+    document.body.classList.remove('print-portrait');
+    document.body.classList.add('print-landscape');
+    window.print();
+  };
+
+  const handlePrintPortrait = () => {
+    document.body.classList.remove('print-landscape');
+    document.body.classList.add('print-portrait');
+    window.print();
+  };
+
+  if (isLoading) {
+    return (
+      <div className={`min-h-screen flex flex-col items-center justify-center font-sans ${isDarkMode ? 'dark bg-slate-950 text-slate-50' : 'bg-[#F4F5F7] text-slate-900'}`}>
+        <div className="flex flex-col items-center gap-4 animate-pulse">
+          <Loader2 className="w-12 h-12 text-orange-500 animate-spin" />
+          <p className="text-sm font-black uppercase tracking-wider text-slate-500">Loading Athletics Lab...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
       className={`min-h-screen font-sans selection:bg-orange-500/30 transition-colors duration-200 ${
         isDarkMode
-          ? 'dark bg-slate-900 text-slate-100'
-          : 'bg-[#F4F5F7] text-slate-800'
+          ? 'dark bg-slate-950 text-slate-50'
+          : 'bg-[#F4F5F7] text-slate-900'
       } print:bg-white print:text-black`}
     >
       {toastMessage && (
@@ -1184,7 +1532,308 @@ export default function TrackFieldPlanner() {
           athlete={selectedAthlete}
           onClose={() => setShowProfileModal(false)}
           onSave={handleSaveProfile}
+          onDelete={handleDeleteAthlete}
         />
+      )}
+
+      {/* SAVE DAY TEMPLATE MODAL */}
+      {saveTemplateModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 print:hidden animate-[fadeIn_0.2s_ease-out]" onClick={() => setSaveTemplateModal({ isOpen: false, day: null, name: '' })}>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200 dark:border-slate-700 p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-extrabold text-slate-800 dark:text-white">Save {saveTemplateModal.day} as Template</h3>
+              <button onClick={() => setSaveTemplateModal({ isOpen: false, day: null, name: '' })} className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-white rounded-full transition-colors"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Template Name</label>
+                <input
+                  type="text"
+                  value={saveTemplateModal.name}
+                  onChange={(e) => setSaveTemplateModal({ ...saveTemplateModal, name: e.target.value })}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none font-semibold"
+                  placeholder="e.g. Acceleration drills, Speed Endurance..."
+                  autoFocus
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  onClick={() => setSaveTemplateModal({ isOpen: false, day: null, name: '' })}
+                  className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveTemplate}
+                  disabled={!saveTemplateModal.name.trim()}
+                  className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-md shadow-orange-500/10 font-bold text-sm disabled:opacity-50 transition-all"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SAVE WEEK TEMPLATE MODAL */}
+      {saveWeekTemplateModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 print:hidden animate-[fadeIn_0.2s_ease-out]" onClick={() => setSaveWeekTemplateModal({ isOpen: false, name: '' })}>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200 dark:border-slate-700 p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-extrabold text-slate-800 dark:text-white">Save Current Week as Template</h3>
+              <button onClick={() => setSaveWeekTemplateModal({ isOpen: false, name: '' })} className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-white rounded-full transition-colors"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Template Name</label>
+                <input
+                  type="text"
+                  value={saveWeekTemplateModal.name}
+                  onChange={(e) => setSaveWeekTemplateModal({ ...saveWeekTemplateModal, name: e.target.value })}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none font-semibold"
+                  placeholder="e.g. SPP Week 1, General Prep Week 3..."
+                  autoFocus
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  onClick={() => setSaveWeekTemplateModal({ isOpen: false, name: '' })}
+                  className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveWeekTemplate}
+                  disabled={!saveWeekTemplateModal.name.trim()}
+                  className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-md shadow-orange-500/10 font-bold text-sm disabled:opacity-50 transition-all"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* ADD ATHLETE MODAL */}
+      {showAddAthleteModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 print:hidden animate-[fadeIn_0.2s_ease-out]" onClick={() => setShowAddAthleteModal(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200 dark:border-slate-700 p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-extrabold text-slate-800 dark:text-white">Add Athlete</h3>
+              <button onClick={() => setShowAddAthleteModal(false)} className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-white rounded-full transition-colors"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Name</label>
+                <input
+                  type="text"
+                  value={newAthleteData.name}
+                  onChange={(e) => setNewAthleteData({ ...newAthleteData, name: e.target.value })}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none"
+                  placeholder="e.g. Noah Lyles"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Birth Year</label>
+                  <input
+                    type="number"
+                    value={newAthleteData.birthYear}
+                    onChange={(e) => setNewAthleteData({ ...newAthleteData, birthYear: e.target.value })}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none"
+                    placeholder="e.g. 1997"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Weight (kg)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={newAthleteData.weight}
+                    onChange={(e) => setNewAthleteData({ ...newAthleteData, weight: e.target.value })}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none"
+                    placeholder="e.g. 70.5"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={handleAddAthlete}
+                className="w-full mt-2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition-colors shadow-md shadow-orange-500/20"
+              >
+                Create Athlete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MONTH CALENDAR OVERLAY MODAL */}
+      {showMonthCalendar && (
+        <div
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 print:hidden animate-[fadeIn_0.2s_ease-out]"
+          onClick={() => setShowMonthCalendar(false)}
+        >
+          <div
+            className="bg-white dark:bg-slate-950 rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden border border-slate-200 dark:border-slate-850 flex flex-col h-[85vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex justify-between items-center p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-orange-500/10 rounded-xl text-orange-500">
+                  <CalendarIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-950 dark:text-slate-50">
+                    Monthly Plan Audit
+                  </h3>
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                    Track & Field Lab
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowMonthCalendar(false)}
+                className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white rounded-full transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Month Switcher */}
+            <div className="flex items-center justify-between px-6 py-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const prev = new Date(currentDate);
+                    prev.setMonth(prev.getMonth() - 1);
+                    setCurrentDate(prev);
+                  }}
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <h4 className="text-sm md:text-base font-black text-slate-950 dark:text-slate-50 min-w-[140px] text-center select-none uppercase tracking-wider">
+                  {currentDate.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+                </h4>
+                <button
+                  onClick={() => {
+                    const next = new Date(currentDate);
+                    next.setMonth(next.getMonth() + 1);
+                    setCurrentDate(next);
+                  }}
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+
+              <button
+                onClick={() => setCurrentDate(new Date())}
+                className="px-3.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+              >
+                Go to Today
+              </button>
+            </div>
+
+            {/* Weekdays Labels */}
+            <div className="grid grid-cols-7 gap-1 px-6 py-2 bg-slate-50 dark:bg-slate-900 text-center border-b border-slate-200 dark:border-slate-800">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
+                <span key={`cal-head-${d}`} className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400 tracking-wider">
+                  {d}
+                </span>
+              ))}
+            </div>
+
+            {/* Calendar Grid Box */}
+            <div className="flex-grow overflow-y-auto p-4 bg-slate-50 dark:bg-slate-950">
+              <div className="grid grid-cols-7 gap-2">
+                {(() => {
+                  const year = currentDate.getFullYear();
+                  const month = currentDate.getMonth();
+
+                  const firstDayIndex = new Date(year, month, 1).getDay();
+                  const totalDays = new Date(year, month + 1, 0).getDate();
+
+                  const cells = [];
+
+                  for (let i = 0; i < firstDayIndex; i++) {
+                    cells.push(
+                      <div
+                        key={`pad-${i}`}
+                        className="h-24 sm:h-32 rounded-2xl bg-slate-100/30 dark:bg-slate-800/10 opacity-30 pointer-events-none"
+                      />
+                    );
+                  }
+
+                  for (let d = 1; d <= totalDays; d++) {
+                    const boxDate = new Date(year, month, d);
+                    const dateKeyStr = getDbDateStr(boxDate);
+                    const workout = monthWorkouts[dateKeyStr];
+
+                    const isToday =
+                      new Date().getDate() === d &&
+                      new Date().getMonth() === month &&
+                      new Date().getFullYear() === year;
+
+                    cells.push(
+                      <button
+                        key={`day-box-${d}`}
+                        onClick={() => {
+                          setCurrentDate(boxDate);
+                          setShowMonthCalendar(false);
+                        }}
+                        className={`group relative h-24 sm:h-32 rounded-2xl border text-left p-2.5 transition-all flex flex-col justify-between ${
+                          isToday
+                            ? 'border-orange-500 bg-orange-50/30 dark:bg-orange-950/10 shadow-md ring-1 ring-orange-400'
+                            : workout?.hasDrills
+                            ? 'border-emerald-400 dark:border-emerald-800 bg-emerald-50/20 dark:bg-emerald-950/20 hover:border-emerald-500'
+                            : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-orange-500/20 hover:scale-[1.01]'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start w-full">
+                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black transition-colors ${
+                            isToday
+                              ? 'bg-orange-500 text-white'
+                              : workout?.hasDrills
+                              ? 'bg-emerald-500 text-white shadow-sm'
+                              : 'text-slate-950 dark:text-slate-50 group-hover:bg-slate-100 dark:group-hover:bg-slate-800'
+                          }`}>
+                            {d}
+                          </span>
+                          {workout?.hasDrills && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></div>
+                          )}
+                        </div>
+
+                        <div className="w-full mt-2 overflow-hidden flex-1 flex flex-col justify-end">
+                          {workout?.title ? (
+                            <span className="text-[10px] font-bold text-slate-950 dark:text-slate-50 leading-tight block truncate group-hover:text-orange-500 transition-colors">
+                              {workout.title}
+                            </span>
+                          ) : workout?.hasDrills ? (
+                            <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-tight block">
+                              Active Plan
+                            </span>
+                          ) : (
+                            <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 select-none block italic opacity-60">
+                              Rest/Off
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  }
+
+                  return cells;
+                })()}
+              </div>
+            </div>
+        </div>
+      </div>
       )}
 
       <Header
@@ -1194,7 +1843,7 @@ export default function TrackFieldPlanner() {
         setShowMonthCalendar={setShowMonthCalendar}
         selectedAthlete={selectedAthlete}
         setSelectedAthleteId={setSelectedAthleteId}
-        athletes={athletes}
+        athletes={athletes || []}
         isAthleteDropdownOpen={isAthleteDropdownOpen}
         setIsAthleteDropdownOpen={setIsAthleteDropdownOpen}
         setShowAddAthleteModal={setShowAddAthleteModal}
@@ -1208,6 +1857,7 @@ export default function TrackFieldPlanner() {
         handleToast={handleToast}
         setSaveWeekTemplateModal={setSaveWeekTemplateModal}
         weeklyStats={weeklyStats}
+        onDeleteAthlete={handleDeleteAthlete}
       />
 
       {/* TRACK & FIELD ANALYTICS DASHBOARD MODAL */}
@@ -1424,6 +2074,29 @@ export default function TrackFieldPlanner() {
                           drill: {
                             ...dayDrillModal.drill,
                             distance: e.target.value,
+                            unit: 'meters'
+                          },
+                        })
+                      }
+                      placeholder="e.g. 30"
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white font-medium text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                ) : dayDrillModal.drill.type === 'isometric' ? (
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
+                      Duration (Seconds)
+                    </label>
+                    <input
+                      type="text"
+                      value={dayDrillModal.drill.reps || ''}
+                      onChange={(e) =>
+                        setDayDrillModal({
+                          ...dayDrillModal,
+                          drill: {
+                            ...dayDrillModal.drill,
+                            reps: e.target.value,
+                            unit: 'sec'
                           },
                         })
                       }
@@ -1435,8 +2108,8 @@ export default function TrackFieldPlanner() {
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
                       {dayDrillModal.drill.type === 'plyometrics'
-                        ? 'Contacts/Reps'
-                        : 'Volume/Reps'}
+                        ? 'Contacts'
+                        : 'Reps'}
                     </label>
                     <input
                       type="text"
@@ -1447,6 +2120,7 @@ export default function TrackFieldPlanner() {
                           drill: {
                             ...dayDrillModal.drill,
                             reps: e.target.value,
+                            unit: dayDrillModal.drill.type === 'plyometrics' ? 'contacts' : 'reps'
                           },
                         })
                       }
@@ -1514,7 +2188,7 @@ export default function TrackFieldPlanner() {
               </div>
             </div>
 
-            <div className="p-5 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
+            <div className="p-5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center">
               {!dayDrillModal.isNew ? (
                 <button
                   onClick={() => {
@@ -1567,6 +2241,195 @@ export default function TrackFieldPlanner() {
         </div>
       )}
 
+      {/* LIBRARY EXERCISE MODAL (CREATE / EDIT LIBRARY DRILLS) */}
+      {addExerciseModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-700">
+            <div className="flex justify-between items-center p-5 border-b border-slate-100 dark:border-slate-700">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                {addExerciseModal.id ? (
+                  <Edit2 className="w-5 h-5 text-orange-500" />
+                ) : (
+                  <Plus className="w-5 h-5 text-orange-500" />
+                )}
+                {addExerciseModal.id ? 'Edit Library Exercise' : 'Create New Library Exercise'}
+              </h3>
+              <button
+                onClick={() =>
+                  setAddExerciseModal({
+                    isOpen: false,
+                    id: null,
+                    title: '',
+                    details: '',
+                    type: 'speed',
+                    percentage: '',
+                    sets: '',
+                    reps: '',
+                    distance: '',
+                    rest: '',
+                    unit: 'meters',
+                  })
+                }
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full hover:bg-slate-100 dark:hover:bg-slate-750 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+              {/* Title */}
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Title</label>
+                <input
+                  type="text"
+                  value={addExerciseModal.title}
+                  onChange={(e) => setAddExerciseModal({ ...addExerciseModal, title: e.target.value })}
+                  placeholder="e.g. 10m Acceleration Sprints"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Description</label>
+                <textarea
+                  value={addExerciseModal.details}
+                  onChange={(e) => setAddExerciseModal({ ...addExerciseModal, details: e.target.value })}
+                  placeholder="Additional execution details..."
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm h-20 resize-none"
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Category</label>
+                <select
+                  value={addExerciseModal.type}
+                  onChange={(e) => setAddExerciseModal({ ...addExerciseModal, type: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
+                >
+                  {Object.entries(EXERCISE_CATEGORIES).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Grid for Parameters */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Sets */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Sets</label>
+                  <input
+                    type="text"
+                    value={addExerciseModal.sets}
+                    onChange={(e) => setAddExerciseModal({ ...addExerciseModal, sets: e.target.value })}
+                    placeholder="e.g. 4"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
+                  />
+                </div>
+
+                {/* Reps */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Reps</label>
+                  <input
+                    type="text"
+                    value={addExerciseModal.reps}
+                    onChange={(e) => setAddExerciseModal({ ...addExerciseModal, reps: e.target.value })}
+                    placeholder="e.g. 10"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
+                  />
+                </div>
+
+                {/* Distance (Only visible if speed or relevant) */}
+                {addExerciseModal.type === 'speed' && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Distance (m)</label>
+                    <input
+                      type="text"
+                      value={addExerciseModal.distance}
+                      onChange={(e) => setAddExerciseModal({ ...addExerciseModal, distance: e.target.value })}
+                      placeholder="e.g. 30"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
+                    />
+                  </div>
+                )}
+
+                {/* Intensity (Percentage) */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Intensity (%)</label>
+                  <input
+                    type="text"
+                    value={addExerciseModal.percentage}
+                    onChange={(e) => setAddExerciseModal({ ...addExerciseModal, percentage: e.target.value })}
+                    placeholder="e.g. 95"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
+                  />
+                </div>
+
+                {/* Rest */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Rest Interval</label>
+                  <input
+                    type="text"
+                    value={addExerciseModal.rest}
+                    onChange={(e) => setAddExerciseModal({ ...addExerciseModal, rest: e.target.value })}
+                    placeholder="e.g. 2 min"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
+                  />
+                </div>
+
+                {/* Unit */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Unit</label>
+                  <select
+                    value={addExerciseModal.unit}
+                    onChange={(e) => setAddExerciseModal({ ...addExerciseModal, unit: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
+                  >
+                    <option value="meters">meters</option>
+                    <option value="reps">reps</option>
+                    <option value="sec">sec</option>
+                    <option value="contacts">contacts</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end items-center gap-3 p-5 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/20">
+              <button
+                onClick={() =>
+                  setAddExerciseModal({
+                    isOpen: false,
+                    id: null,
+                    title: '',
+                    details: '',
+                    type: 'speed',
+                    percentage: '',
+                    sets: '',
+                    reps: '',
+                    distance: '',
+                    rest: '',
+                    unit: 'meters',
+                  })
+                }
+                className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-200 font-bold text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveLibraryExercise}
+                disabled={!addExerciseModal.title.trim()}
+                className="px-6 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-xl shadow-md font-bold text-sm flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" />{' '}
+                {addExerciseModal.id ? 'Save Changes' : 'Create Drill'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
       {/* Main UI Structure Wrapper */}
       <div
         className={`flex flex-col md:flex-row transition-all duration-300 w-full h-[calc(100vh-64px)] overflow-hidden relative print:h-auto print:overflow-visible ${
@@ -1586,17 +2449,94 @@ export default function TrackFieldPlanner() {
           onClearWeek={() =>
             setDeleteConfirmation({ isOpen: true, type: 'week' })
           }
-          onPrint={() => window.print()}
+          onPrintLandscape={handlePrintLandscape}
+          onPrintPortrait={handlePrintPortrait}
         />
 
         <div
-          className={`flex-1 overflow-x-auto overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50 print:bg-white print:overflow-visible w-full pb-24 md:pb-0 relative transition-all duration-300 ${
-            showLibrary ? 'md:mr-80' : ''
-          }`}
+          className="flex-1 overflow-x-auto overflow-y-auto bg-[#F4F5F7] dark:bg-slate-950 print:bg-white print:overflow-visible w-full pb-24 md:pb-0 relative transition-all duration-300"
         >
+          {/* MOBILE WEEK NAVIGATION SUB-HEADER */}
+          {isMobileView && (
+            <div className="flex items-center justify-between px-4 py-2 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 print:hidden select-none">
+              <button
+                onClick={handlePrevWeek}
+                className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200/50 dark:border-slate-855 bg-slate-50/50 dark:bg-slate-900/50"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              
+              <button
+                onClick={() => setShowMonthCalendar(true)}
+                className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl border border-slate-200/50 dark:border-slate-700/50 transition-all text-xs font-black shadow-sm"
+              >
+                <CalendarIcon className="w-3.5 h-3.5 text-orange-500" />
+                <span>{formatDateRange()}</span>
+              </button>
+
+              <button
+                onClick={handleNextWeek}
+                className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200/50 dark:border-slate-855 bg-slate-50/50 dark:bg-slate-900/50"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* HORIZONTALLY SCROLLABLE MOBILE DAY CAROUSEL */}
+          {isMobileView && (
+            <div className="flex gap-2 overflow-x-auto px-4 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200/60 dark:border-slate-800/80 print:hidden select-none scrollbar-none">
+              {DAYS_OF_WEEK.map((day, idx) => {
+                const drills = schedule[day] || [];
+                const stats = calculateDayVolume(drills);
+                const load = stats.totalVolumeScore;
+
+                let pillColor = 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900 text-slate-500 dark:text-slate-400';
+                if (load > 0) {
+                  if (load < 1000) {
+                    pillColor = 'border-blue-300 bg-blue-50/60 dark:border-blue-900/40 dark:bg-blue-955/20 text-blue-600 dark:text-blue-400';
+                  } else if (load > 3000) {
+                    pillColor = 'border-red-300 bg-red-50/60 dark:border-red-900/40 dark:bg-red-955/20 text-red-600 dark:text-red-400';
+                  } else {
+                    pillColor = 'border-green-300 bg-green-50/60 dark:border-green-900/40 dark:bg-green-955/20 text-green-600 dark:text-green-400';
+                  }
+                }
+
+                const isActive = activeMobileDay === day;
+
+                return (
+                  <button
+                    key={`mob-pill-${day}`}
+                    onClick={() => setActiveMobileDay(day)}
+                    className={`flex flex-col items-center min-w-[70px] p-2 rounded-2xl border transition-all relative ${pillColor} ${
+                      isActive
+                        ? 'scale-105 font-bold shadow-md shadow-orange-500/10 border-orange-500 dark:border-orange-500 bg-orange-500/5 dark:bg-orange-500/5'
+                        : 'opacity-75 hover:opacity-100'
+                    }`}
+                  >
+                    <span className="text-[9px] uppercase font-black tracking-wider">
+                      {day.slice(0, 3)}
+                    </span>
+                    <span className="text-xs font-black mt-0.5">
+                      {weekDates[idx]}
+                    </span>
+                    {load > 0 && (
+                      <span className="text-[8px] font-black uppercase mt-1 px-1 bg-white/60 dark:bg-black/30 rounded-md">
+                        {load} AU
+                      </span>
+                    )}
+                    {isActive && (
+                      <span className="absolute bottom-1 w-5 h-0.5 bg-orange-500 rounded-full animate-[pulse_1.5s_infinite]"></span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <div
-            className={`flex h-full p-2 md:p-4 gap-2 print:grid print:grid-cols-2 print:gap-x-12 print:gap-y-6 print:p-4 ${
-              isMobileView ? 'flex-col w-full' : 'flex-row w-full'
+            className={`flex h-full p-2 md:p-4 gap-3.5 print-stacked-layout print:grid print:grid-cols-2 print:gap-x-12 print:gap-y-6 print:p-4 ${
+              isMobileView ? 'flex-col w-full' : 'flex-row w-full min-w-0'
             }`}
           >
             {DAYS_OF_WEEK.map((day, index) => {
@@ -1613,27 +2553,82 @@ export default function TrackFieldPlanner() {
                   ? Math.round((dayStats.cnsLoad / dayTotalCombined) * 100)
                   : 0;
 
+              const isDayVisibleOnMobile = activeMobileDay === day;
+              const displayClass = isMobileView
+                ? (isDayVisibleOnMobile ? 'flex flex-col w-full px-2 pb-8' : 'hidden print:flex print:flex-col')
+                : 'flex flex-col flex-1 min-w-0 transition-all duration-300';
+
               return (
                 <div
                   key={day}
-                  className={`flex flex-col ${
-                    isMobileView
-                      ? 'w-full mb-6 border-b pb-6'
-                      : 'flex-1 min-w-[160px] 2xl:min-w-[200px]'
-                  } print:break-inside-avoid print:mb-0`}
+                  className={`${displayClass} print:break-inside-avoid print:mb-0`}
                 >
                   <div className="mb-4 flex flex-col group border-b border-slate-200 dark:border-slate-700 pb-3 px-1 md:px-2">
-                    <div className="flex justify-between items-baseline mb-2">
-                      <span className="text-[10px] md:text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                        {day}
-                      </span>
-                      <span className="text-[9px] md:text-[10px] font-medium text-slate-400/80">
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] md:text-xs font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase">
+                          {day}
+                        </span>
+                        {/* Quick Day Copy/Paste Buttons */}
+                        {!isPreviewMode && (
+                          <div className="flex items-center gap-1.5 print:hidden">
+                            <button
+                              onClick={() => handleCopyDay(day)}
+                              className="p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-orange-500 dark:hover:text-orange-400 rounded transition-colors"
+                              title="Copy Day Exercises"
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => handlePasteIntoDay(day)}
+                              disabled={!clipboard}
+                              className={`p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors ${
+                                clipboard ? 'text-slate-500 dark:text-slate-400 hover:text-orange-500' : 'text-slate-200 dark:text-slate-700 cursor-not-allowed opacity-40'
+                              }`}
+                              title="Paste Clipboard (Exercise or Day)"
+                            >
+                              <ClipboardPaste className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setSaveTemplateModal({ isOpen: true, day: day, name: '' })}
+                              disabled={dayDrills.length === 0}
+                              className={`p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors ${
+                                dayDrills.length > 0
+                                  ? 'text-slate-500 dark:text-slate-400 hover:text-orange-500'
+                                  : 'text-slate-200 dark:text-slate-700 cursor-not-allowed opacity-40'
+                              }`}
+                              title="Save Day as Template"
+                            >
+                              <BookmarkPlus className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() =>
+                                setDeleteConfirmation({
+                                  isOpen: true,
+                                  type: 'day',
+                                  targetDay: day,
+                                })
+                              }
+                              disabled={dayDrills.length === 0}
+                              className={`p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors ${
+                                dayDrills.length > 0
+                                  ? 'text-slate-500 dark:text-slate-400 hover:text-red-500'
+                                  : 'text-slate-200 dark:text-slate-700 cursor-not-allowed opacity-40'
+                              }`}
+                              title="Clear Day Exercises"
+                            >
+                              <Trash className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-[9px] md:text-[10px] font-semibold text-slate-400 dark:text-slate-500 whitespace-nowrap">
                         {fullDateStr}
                       </span>
                     </div>
                     <div className="flex items-start gap-1 md:gap-2 justify-between">
                       <div className="flex items-start gap-1 md:gap-2 flex-1">
-                        <div className="w-6 h-6 md:w-8 md:h-8 shrink-0 rounded-full border flex items-center justify-center text-xs md:text-sm font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800">
+                        <div className="w-6 h-6 md:w-8 md:h-8 shrink-0 rounded-full border border-slate-200 dark:border-slate-800 flex items-center justify-center text-xs md:text-sm font-black text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 shadow-sm">
                           {weekDates[index]}
                         </div>
                         <input
@@ -1643,7 +2638,7 @@ export default function TrackFieldPlanner() {
                             handleDayTitleChange(day, e.target.value)
                           }
                           placeholder="Workout Focus"
-                          className="text-xs md:text-[14px] font-medium text-slate-700 dark:text-slate-200 bg-transparent border-none outline-none w-full"
+                          className="text-xs md:text-[14px] font-bold text-slate-900 dark:text-slate-50 bg-transparent border-none outline-none w-full placeholder-slate-400 dark:placeholder-slate-500"
                           readOnly={isPreviewMode}
                         />
                       </div>
@@ -1772,6 +2767,261 @@ export default function TrackFieldPlanner() {
             })}
           </div>
         </div>
+
+        {/* Integrated Exercise Library Drawer */}
+        {showLibrary && (
+          <ExerciseLibrary
+            library={library}
+            onDragStart={handleLibraryDragStart}
+            onDeleteDrill={handleDeleteLibraryDrill}
+            onEditDrill={handleEditLibraryDrill}
+            onDeleteTemplate={handleDeleteLibraryTemplate}
+            onApplyProgram={handleApplyProgramBlock}
+            onDeleteProgram={handleDeleteProgramBlock}
+            programs={programs}
+            onClose={() => setShowLibrary(false)}
+            onAddDrill={() => setAddExerciseModal({
+              isOpen: true,
+              id: null,
+              title: '',
+              details: '',
+              type: 'speed',
+              percentage: '',
+              sets: '',
+              reps: '',
+              distance: '',
+              rest: '',
+              unit: 'meters'
+            })}
+            onLibraryDrop={handleLibraryDropzone}
+          />
+        )}
+
+        {/* NATIVE MOBILE BOTTOM TAB BAR */}
+        {isMobileView && (
+          <div className="fixed bottom-0 left-0 right-0 h-16 bg-white/95 dark:bg-slate-950/95 border-t border-slate-200/60 dark:border-slate-800/80 backdrop-blur-md flex items-center justify-around px-4 z-[110] shadow-[0_-4px_16px_rgba(0,0,0,0.04)] print:hidden">
+            {/* Planner Tab */}
+            <button
+              onClick={() => {
+                setShowLibrary(false);
+                setShowMobileTools(false);
+                setIsAthleteDropdownOpen(false);
+              }}
+              className={`flex flex-col items-center gap-1 transition-all ${
+                !showLibrary && !showMobileTools && !isAthleteDropdownOpen
+                  ? 'text-orange-500 font-extrabold scale-105'
+                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-350'
+              }`}
+            >
+              <CalendarIcon className="w-5 h-5" />
+              <span className="text-[9px] uppercase tracking-wider font-black">Planner</span>
+            </button>
+
+            {/* Roster Tab */}
+            <button
+              onClick={() => {
+                setIsAthleteDropdownOpen(!isAthleteDropdownOpen);
+                setShowLibrary(false);
+                setShowMobileTools(false);
+              }}
+              className={`flex flex-col items-center gap-1 transition-all ${
+                isAthleteDropdownOpen
+                  ? 'text-orange-500 font-extrabold scale-105'
+                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-350'
+              }`}
+            >
+              <User className="w-5 h-5" />
+              <span className="text-[9px] uppercase tracking-wider font-black">Roster</span>
+            </button>
+
+            {/* Library Tab */}
+            <button
+              onClick={() => {
+                setShowLibrary(!showLibrary);
+                setShowMobileTools(false);
+                setIsAthleteDropdownOpen(false);
+              }}
+              className={`flex flex-col items-center gap-1 transition-all ${
+                showLibrary
+                  ? 'text-orange-500 font-extrabold scale-105'
+                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-350'
+              }`}
+            >
+              <Library className="w-5 h-5" />
+              <span className="text-[9px] uppercase tracking-wider font-black">Library</span>
+            </button>
+
+            {/* Tools Tab */}
+            <button
+              onClick={() => {
+                setShowMobileTools(!showMobileTools);
+                setShowLibrary(false);
+                setIsAthleteDropdownOpen(false);
+              }}
+              className={`flex flex-col items-center gap-1 transition-all ${
+                showMobileTools
+                  ? 'text-orange-500 font-extrabold scale-105'
+                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-350'
+              }`}
+            >
+              <Sliders className="w-5 h-5" />
+              <span className="text-[9px] uppercase tracking-wider font-black">Tools</span>
+            </button>
+          </div>
+        )}
+
+        {/* NATIVE MOBILE TOOLS BOTTOM SHEET */}
+        {showMobileTools && isMobileView && (
+          <div className="fixed inset-0 z-[150] print:hidden">
+            {/* Backdrop overlay */}
+            <div
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-200"
+              onClick={() => setShowMobileTools(false)}
+            />
+            {/* Sheet content */}
+            <div className="absolute bottom-0 left-0 right-0 max-w-[420px] mx-auto bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl p-5 space-y-4 animate-[slideUp_0.25s_ease-out] border-t border-slate-200 dark:border-slate-800">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
+                <h3 className="text-xs font-black text-slate-900 dark:text-slate-50 uppercase tracking-wider flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-orange-500 animate-pulse" />
+                  Planner Tools & Actions
+                </h3>
+                <button
+                  onClick={() => setShowMobileTools(false)}
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-full transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                {/* Save Week as Template */}
+                <button
+                  onClick={() => {
+                    setSaveWeekTemplateModal({ isOpen: true, name: '' });
+                    setShowMobileTools(false);
+                  }}
+                  className="flex flex-col items-center justify-center p-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/40 dark:hover:bg-slate-800/70 border border-slate-200/50 dark:border-slate-800 rounded-2xl gap-1.5 transition-all active:scale-95"
+                >
+                  <Save className="w-5 h-5 text-indigo-500" />
+                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200">Save Week Template</span>
+                </button>
+
+                {/* Open Workload Stats */}
+                <button
+                  onClick={() => {
+                    setShowStatsModal(true);
+                    setShowMobileTools(false);
+                  }}
+                  className="flex flex-col items-center justify-center p-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/40 dark:hover:bg-slate-800/70 border border-slate-200/50 dark:border-slate-800 rounded-2xl gap-1.5 transition-all active:scale-95"
+                >
+                  <BarChart3 className="w-5 h-5 text-orange-500" />
+                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200">Load Analytics</span>
+                </button>
+
+                {/* Copy Week */}
+                <button
+                  onClick={() => {
+                    handleCopyWeek();
+                    setShowMobileTools(false);
+                  }}
+                  className="flex flex-col items-center justify-center p-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/40 dark:hover:bg-slate-800/70 border border-slate-200/50 dark:border-slate-800 rounded-2xl gap-1.5 transition-all active:scale-95"
+                >
+                  <Copy className="w-5 h-5 text-amber-500" />
+                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200">Copy Week</span>
+                </button>
+
+                {/* Paste Week */}
+                <button
+                  onClick={() => {
+                    handlePasteWeek();
+                    setShowMobileTools(false);
+                  }}
+                  className="flex flex-col items-center justify-center p-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/40 dark:hover:bg-slate-800/70 border border-slate-200/50 dark:border-slate-800 rounded-2xl gap-1.5 transition-all active:scale-95"
+                >
+                  <ClipboardPaste className="w-5 h-5 text-emerald-500" />
+                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200">Paste Week</span>
+                </button>
+
+                {/* Undo */}
+                <button
+                  onClick={() => {
+                    handleUndo();
+                  }}
+                  disabled={historyIndex <= 0}
+                  className={`flex flex-col items-center justify-center p-3 border rounded-2xl gap-1.5 transition-all active:scale-95 ${
+                    historyIndex > 0
+                      ? 'bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/40 dark:hover:bg-slate-800/70 border-slate-200/50 dark:border-slate-800 text-slate-700 dark:text-slate-200'
+                      : 'border-slate-100 dark:border-slate-800/20 opacity-40 cursor-not-allowed text-slate-400'
+                  }`}
+                >
+                  <Undo2 className="w-5 h-5 text-sky-500" />
+                  <span className="text-[10px] font-bold">Undo Action</span>
+                </button>
+
+                {/* Redo */}
+                <button
+                  onClick={() => {
+                    handleRedo();
+                  }}
+                  disabled={historyIndex >= history.length - 1}
+                  className={`flex flex-col items-center justify-center p-3 border rounded-2xl gap-1.5 transition-all active:scale-95 ${
+                    historyIndex < history.length - 1
+                      ? 'bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/40 dark:hover:bg-slate-800/70 border-slate-200/50 dark:border-slate-800 text-slate-700 dark:text-slate-200'
+                      : 'border-slate-100 dark:border-slate-800/20 opacity-40 cursor-not-allowed text-slate-400'
+                  }`}
+                >
+                  <Redo2 className="w-5 h-5 text-sky-500" />
+                  <span className="text-[10px] font-bold">Redo Action</span>
+                </button>
+              </div>
+
+              {/* Clear Entire Week (Danger Area) */}
+              <button
+                onClick={() => {
+                  setDeleteConfirmation({ isOpen: true, type: 'week' });
+                  setShowMobileTools(false);
+                }}
+                className="w-full py-3 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 rounded-2xl border border-red-200/50 dark:border-red-900/30 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+              >
+                <Trash2 className="w-4 h-4 text-red-500" />
+                Clear Entire Week
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Custom PWA Install Action Banner */}
+        {deferredPrompt && (
+          <div className="fixed bottom-6 right-6 z-[150] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-white rounded-3xl border border-slate-700/50 dark:border-slate-800 shadow-[0_20px_50px_rgba(0,0,0,0.4)] p-4 max-w-sm flex flex-col gap-3 animate-[slideUp_0.3s_ease-out] print:hidden">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-tr from-orange-500 to-amber-500 rounded-2xl shadow-lg shadow-orange-500/20">
+                <Smartphone className="w-5 h-5 text-white animate-pulse" />
+              </div>
+              <div>
+                <h4 className="text-xs font-black uppercase tracking-wider text-orange-400">
+                  Install Track Lab
+                </h4>
+                <p className="text-[10px] text-slate-300 font-medium leading-normal mt-0.5">
+                  Add to your home screen for full offline support, standalone premium mode & high performance.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleInstallApp}
+                className="flex-1 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-bold text-[10px] uppercase tracking-wider shadow-md shadow-orange-500/20 transition-all hover:scale-[1.01]"
+              >
+                Install Web App
+              </button>
+              <button
+                onClick={() => setDeferredPrompt(null)}
+                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
