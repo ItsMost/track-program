@@ -2718,6 +2718,54 @@ export default function TrackFieldPlanner() {
         </div>
       )}
 
+      {/* DELETION CONFIRMATION MODAL */}
+      {deleteConfirmation.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[250] flex items-center justify-center p-4 print:hidden animate-[fadeIn_0.2s_ease-out]">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col">
+            <div className="p-5 flex flex-col items-center text-center space-y-4">
+              <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-950/20 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-500 animate-bounce" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+                  {deleteConfirmation.type === 'week' 
+                    ? 'Clear Entire Week / مسح الأسبوع بالكامل' 
+                    : `Clear ${deleteConfirmation.targetDay} / مسح تمارين اليوم`
+                  }
+                </h3>
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-450 mt-2 leading-relaxed">
+                  {deleteConfirmation.type === 'week'
+                    ? 'Are you sure you want to delete all exercises and reset this week\'s plan? This action cannot be undone.'
+                    : `Are you sure you want to clear all exercises for ${deleteConfirmation.targetDay}?`
+                  }
+                </p>
+                <p className="text-[10px] text-red-500 font-semibold font-arabic leading-relaxed mt-1">
+                  {deleteConfirmation.type === 'week'
+                    ? '(هل أنت متأكد من رغبتك في حذف جميع تمارين هذا الأسبوع؟ لا يمكن التراجع عن هذا الإجراء)'
+                    : `(هل أنت متأكد من رغبتك في حذف جميع التمارين المجدولة ليوم ${deleteConfirmation.targetDay}؟)`
+                  }
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2.5">
+              <button
+                onClick={() => setDeleteConfirmation({ isOpen: false, type: null, targetDay: null })}
+                className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 font-bold text-xs"
+              >
+                Cancel / إلغاء
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-600/10 flex items-center gap-1.5 transition-all active:scale-95"
+              >
+                <Trash className="w-3.5 h-3.5" /> Clear / تأكيد المسح
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* PDF & PRINTING STUDIOS MODAL */}
       {showPrintModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[200] flex items-center justify-center p-4 print:hidden animate-[fadeIn_0.2s_ease-out]">
