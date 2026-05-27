@@ -14,7 +14,8 @@ import {
   Activity,
   BarChart3,
   Dumbbell,
-  Trash2
+  Trash2,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function Header({
@@ -37,6 +38,8 @@ export default function Header({
   setShowLibrary,
   handleToast,
   setSaveWeekTemplateModal,
+  setSaveBlockRangeModal,
+  setShowRulebookModal,
   weeklyStats,
   onDeleteAthlete
 }) {
@@ -297,9 +300,16 @@ export default function Header({
             <button
               onClick={() => setSaveWeekTemplateModal({ isOpen: true, name: '' })}
               className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors hidden md:block"
-              title="Save Week as Template"
+              title="Save Week as Template / حفظ الأسبوع كقالب"
             >
               <Save className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setSaveBlockRangeModal({ isOpen: true, name: '', startWeek: 1, endWeek: 4 })}
+              className="p-1.5 text-slate-500 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors hidden md:block"
+              title="Save Block Range (Multi-Week) / تكرار وحفظ مدى الأسابيع الكبرى"
+            >
+              <Calendar className="w-4 h-4 text-orange-500" />
             </button>
             <button
               onClick={() => setShowLibrary(!showLibrary)}
@@ -308,9 +318,16 @@ export default function Header({
                   ? 'bg-orange-500/10 text-orange-500 font-bold'
                   : 'text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
-              title="Toggle Exercise Library"
+              title="Toggle Exercise Library / مكتبة التمارين"
             >
               <Library className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setShowRulebookModal(true)}
+              className="p-1.5 text-slate-500 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+              title="Coach's Rulebook & Protocols / دليل وقوانين المدرب"
+            >
+              <ShieldCheck className="w-4.5 h-4.5 text-orange-500" />
             </button>
             <button
               onClick={() => setIsMobileView(!isMobileView)}

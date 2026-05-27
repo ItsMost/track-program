@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import * as htmlToImage from 'html-to-image';
 import {
   Check,
   AlertTriangle,
@@ -138,6 +139,13 @@ export default function TrackFieldPlanner() {
   });
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showMobileTools, setShowMobileTools] = useState(false);
+  const [saveBlockRangeModal, setSaveBlockRangeModal] = useState({
+    isOpen: false,
+    name: '',
+    startWeek: 1,
+    endWeek: 4,
+  });
+  const [showRulebookModal, setShowRulebookModal] = useState(false);
 
   const [draggedItem, setDraggedItem] = useState(null);
   const [createProgramModal, setCreateProgramModal] = useState({
@@ -1353,15 +1361,20 @@ export default function TrackFieldPlanner() {
   };
   const handleSaveWeekTemplate = async () => {
     if (!saveWeekTemplateModal.name.trim()) return;
-    const allDrills = [];
+    const weekDrills = {};
+    let hasDrills = false;
     DAYS_OF_WEEK.forEach((day) => {
-      schedule[day].forEach((drill) => allDrills.push({ ...drill }));
+      weekDrills[day] = (schedule[day] || []).map((drill) => ({ ...drill }));
+      if (weekDrills[day].length > 0) hasDrills = true;
     });
-    if (allDrills.length === 0) return;
+    if (!hasDrills) {
+      handleToast('Cannot save an empty template!');
+      return;
+    }
     const newTemplate = {
       template_name: saveWeekTemplateModal.name,
       template_type: 'week',
-      drills: allDrills,
+      drills: weekDrills,
     };
     const { error, data } = await supabase
       .from('track_week_templates')
@@ -1383,6 +1396,223 @@ export default function TrackFieldPlanner() {
       }));
       setSaveWeekTemplateModal({ isOpen: false, name: '' });
       handleToast(`Saved Week Template`);
+    }
+  };
+
+  const handleApplyTemplate = async (tpl) => {
+    if (!selectedAthleteId) {
+      handleToast("Please select an athlete first!");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const drillsObj = tpl.drills || {};
+      const newSchedule = { ...schedule };
+      const newTitles = { ...dayTitles };
+      const upserts = [];
+
+      for (let i = 0; i < DAYS_OF_WEEK.length; i++) {
+        const day = DAYS_OF_WEEK[i];
+        const dayDate = new Date(currentWeekStart);
+        dayDate.setDate(dayDate.getDate() + i);
+        const dateStr = getDbDateStr(dayDate);
+
+        let dayDrills = [];
+        if (tpl.type === 'day' || tpl.template_type === 'day') {
+          const targetDay = activeMobileDay || 'Saturday';
+          if (day === targetDay) {
+            dayDrills = (Array.isArray(drillsObj) ? drillsObj : []).map((d, idx) => ({
+              ...d,
+              id: `tpl-${Date.now()}-${day}-${idx}`,
+            }));
+            newSchedule[day] = dayDrills;
+            newTitles[day] = tpl.title || 'Template Workout';
+            upserts.push({
+              athlete_id: selectedAthleteId,
+              workout_date: dateStr,
+              workout_title: tpl.title || 'Template Workout',
+              drills: dayDrills,
+            });
+          }
+        } else {
+          if (Array.isArray(drillsObj)) {
+            dayDrills = i === 0 ? drillsObj.map((d, idx) => ({ ...d, id: `tpl-${Date.now()}-${idx}` })) : [];
+          } else {
+            dayDrills = (drillsObj[day] || []).map((d, idx) => ({
+              ...d,
+              id: `tpl-${Date.now()}-${day}-${idx}`,
+            }));
+          }
+          newSchedule[day] = dayDrills;
+          newTitles[day] = tpl.title || 'Template Workout';
+          upserts.push({
+            athlete_id: selectedAthleteId,
+            workout_date: dateStr,
+            workout_title: tpl.title || 'Template Workout',
+            drills: dayDrills,
+          });
+        }
+      }
+
+      if (upserts.length > 0) {
+        const { error } = await supabase
+          .from('track_athlete_workouts')
+          .upsert(upserts, { onConflict: 'athlete_id,workout_date' });
+        if (error) throw error;
+      }
+
+      setSchedule(newSchedule);
+      setDayTitles(newTitles);
+      pushToHistory(newSchedule, newTitles);
+      handleToast(`Successfully applied template: ${tpl.title}`);
+    } catch (err) {
+      console.error("Error applying template:", err);
+      handleToast(`Error applying template: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  const handleSaveBlockRange = async () => {
+    if (!selectedAthleteId) {
+      handleToast("Please select an athlete first!");
+      return;
+    }
+    const { name, startWeek, endWeek } = saveBlockRangeModal;
+    if (!name.trim()) {
+      handleToast("Please enter a block name!");
+      return;
+    }
+    if (endWeek < startWeek) {
+      handleToast("End week must be greater than or equal to start week!");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const upserts = [];
+      const compiledWeeks = [];
+
+      for (let w = startWeek; w <= endWeek; w++) {
+        const weekShift = w - startWeek;
+        const shiftDays = weekShift * 7;
+        const weekDrillsObj = {};
+
+        for (let j = 0; j < DAYS_OF_WEEK.length; j++) {
+          const day = DAYS_OF_WEEK[j];
+          const targetDate = new Date(currentWeekStart);
+          targetDate.setDate(targetDate.getDate() + j + shiftDays);
+          const dateStr = getDbDateStr(targetDate);
+
+          const dayDrillsCloned = (schedule[day] || []).map((drill, idx) => ({
+            ...drill,
+            id: `block-${Date.now()}-${w}-${j}-${idx}-${Math.floor(Math.random() * 1000)}`,
+          }));
+
+          weekDrillsObj[day] = dayDrillsCloned;
+
+          upserts.push({
+            athlete_id: selectedAthleteId,
+            workout_date: dateStr,
+            workout_title: name,
+            drills: dayDrillsCloned,
+          });
+        }
+
+        compiledWeeks.push({
+          title: `Week ${w}`,
+          drills: weekDrillsObj,
+          blockTags: `Replicated Week ${w}`,
+        });
+      }
+
+      const { error: upsertError } = await supabase
+        .from('track_athlete_workouts')
+        .upsert(upserts, { onConflict: 'athlete_id,workout_date' });
+
+      if (upsertError) throw upsertError;
+
+      const macroPayload = {
+        program_name: name,
+        weeks: compiledWeeks,
+      };
+
+      const { error: macroError } = await supabase
+        .from('track_macro_programs')
+        .insert([macroPayload]);
+
+      if (macroError) throw macroError;
+
+      setSaveBlockRangeModal({
+        isOpen: false,
+        name: '',
+        startWeek: 1,
+        endWeek: 4,
+      });
+
+      await fetchLibraryData();
+
+      // Trigger calendar refetch instantly
+      const endStr = getDbDateStr(weekDatesFull[6]);
+      const { data: refetchedWorkouts } = await supabase
+        .from('track_athlete_workouts')
+        .select('*')
+        .eq('athlete_id', selectedAthleteId)
+        .gte('workout_date', weekStartDateStr)
+        .lte('workout_date', endStr);
+
+      const newSchedule = {};
+      const newTitles = {};
+      DAYS_OF_WEEK.forEach((day) => {
+        newSchedule[day] = [];
+        newTitles[day] = '';
+      });
+      if (refetchedWorkouts) {
+        refetchedWorkouts.forEach((record) => {
+          const recordDate = new Date(record.workout_date);
+          const dayName = JS_DAYS[recordDate.getDay()];
+          if (dayName && DAYS_OF_WEEK.includes(dayName)) {
+            newSchedule[dayName] = record.drills || [];
+            newTitles[dayName] = record.workout_title || '';
+          }
+        });
+      }
+      setSchedule(newSchedule);
+      setDayTitles(newTitles);
+      pushToHistory(newSchedule, newTitles);
+
+      handleToast(`Successfully saved Block: ${name} across Weeks ${startWeek} to ${endWeek}`);
+    } catch (err) {
+      console.error("Error in handleSaveBlockRange:", err);
+      handleToast(`Block replication failed: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  const handleExportMobileImage = async () => {
+    const el = document.getElementById('mobile-export-card');
+    if (!el) {
+      handleToast("Export container not found / لم يتم العثور على بطاقة التصدير!");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const dataUrl = await htmlToImage.toPng(el, {
+        pixelRatio: 3,
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
+        }
+      });
+      const link = document.createElement('a');
+      link.download = `${selectedAthlete?.name || 'Athlete'}_${activeMobileDay}_Workout.png`;
+      link.href = dataUrl;
+      link.click();
+      handleToast(`Successfully exported mobile image for ${activeMobileDay}! / تم تصدير بطاقة الجوال بنجاح!`);
+    } catch (err) {
+      console.error("Error exporting mobile image:", err);
+      handleToast(`Mobile image export failed: ${err.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
   const handleAddAthlete = async () => {
@@ -1776,6 +2006,76 @@ export default function TrackFieldPlanner() {
         </div>
       )}
 
+      {/* SAVE BLOCK RANGE MODAL (MULTI-WEEK SELECTOR) */}
+      {saveBlockRangeModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 print:hidden animate-[fadeIn_0.2s_ease-out]" onClick={() => setSaveBlockRangeModal({ isOpen: false, name: '', startWeek: 1, endWeek: 4 })}>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200 dark:border-slate-700 p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
+                <CalendarIcon className="w-5 h-5 text-orange-500" /> Save Block Range / حفظ كتل الأسابيع
+              </h3>
+              <button onClick={() => setSaveBlockRangeModal({ isOpen: false, name: '', startWeek: 1, endWeek: 4 })} className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-white rounded-full transition-colors"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Block Name / اسم الوحدة الكبرى</label>
+                <input
+                  type="text"
+                  value={saveBlockRangeModal.name}
+                  onChange={(e) => setSaveBlockRangeModal({ ...saveBlockRangeModal, name: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-650 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none font-bold text-sm"
+                  placeholder="e.g. 4-Week Block Sprints..."
+                  autoFocus
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Start Week / أسبوع البدء</label>
+                  <select
+                    value={saveBlockRangeModal.startWeek}
+                    onChange={(e) => setSaveBlockRangeModal({ ...saveBlockRangeModal, startWeek: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-650 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-bold text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((w) => (
+                      <option key={`start-w-${w}`} value={w}>Week {w}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">End Week / أسبوع الانتهاء</label>
+                  <select
+                    value={saveBlockRangeModal.endWeek}
+                    onChange={(e) => setSaveBlockRangeModal({ ...saveBlockRangeModal, endWeek: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-650 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-bold text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].filter(w => w >= saveBlockRangeModal.startWeek).map((w) => (
+                      <option key={`end-w-${w}`} value={w}>Week {w}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2.5 pt-3">
+                <button
+                  onClick={() => setSaveBlockRangeModal({ isOpen: false, name: '', startWeek: 1, endWeek: 4 })}
+                  className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-sm"
+                >
+                  Cancel / إلغاء
+                </button>
+                <button
+                  onClick={handleSaveBlockRange}
+                  disabled={!saveBlockRangeModal.name.trim() || saveBlockRangeModal.endWeek < saveBlockRangeModal.startWeek}
+                  className="px-6 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl shadow-md font-bold text-sm disabled:opacity-50 transition-all active:scale-95"
+                >
+                  Save Range / تأكيد التكرار
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* ADD ATHLETE MODAL */}
       {showAddAthleteModal && (
@@ -2016,6 +2316,8 @@ export default function TrackFieldPlanner() {
         setShowLibrary={setShowLibrary}
         handleToast={handleToast}
         setSaveWeekTemplateModal={setSaveWeekTemplateModal}
+        setSaveBlockRangeModal={setSaveBlockRangeModal}
+        setShowRulebookModal={setShowRulebookModal}
         weeklyStats={weeklyStats}
         onDeleteAthlete={handleDeleteAthlete}
       />
@@ -2981,14 +3283,39 @@ export default function TrackFieldPlanner() {
                   </button>
                 </div>
               </div>
+
+              {/* 3. Mobile Card Export */}
+              <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                  3. Select Day for Mobile Image / اختر يوم التصدير للجوال
+                </label>
+                <select
+                  value={activeMobileDay}
+                  onChange={(e) => setActiveMobileDay(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-850 dark:text-slate-200 font-bold text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                >
+                  {DAYS_OF_WEEK.map((day) => (
+                    <option key={`export-day-opt-${day}`} value={day}>{day}</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400 font-medium leading-normal">
+                  Creates a vertically cropped high-contrast 9:16 ratio PNG card designed for easy sharing via WhatsApp.
+                </p>
+              </div>
             </div>
 
-            <div className="p-5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+            <div className="p-5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 flex-wrap">
               <button
                 onClick={() => setShowPrintModal(false)}
-                className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 font-bold text-sm"
+                className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 font-bold text-sm mr-auto"
               >
                 Cancel / إلغاء
+              </button>
+              <button
+                onClick={handleExportMobileImage}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-sm shadow-lg flex items-center gap-2 transition-all active:scale-95"
+              >
+                <Smartphone className="w-4 h-4" /> Export Mobile / تصدير كصورة
               </button>
               <button
                 onClick={triggerActualPrint}
@@ -3590,6 +3917,7 @@ export default function TrackFieldPlanner() {
             onDeleteDrill={handleDeleteLibraryDrill}
             onEditDrill={handleEditLibraryDrill}
             onDeleteTemplate={handleDeleteLibraryTemplate}
+            onApplyTemplate={handleApplyTemplate}
             onApplyProgram={handleApplyProgramBlock}
             onDeleteProgram={handleDeleteProgramBlock}
             programs={programs}
@@ -3837,6 +4165,281 @@ export default function TrackFieldPlanner() {
           </div>
         )}
       </div>
+
+      {/* MOBILE EXPORT VIEWPORT CONTAINER (OFF-SCREEN 9:16 HIGH-CONTRAST LIGHT MODE FRAME) */}
+      <div
+        id="mobile-export-card"
+        style={{
+          position: 'absolute',
+          left: '-9999px',
+          top: '-9999px',
+          width: '360px',
+          height: '640px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          padding: '24px',
+          backgroundColor: '#f8fafc',
+          color: '#0f172a',
+          fontFamily: 'sans-serif',
+          border: '1px solid #e2e8f0',
+        }}
+      >
+        <div style={{ borderBottom: '2px solid #e2e8f0', paddingBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+            <span style={{ fontSize: '9px', fontWeight: '900', textTransform: 'uppercase', tracking: '0.1em', color: '#f97316' }}>
+              Track & Field Lab
+            </span>
+            <span style={{ fontSize: '9px', fontWeight: 'bold', color: '#64748b' }}>
+              {activeMobileDay} • Day {weekDates[DAYS_OF_WEEK.indexOf(activeMobileDay)]}
+            </span>
+          </div>
+          <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.025em', margin: '0' }}>
+            {selectedAthlete ? selectedAthlete.name : 'McCarthy, Dillan'}
+          </h2>
+          <p style={{ fontSize: '11px', fontWeight: 'bold', color: '#475569', margin: '4px 0 0 0', textTransform: 'uppercase' }}>
+            Focus: {dayTitles[activeMobileDay] || 'General Preparation / إعداد عام'}
+          </p>
+        </div>
+
+        <div style={{ flex: '1', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px', overflow: 'hidden' }}>
+          {(schedule[activeMobileDay] || []).slice(0, 5).map((drill, idx) => {
+            const isSpeed = drill.type === 'speed' || drill.unit === 'meters';
+            return (
+              <div
+                key={`export-drill-${drill.id || idx}`}
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '12px',
+                  padding: '10px 12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                  position: 'relative'
+                }}
+              >
+                {drill.superSetNext && (
+                  <div style={{ position: 'absolute', left: '6px', bottom: '-10px', width: '2px', height: '12px', backgroundColor: '#818cf8', zIndex: 10 }} />
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h4 style={{ fontSize: '11px', fontWeight: '900', color: '#0f172a', margin: '0', maxWidth: '80%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {drill.title}
+                  </h4>
+                  <span style={{ fontSize: '7px', fontWeight: '900', color: '#64748b', textTransform: 'uppercase', backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
+                    {drill.type}
+                  </span>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                  {drill.sets && (
+                    <span style={{ fontSize: '8px', fontWeight: 'bold', color: '#334155', backgroundColor: '#e2e8f0', padding: '1px 5px', borderRadius: '4px' }}>
+                      {drill.sets} Sets
+                    </span>
+                  )}
+                  {drill.reps && !isSpeed && (
+                    <span style={{ fontSize: '8px', fontWeight: 'bold', color: '#334155', backgroundColor: '#e2e8f0', padding: '1px 5px', borderRadius: '4px' }}>
+                      {drill.reps} {drill.unit || 'reps'}
+                    </span>
+                  )}
+                  {drill.distance && isSpeed && (
+                    <span style={{ fontSize: '8px', fontWeight: 'bold', color: '#334155', backgroundColor: '#e2e8f0', padding: '1px 5px', borderRadius: '4px' }}>
+                      {drill.distance}m
+                    </span>
+                  )}
+                  {drill.percentage && (
+                    <span style={{ fontSize: '8px', fontWeight: 'black', color: '#ea580c', backgroundColor: '#ffedd5', padding: '1px 5px', borderRadius: '4px' }}>
+                      {drill.percentage}%
+                    </span>
+                  )}
+                  {drill.rest && (
+                    <span style={{ fontSize: '8px', fontWeight: 'medium', color: '#475569', border: '1px solid #cbd5e1', padding: '0px 4px', borderRadius: '4px' }}>
+                      Rest: {drill.rest}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          
+          {(schedule[activeMobileDay] || []).length > 5 && (
+            <div style={{ fontSize: '9px', fontWeight: 'bold', color: '#64748b', textAlign: 'center', fontStyle: 'italic' }}>
+              + {(schedule[activeMobileDay] || []).length - 5} more drills not shown
+            </div>
+          )}
+
+          {(schedule[activeMobileDay] || []).length === 0 && (
+            <div style={{ flex: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #cbd5e1', borderRadius: '16px', color: '#94a3b8', fontSize: '11px', fontWeight: 'bold' }}>
+              Rest Day / يوم راحة
+            </div>
+          )}
+        </div>
+
+        <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: '12px', marginTop: '16px' }}>
+          {(() => {
+            const statsObj = dayStatsMap[activeMobileDay]?.stats || { totalVolumeScore: 0, totalMeters: 0, totalContacts: 0 };
+            return (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontStyle: 'normal' }}>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '7px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Daily Load</span>
+                    <span style={{ fontSize: '11px', fontWeight: 'black', color: '#ea580c' }}>{statsObj.totalVolumeScore} AU</span>
+                  </div>
+                  {statsObj.totalMeters > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '7px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Volume</span>
+                      <span style={{ fontSize: '11px', fontWeight: 'black', color: '#6366f1' }}>{statsObj.totalMeters}m</span>
+                    </div>
+                  )}
+                  {statsObj.totalContacts > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '7px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Contacts</span>
+                      <span style={{ fontSize: '11px', fontWeight: 'black', color: '#f59e0b' }}>{statsObj.totalContacts} ct</span>
+                    </div>
+                  )}
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: '7px', fontWeight: 'black', textTransform: 'uppercase', color: '#94a3b8', tracking: '0.05em' }}>
+                    Performance Core
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      </div>
+
+      {/* PRINT-ONLY COACH'S RULEBOOK & PROTOCOL GUIDELINES INJECTION MANUAL */}
+      <div className="hidden print:block print:break-before-page border-t-2 border-slate-350 dark:border-slate-800 pt-8 mt-12 w-full max-w-4xl mx-auto font-sans text-slate-900">
+        <div className="flex justify-between items-center border-b border-slate-300 pb-4 mb-6">
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-800 uppercase tracking-wide">
+              Coach's Rulebook & Protocol Guidelines / دليل وقوانين المدرب للتدريب
+            </h2>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
+              Track & Field Lab • Core Athlete Performance Manual
+            </p>
+          </div>
+          <div className="text-right">
+            <span className="text-[10px] font-black uppercase bg-slate-200 text-slate-700 px-3 py-1 rounded">
+              Elite Standard
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50">
+            <h4 className="text-xs font-black text-orange-600 dark:text-orange-500 uppercase tracking-wider mb-2 flex items-center gap-1.5 border-b border-slate-200 pb-2">
+              🧠 Neural Stress Split (CNS) vs Structural Load
+            </h4>
+            <ul className="text-[10px] text-slate-600 font-medium space-y-2 leading-relaxed">
+              <li>
+                <strong className="text-slate-800">CNS Neural Drive:</strong> High intensity (RPE 9-10) activities such as max velocity sprinting, reactive plyometrics, and Olympic powerlifting. Requires complete 48 to 72 hours recovery to reload motor units.
+              </li>
+              <li>
+                <strong className="text-slate-800">Structural Stress:</strong> Muscular and joint loading (hypertrophy lifting, tempo runs, general conditioning) excluding core/isometrics/mobility to prevent workload skews.
+              </li>
+            </ul>
+          </div>
+
+          <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50">
+            <h4 className="text-xs font-black text-red-600 dark:text-red-500 uppercase tracking-wider mb-2 flex items-center gap-1.5 border-b border-slate-200 pb-2">
+              ⚡ RPE Intensity Law (Rating of Perceived Exertion)
+            </h4>
+            <div className="text-[9px] text-slate-600 font-medium space-y-1.5 leading-normal">
+              <p><strong>RPE 10 (100%):</strong> Absolute Max Effort. Sled/Block starts, Fly runs, or 1RM power testing. Zero deceleration allowed.</p>
+              <p><strong>RPE 9 (95%):</strong> Near Max Effort. Primary speed development, heavy strength blocks, primary plyometrics.</p>
+              <p><strong>RPE 8 (90%):</strong> High Intensity. Speed-endurance, submax hypertrophic gym sessions.</p>
+              <p><strong>RPE 7 (85%):</strong> Moderate/Hard. Aerobic/anaerobic tempo sessions, general coordination drills.</p>
+              <p><strong>RPE 5-6 (Light):</strong> Active recovery, core holds, isometrics, and active flexibility blocks.</p>
+            </div>
+          </div>
+
+          <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50">
+            <h4 className="text-xs font-black text-indigo-600 dark:text-indigo-500 uppercase tracking-wider mb-2 flex items-center gap-1.5 border-b border-slate-200 pb-2">
+              🏃 Velocity & Distance Notation Rules
+            </h4>
+            <ul className="text-[10px] text-slate-600 font-medium space-y-2 leading-relaxed">
+              <li>
+                <strong className="text-slate-800">Notation Setup:</strong> Speed drills are written as <span className="font-bold text-slate-700">Sets x Distance</span> (e.g., <span className="underline">3 x 60m</span> at 95% intensity = 180m total sprinting volume).
+              </li>
+              <li>
+                <strong className="text-slate-800">Rest Interval Protocols:</strong> Rep Rest / Set Rest (e.g. <span className="font-bold text-slate-700">90s / 5m</span>). Complete recovery is mandatory for neural blocks to guarantee high-velocity recruitment without mechanical breakdown.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="mt-8 text-center text-[8px] text-slate-400 font-medium border-t border-slate-200 pt-4 uppercase tracking-widest">
+          SYSTEM WORKLOAD PROTOCOL MANIFESTO • DESIGNED FOR HIGH PERFORMANCE
+        </div>
+      </div>
+
+      {/* EXPANDABLE COACH'S RULEBOOK & PROTOCOL GUIDELINES MODAL */}
+      {showRulebookModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[250] flex items-center justify-center p-4 print:hidden animate-[fadeIn_0.2s_ease-out]" onClick={() => setShowRulebookModal(false)}>
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-5 md:p-6 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white flex items-center gap-2 uppercase">
+                <ShieldCheck className="w-5 h-5 text-orange-500 animate-pulse" /> Coach's Rulebook & Protocols / دليل وقوانين المدرب
+              </h3>
+              <button
+                onClick={() => setShowRulebookModal(false)}
+                className="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-150 dark:border-slate-850">
+                  <h4 className="text-xs font-black text-red-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    ⚡ RPE Intensity Law / قانون شدة المجهود
+                  </h4>
+                  <div className="text-[11px] text-slate-600 dark:text-slate-400 space-y-2 leading-relaxed">
+                    <p><strong>RPE 10 (100%):</strong> أقصى مجهود ممكن. انطلاقات من الكتل أو قياس السرعة القصوى. يتطلب راحة كاملة.</p>
+                    <p><strong>RPE 9 (95%):</strong> مجهود شبه أقصى. تنمية السرعة الأساسية وتدريبات القوة المتفجرة.</p>
+                    <p><strong>RPE 8 (90%):</strong> شدة عالية. تنمية تحمل السرعة ومجموعات التضخيم العضلي الفرعية.</p>
+                    <p><strong>RPE 7 (85%):</strong> شدة متوسطة/عالية. تدريبات الجري الإيقاعي (Tempo) وبناء القدرة الهوائية.</p>
+                    <p><strong>RPE 5-6:</strong> استشفاء نشط. ثبات متساوي القياس (Isometrics) وتدريبات الحركية.</p>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-150 dark:border-slate-850">
+                  <h4 className="text-xs font-black text-orange-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    🧠 CNS vs Structural Stress / مقارنة الحمل العصبي والجسدي
+                  </h4>
+                  <div className="text-[11px] text-slate-600 dark:text-slate-400 space-y-2 leading-relaxed">
+                    <p><strong>CNS Neuro-Stress (80% CNS):</strong> الأنشطة التي تتطلب إشعالاً عصبياً فائقاً مثل الجري بأقصى سرعة والقفز الارتدادي ورفعات القوة. تتطلب 48-72 ساعة راحة كاملة بين الجلسات.</p>
+                    <p><strong>Structural stress (100% Struct):</strong> تدريبات التضخيم ورفع الأثقال التقليدي والجري الخفيف التي تجهد النسيج العضلي والعظام. يرجى الملاحظة أن تدريبات الإطالة والمرونة والثبات معزولة تماماً عن الحسابات العصبي لتجنب انحراف البيانات.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-150 dark:border-slate-850">
+                <h4 className="text-xs font-black text-indigo-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                  🏃 Velocity & Distances Notation Rules / تدوين المسافات وفترات الراحة
+                </h4>
+                <div className="text-[11px] text-slate-600 dark:text-slate-400 space-y-2 leading-relaxed">
+                  <p><strong>صيغة تدوين الجري والسرعة:</strong> تكتب التمارين بصيغة (مجموعات × مسافة) مثل 3x60m أي 3 تكرارات لمسافة 60 متراً (الحجم الكلي 180 متراً).</p>
+                  <p><strong>قاعدة فترات الراحة:</strong> ترمز فترات الراحة لـ (راحة بين التكرارات / راحة بين المجموعات) مثل "90s / 5m" أي 90 ثانية استشفاء بين الجريات و 5 دقائق بين المجموعات. الراحة الكاملة ضرورية للمحافظة على أقصى كفاءة للمخ والجهاز العصبي.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+              <button
+                onClick={() => setShowRulebookModal(false)}
+                className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-md transition-all active:scale-95"
+              >
+                Close / إغلاق الدليل
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

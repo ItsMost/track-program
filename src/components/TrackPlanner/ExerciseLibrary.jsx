@@ -30,6 +30,7 @@ export default function ExerciseLibrary({
   onDeleteDrill,
   onEditDrill,
   onDeleteTemplate,
+  onApplyTemplate,
   onApplyProgram,
   onDeleteProgram,
   programs,
@@ -272,10 +273,24 @@ export default function ExerciseLibrary({
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1.5 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                     <button
-                      onClick={() => onDeleteTemplate(tpl.id)}
-                      className="p-1 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-500 rounded-md"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        onApplyTemplate(tpl);
+                      }}
+                      className="px-2 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-black text-[9px] uppercase tracking-wider shadow-sm transition-all hover:scale-105 active:scale-95 shrink-0"
+                    >
+                      Apply
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        onDeleteTemplate(tpl.id);
+                      }}
+                      className="p-1 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-500 rounded-md shrink-0"
                       title="Delete"
                     >
                       <Trash2 className="w-3 h-3" />
