@@ -204,16 +204,29 @@ export default function TimelineCard({
 
   const renderParameters = () => {
     const params = [];
-    if (drill.sets) {
-      if (drill.reps && type !== 'speed') {
-        params.push(`${drill.sets}x${drill.reps}${drill.unit === 'sec' ? 's' : ''}`);
-      } else if (type === 'speed' && drill.distance) {
-        params.push(`${drill.sets}x${drill.distance}${drill.unit || 'm'}`);
-      } else {
-        params.push(`${drill.sets} Sets`);
+    if (type === 'speed') {
+      const parts = [];
+      if (drill.sets) parts.push(drill.sets);
+      
+      const repsNum = parseFloat(drill.reps);
+      if (drill.reps && (!drill.sets || isNaN(repsNum) || repsNum > 1)) {
+        parts.push(drill.reps);
       }
-    } else if (drill.reps) {
-      params.push(`${drill.reps} ${drill.unit || 'Reps'}`);
+      
+      if (drill.distance) {
+        parts.push(`${drill.distance}${drill.unit || 'm'}`);
+      }
+      params.push(parts.join('x'));
+    } else {
+      if (drill.sets) {
+        if (drill.reps) {
+          params.push(`${drill.sets}x${drill.reps}${drill.unit === 'sec' ? 's' : ''}`);
+        } else {
+          params.push(`${drill.sets} Sets`);
+        }
+      } else if (drill.reps) {
+        params.push(`${drill.reps} ${drill.unit || 'Reps'}`);
+      }
     }
     return params.join(' ');
   };
@@ -310,9 +323,17 @@ export default function TimelineCard({
           )}
 
           {drill.rest ? (
-            <span className="text-sky-600 dark:text-sky-400 flex items-center gap-0.5 font-bold">
-              <Clock className="w-2.5 h-2.5 text-sky-500" />
-              {drill.rest}
+            <span className="text-sky-600 dark:text-sky-400 flex items-center gap-0.5 font-bold" title="Rest interval between reps / sets">
+              <Clock className="w-2.5 h-2.5 text-sky-500 animate-pulse" />
+              {drill.rest.includes('/') ? (
+                <>
+                  <span className="text-sky-500 dark:text-sky-400">{drill.rest.split('/')[0].trim()}<span className="text-[8px] font-medium opacity-75 ml-0.5">rep</span></span>
+                  <span className="text-slate-350 dark:text-slate-650 mx-0.5">/</span>
+                  <span className="text-sky-600 dark:text-sky-400">{drill.rest.split('/')[1].trim()}<span className="text-[8px] font-medium opacity-75 ml-0.5">set</span></span>
+                </>
+              ) : (
+                drill.rest
+              )}
             </span>
           ) : null}
 

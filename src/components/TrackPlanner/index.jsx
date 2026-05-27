@@ -2060,29 +2060,50 @@ export default function TrackFieldPlanner() {
                   />
                 </div>
 
-                {dayDrillModal.drill.type === 'speed' ? (
-                  <div className="flex-1">
-                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
-                      Distance (Meters)
-                    </label>
-                    <input
-                      type="text"
-                      value={dayDrillModal.drill.distance || ''}
-                      onChange={(e) =>
-                        setDayDrillModal({
-                          ...dayDrillModal,
-                          drill: {
-                            ...dayDrillModal.drill,
-                            distance: e.target.value,
-                            unit: 'meters'
-                          },
-                        })
-                      }
-                      placeholder="e.g. 30"
-                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white font-medium text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                ) : dayDrillModal.drill.type === 'isometric' ? (
+                {dayDrillModal.drill.type === 'speed' && (
+                  <>
+                    <div className="flex-1">
+                      <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
+                        Reps
+                      </label>
+                      <input
+                        type="text"
+                        value={dayDrillModal.drill.reps || ''}
+                        onChange={(e) =>
+                          setDayDrillModal({
+                            ...dayDrillModal,
+                            drill: { ...dayDrillModal.drill, reps: e.target.value },
+                          })
+                        }
+                        placeholder="e.g. 2"
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white font-medium text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
+                        Distance (Meters)
+                      </label>
+                      <input
+                        type="text"
+                        value={dayDrillModal.drill.distance || ''}
+                        onChange={(e) =>
+                          setDayDrillModal({
+                            ...dayDrillModal,
+                            drill: {
+                              ...dayDrillModal.drill,
+                              distance: e.target.value,
+                              unit: 'meters'
+                            },
+                          })
+                        }
+                        placeholder="e.g. 200"
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white font-medium text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {dayDrillModal.drill.type === 'isometric' && (
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
                       Duration (Seconds)
@@ -2104,12 +2125,12 @@ export default function TrackFieldPlanner() {
                       className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white font-medium text-sm outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                ) : (
+                )}
+
+                {dayDrillModal.drill.type !== 'speed' && dayDrillModal.drill.type !== 'isometric' && (
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
-                      {dayDrillModal.drill.type === 'plyometrics'
-                        ? 'Contacts'
-                        : 'Reps'}
+                      {dayDrillModal.drill.type === 'plyometrics' ? 'Contacts' : 'Reps'}
                     </label>
                     <input
                       type="text"
@@ -2130,24 +2151,79 @@ export default function TrackFieldPlanner() {
                   </div>
                 )}
 
-                <div className="flex-1">
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
-                    Rest
-                  </label>
-                  <input
-                    type="text"
-                    value={dayDrillModal.drill.rest || ''}
-                    onChange={(e) =>
-                      setDayDrillModal({
-                        ...dayDrillModal,
-                        drill: { ...dayDrillModal.drill, rest: e.target.value },
-                      })
-                    }
-                    placeholder="e.g. 3m"
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white font-medium text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+                {dayDrillModal.drill.type !== 'speed' && (
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
+                      Rest
+                    </label>
+                    <input
+                      type="text"
+                      value={dayDrillModal.drill.rest || ''}
+                      onChange={(e) =>
+                        setDayDrillModal({
+                          ...dayDrillModal,
+                          drill: { ...dayDrillModal.drill, rest: e.target.value },
+                        })
+                      }
+                      placeholder="e.g. 3m"
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white font-medium text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                )}
               </div>
+
+              {dayDrillModal.drill.type === 'speed' && (
+                <div className="flex gap-2 sm:gap-3">
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
+                      Rest (Reps)
+                    </label>
+                    <input
+                      type="text"
+                      value={dayDrillModal.drill.rest?.includes('/') ? dayDrillModal.drill.rest.split('/')[0].trim() : ''}
+                      onChange={(e) => {
+                        const val = e.target.value.trim();
+                        const setRest = dayDrillModal.drill.rest?.includes('/') 
+                          ? dayDrillModal.drill.rest.split('/')[1].trim() 
+                          : dayDrillModal.drill.rest || '';
+                        setDayDrillModal({
+                          ...dayDrillModal,
+                          drill: {
+                            ...dayDrillModal.drill,
+                            rest: val ? `${val} / ${setRest}` : setRest
+                          }
+                        });
+                      }}
+                      placeholder="e.g. 90s"
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white font-medium text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
+                      Rest (Sets)
+                    </label>
+                    <input
+                      type="text"
+                      value={dayDrillModal.drill.rest?.includes('/') ? dayDrillModal.drill.rest.split('/')[1].trim() : dayDrillModal.drill.rest || ''}
+                      onChange={(e) => {
+                        const val = e.target.value.trim();
+                        const repRest = dayDrillModal.drill.rest?.includes('/') 
+                          ? dayDrillModal.drill.rest.split('/')[0].trim() 
+                          : '';
+                        setDayDrillModal({
+                          ...dayDrillModal,
+                          drill: {
+                            ...dayDrillModal.drill,
+                            rest: repRest ? `${repRest} / ${val}` : val
+                          }
+                        });
+                      }}
+                      placeholder="e.g. 5m"
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white font-medium text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
@@ -2367,16 +2443,59 @@ export default function TrackFieldPlanner() {
                 </div>
 
                 {/* Rest */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Rest Interval</label>
-                  <input
-                    type="text"
-                    value={addExerciseModal.rest}
-                    onChange={(e) => setAddExerciseModal({ ...addExerciseModal, rest: e.target.value })}
-                    placeholder="e.g. 2 min"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
-                  />
-                </div>
+                {addExerciseModal.type === 'speed' ? (
+                  <>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Rest (Reps)</label>
+                      <input
+                        type="text"
+                        value={addExerciseModal.rest?.includes('/') ? addExerciseModal.rest.split('/')[0].trim() : ''}
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          const setRest = addExerciseModal.rest?.includes('/') 
+                            ? addExerciseModal.rest.split('/')[1].trim() 
+                            : addExerciseModal.rest || '';
+                          setAddExerciseModal({
+                            ...addExerciseModal,
+                            rest: val ? `${val} / ${setRest}` : setRest
+                          });
+                        }}
+                        placeholder="e.g. 90s"
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Rest (Sets)</label>
+                      <input
+                        type="text"
+                        value={addExerciseModal.rest?.includes('/') ? addExerciseModal.rest.split('/')[1].trim() : addExerciseModal.rest || ''}
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          const repRest = addExerciseModal.rest?.includes('/') 
+                            ? addExerciseModal.rest.split('/')[0].trim() 
+                            : '';
+                          setAddExerciseModal({
+                            ...addExerciseModal,
+                            rest: repRest ? `${repRest} / ${val}` : val
+                          });
+                        }}
+                        placeholder="e.g. 5m"
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Rest Interval</label>
+                    <input
+                      type="text"
+                      value={addExerciseModal.rest}
+                      onChange={(e) => setAddExerciseModal({ ...addExerciseModal, rest: e.target.value })}
+                      placeholder="e.g. 2 min"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
+                    />
+                  </div>
+                )}
 
                 {/* Unit */}
                 <div>
