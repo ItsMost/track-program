@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import {
   Edit2,
   Trash2,
@@ -65,7 +65,7 @@ const CATEGORY_META = {
   }
 };
 
-export default function TimelineCard({
+const TimelineCard = memo(function TimelineCard({
   drill,
   day,
   index,
@@ -439,4 +439,6 @@ export default function TimelineCard({
       </div>
     </div>
   );
-}
+});
+
+export default TimelineCard;

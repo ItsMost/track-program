@@ -411,8 +411,8 @@ export default function TrackFieldPlanner() {
       handleToast(`Drills Error: ${drillsError.message}`);
     }
     
-    // Auto-seed drills if database is empty (fresh connection)
-    if (!drillsError && (!drillsData || drillsData.length === 0)) {
+    // Auto-seed drills if database is empty or outdated (less than 100 drills)
+    if (!drillsError && (!drillsData || drillsData.length < 100)) {
       const initialDrillsFormatted = INITIAL_LIBRARY.drills.map(d => ({
         id: d.id,
         title: d.title,
@@ -427,7 +427,7 @@ export default function TrackFieldPlanner() {
       }));
       const { data: seeded, error: seedError } = await supabase
         .from('track_library_drills')
-        .insert(initialDrillsFormatted)
+        .upsert(initialDrillsFormatted, { onConflict: 'id' })
         .select();
       if (seedError) {
         console.error("Supabase drills seeding error:", seedError);
@@ -676,7 +676,7 @@ export default function TrackFieldPlanner() {
     fetch4WeekData();
   }, [selectedAthleteId, weekStartDateStr, showStatsModal]);
 
-  const autoSaveDay = async (day, drillsToSave, titleToSave) => {
+  const autoSaveDay = useCallback(async (day, drillsToSave, titleToSave) => {
     if (!selectedAthleteId) return;
     const dateStr = getDbDateStr(weekDatesFull[DAYS_OF_WEEK.indexOf(day)]);
     const finalTitle =
@@ -696,7 +696,7 @@ export default function TrackFieldPlanner() {
       console.error("Supabase auto-save error:", error);
       handleToast(`Database save failed: ${error.message}`);
     }
-  };
+  }, [selectedAthleteId, weekDatesFull, dayTitles, schedule]);
 
   const handleUndo = () => {
     if (historyIndex > 0) {
@@ -790,7 +790,7 @@ export default function TrackFieldPlanner() {
   // ============================================================================
   // 🧠 TRACK & FIELD WORKLOAD ENGINE: CNS vs STRUCTURAL + DISTANCE/CONTACTS
   // ============================================================================
-  const calculateDayVolume = (dayDrills) => {
+  const calculateDayVolume = useCallback((dayDrills) => {
     let totalExercises = dayDrills.length;
     let totalVolumeScore = 0;
     let cnsLoad = 0;
@@ -892,7 +892,7 @@ export default function TrackFieldPlanner() {
       cnsLoad: Math.round(cnsLoad),
       structuralLoad: Math.round(structuralLoad),
     };
-  };
+  }, []);
 
   const weeklyStats = useMemo(() => {
     let totalLoad = 0;
@@ -957,6 +957,25 @@ export default function TrackFieldPlanner() {
       structuralPercentage,
     };
   }, [schedule]);
+
+  const dayStatsMap = useMemo(() => {
+    const map = {};
+    DAYS_OF_WEEK.forEach((day) => {
+      const dayDrills = schedule[day] || [];
+      const stats = calculateDayVolume(dayDrills);
+      const dayTotalCombined = stats.cnsLoad + stats.structuralLoad;
+      const dayCnsPct =
+        dayTotalCombined > 0
+          ? Math.round((stats.cnsLoad / dayTotalCombined) * 100)
+          : 0;
+      map[day] = {
+        stats,
+        dayTotalCombined,
+        dayCnsPct,
+      };
+    });
+    return map;
+  }, [schedule, calculateDayVolume]);
 
   const handleSaveProgramBlock = async () => {
     if (!createProgramModal.name.trim()) return;
@@ -1232,20 +1251,26 @@ export default function TrackFieldPlanner() {
     setDayDrillModal({ isOpen: false, day: null, drill: null, isNew: false });
   };
 
-  const handleDeleteExercise = (day, id) => {
-    const updatedDrills = schedule[day].filter((w) => w.id !== id);
-    const newSchedule = { ...schedule, [day]: updatedDrills };
-    setSchedule(newSchedule);
-    pushToHistory(newSchedule, dayTitles);
-    autoSaveDay(day, updatedDrills, dayTitles[day]);
-  };
-  const handleDayTitleChange = (day, newTitle) => {
-    const newTitles = { ...dayTitles, [day]: newTitle };
-    setDayTitles(newTitles);
-    pushToHistory(schedule, newTitles);
-    autoSaveDay(day, schedule[day], newTitle);
-  };
-  const confirmDelete = () => {
+  const handleDeleteExercise = useCallback((day, id) => {
+    setSchedule((prev) => {
+      const updatedDrills = (prev[day] || []).filter((w) => w.id !== id);
+      const newSchedule = { ...prev, [day]: updatedDrills };
+      pushToHistory(newSchedule, dayTitles);
+      autoSaveDay(day, updatedDrills, dayTitles[day]);
+      return newSchedule;
+    });
+  }, [dayTitles, pushToHistory, autoSaveDay]);
+
+  const handleDayTitleChange = useCallback((day, newTitle) => {
+    setDayTitles((prev) => {
+      const newTitles = { ...prev, [day]: newTitle };
+      pushToHistory(schedule, newTitles);
+      autoSaveDay(day, schedule[day], newTitle);
+      return newTitles;
+    });
+  }, [schedule, pushToHistory, autoSaveDay]);
+
+  const confirmDelete = useCallback(async () => {
     if (deleteConfirmation.type === 'week') {
       const emptySchedule = DAYS_OF_WEEK.reduce(
         (acc, day) => ({ ...acc, [day]: [] }),
@@ -1254,7 +1279,17 @@ export default function TrackFieldPlanner() {
       setSchedule(emptySchedule);
       setDayTitles({});
       pushToHistory(emptySchedule, {});
-      DAYS_OF_WEEK.forEach((day) => autoSaveDay(day, [], ''));
+      
+      if (selectedAthleteId) {
+        for (const day of DAYS_OF_WEEK) {
+          const dateStr = getDbDateStr(weekDatesFull[DAYS_OF_WEEK.indexOf(day)]);
+          await supabase
+            .from('track_athlete_workouts')
+            .delete()
+            .eq('athlete_id', selectedAthleteId)
+            .eq('workout_date', dateStr);
+        }
+      }
       handleToast('Week cleared');
     } else if (
       deleteConfirmation.type === 'day' &&
@@ -1266,11 +1301,26 @@ export default function TrackFieldPlanner() {
       setSchedule(newSchedule);
       setDayTitles(newTitles);
       pushToHistory(newSchedule, newTitles);
-      autoSaveDay(tDay, [], '');
-      handleToast(`${tDay} cleared`);
+      
+      if (selectedAthleteId) {
+        const dateStr = getDbDateStr(weekDatesFull[DAYS_OF_WEEK.indexOf(tDay)]);
+        const { error } = await supabase
+          .from('track_athlete_workouts')
+          .delete()
+          .eq('athlete_id', selectedAthleteId)
+          .eq('workout_date', dateStr);
+        if (error) {
+          console.error("Supabase day delete error:", error);
+          handleToast(`Failed to delete day from cloud: ${error.message}`);
+        } else {
+          handleToast(`${tDay} cleared from database and state`);
+        }
+      } else {
+        handleToast(`${tDay} cleared`);
+      }
     }
     setDeleteConfirmation({ isOpen: false, type: null, targetDay: null });
-  };
+  }, [deleteConfirmation, schedule, dayTitles, selectedAthleteId, weekDatesFull, pushToHistory]);
   const handleSaveTemplate = async () => {
     if (!saveTemplateModal.name.trim()) return;
     const drillsToSave = schedule[saveTemplateModal.day].map((d) => ({ ...d }));
@@ -2736,13 +2786,13 @@ export default function TrackFieldPlanner() {
                 <p className="text-xs font-bold text-slate-500 dark:text-slate-450 mt-2 leading-relaxed">
                   {deleteConfirmation.type === 'week'
                     ? 'Are you sure you want to delete all exercises and reset this week\'s plan? This action cannot be undone.'
-                    : `Are you sure you want to clear all exercises for ${deleteConfirmation.targetDay}?`
+                    : 'Are you sure you want to clear all workouts for this day?'
                   }
                 </p>
                 <p className="text-[10px] text-red-500 font-semibold font-arabic leading-relaxed mt-1">
                   {deleteConfirmation.type === 'week'
                     ? '(هل أنت متأكد من رغبتك في حذف جميع تمارين هذا الأسبوع؟ لا يمكن التراجع عن هذا الإجراء)'
-                    : `(هل أنت متأكد من رغبتك في حذف جميع التمارين المجدولة ليوم ${deleteConfirmation.targetDay}؟)`
+                    : '(هل أنت متأكد من رغبتك في مسح جميع تمارين هذا اليوم؟)'
                   }
                 </p>
               </div>
@@ -3320,13 +3370,7 @@ export default function TrackFieldPlanner() {
                 { day: 'numeric', month: 'short', year: 'numeric' }
               );
               const dayDrills = schedule[day] || [];
-              const dayStats = calculateDayVolume(dayDrills);
-              const dayTotalCombined =
-                dayStats.cnsLoad + dayStats.structuralLoad;
-              const dayCnsPct =
-                dayTotalCombined > 0
-                  ? Math.round((dayStats.cnsLoad / dayTotalCombined) * 100)
-                  : 0;
+              const { stats: dayStats, dayTotalCombined, dayCnsPct } = dayStatsMap[day];
 
               const isDayVisibleOnMobile = activeMobileDay === day;
               const displayClass = isMobileView
@@ -3384,15 +3428,10 @@ export default function TrackFieldPlanner() {
                                   targetDay: day,
                                 })
                               }
-                              disabled={dayDrills.length === 0}
-                              className={`p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors ${
-                                dayDrills.length > 0
-                                  ? 'text-slate-500 dark:text-slate-400 hover:text-red-500'
-                                  : 'text-slate-200 dark:text-slate-700 cursor-not-allowed opacity-40'
-                              }`}
-                              title="Clear Day Exercises"
+                              className="p-1 text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all duration-200 active:scale-90 border border-transparent hover:border-red-200/50 dark:hover:border-red-900/30"
+                              title="Delete Entire Day"
                             >
-                              <Trash className="w-3.5 h-3.5" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         )}
