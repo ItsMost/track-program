@@ -141,7 +141,30 @@ export default function TimelineCard({
     }
 
     if (!time100) return null;
-    const targetTime = time100 / (pct / 100);
+    
+    let adjustedTime = time100;
+    if (dist < 100) {
+      let scaleFactor = 1.0;
+      if (dist <= 10) {
+        scaleFactor = 0.55;
+      } else if (dist <= 20) {
+        scaleFactor = 0.55 + ((dist - 10) / 10) * 0.15; // 0.55 to 0.70
+      } else if (dist <= 30) {
+        scaleFactor = 0.70 + ((dist - 20) / 10) * 0.10; // 0.70 to 0.80
+      } else if (dist <= 60) {
+        scaleFactor = 0.80 + ((dist - 30) / 30) * 0.13; // 0.80 to 0.93
+      } else {
+        scaleFactor = 0.93 + ((dist - 60) / 40) * 0.07; // 0.93 to 1.00
+      }
+      adjustedTime = time100 / scaleFactor;
+    }
+
+    let targetTime = adjustedTime / (pct / 100);
+    // Apply hand-timing / manual stopwatch reaction adjustment (reduce by 0.24 seconds)
+    // to match real-world track practice clocking:
+    if (targetTime > 0.24) {
+      targetTime = targetTime - 0.24;
+    }
     return { time: targetTime.toFixed(2), exact: !!exact };
   };
 
@@ -238,7 +261,11 @@ export default function TimelineCard({
       onDragOver={onDragOver}
       onDrop={(e) => onDrop(e, day, index)}
       onClick={isPreviewMode ? null : handleEditClick}
-      className="group relative flex items-stretch gap-2 py-1.5 pl-2 pr-1.5 rounded-xl hover:bg-slate-100/70 dark:hover:bg-slate-800/40 transition-all select-none cursor-pointer border-b border-slate-200 dark:border-slate-800/40 last:border-b-0 print:border-slate-200"
+      className={`group relative flex items-stretch gap-2 py-1.5 pl-2 pr-1.5 rounded-xl hover:bg-slate-100/70 dark:hover:bg-slate-800/40 transition-all select-none cursor-pointer ${
+        drill.superSetNext 
+          ? 'border-b-0 pb-3' 
+          : 'border-b border-slate-200 dark:border-slate-800/40 last:border-b-0'
+      } print:border-slate-200`}
     >
       {/* Dynamic Left Colored Indicator Stripe */}
       <div className="flex shrink-0 w-1 relative rounded-full overflow-hidden my-0.5">
@@ -249,6 +276,13 @@ export default function TimelineCard({
           type === 'core' ? 'bg-purple-500' : 'bg-slate-400'
         }`} />
       </div>
+
+      {/* Super Set Vertical Connector Bridge */}
+      {drill.superSetNext && (
+        <div className="absolute left-[9px] top-[70%] bottom-[-10px] w-0.5 bg-indigo-500 dark:bg-indigo-400 z-20 flex flex-col justify-end items-center">
+          <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-ping absolute bottom-[-2px]" />
+        </div>
+      )}
 
       {/* Info Content Column */}
       <div className="flex-1 min-w-0 z-10 flex flex-col justify-center">
@@ -319,6 +353,12 @@ export default function TimelineCard({
           {renderParameters() && (
             <span className="text-slate-600 dark:text-slate-300 font-semibold">
               {renderParameters()}
+            </span>
+          )}
+
+          {drill.superSetNext && (
+            <span className="px-1.5 py-0.2 rounded bg-indigo-500 dark:bg-indigo-600 text-white text-[8px] font-black uppercase tracking-wider flex items-center gap-0.5 shadow-sm animate-pulse">
+              ⚡ Super Set
             </span>
           )}
 

@@ -35,6 +35,9 @@ import {
   Dumbbell,
   ShieldCheck,
   Sliders,
+  Printer,
+  Layout,
+  FileText,
 } from 'lucide-react';
 
 import Header from './Header.jsx';
@@ -166,6 +169,11 @@ export default function TrackFieldPlanner() {
   });
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [activeMobileDay, setActiveMobileDay] = useState('Saturday');
+  const [printTheme, setPrintTheme] = useState('classic-crimson');
+  const [printOrientation, setPrintOrientation] = useState('landscape');
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [fourWeekData, setFourWeekData] = useState([]);
+  const [is4WeekLoading, setIs4WeekLoading] = useState(false);
 
   const handleToast = (msg) => {
     setToastMessage(msg);
@@ -593,6 +601,81 @@ export default function TrackFieldPlanner() {
     showMonthCalendar,
   ]);
 
+  useEffect(() => {
+    const fetch4WeekData = async () => {
+      if (!selectedAthleteId || !showStatsModal) return;
+      setIs4WeekLoading(true);
+      try {
+        const startDate = new Date(currentWeekStart);
+        const endDate = new Date(startDate.getTime() + 28 * 24 * 60 * 60 * 1000 - 24 * 60 * 60 * 1000);
+        
+        const startStr = getDbDateStr(startDate);
+        const endStr = getDbDateStr(endDate);
+        
+        const { data, error } = await supabase
+          .from('track_athlete_workouts')
+          .select('workout_date, drills')
+          .eq('athlete_id', selectedAthleteId)
+          .gte('workout_date', startStr)
+          .lte('workout_date', endStr);
+          
+        if (error) throw error;
+        
+        const weeks = [];
+        for (let w = 0; w < 4; w++) {
+          const wStart = new Date(startDate.getTime() + w * 7 * 24 * 60 * 60 * 1000);
+          const wEnd = new Date(wStart.getTime() + 6 * 24 * 60 * 60 * 1000);
+          
+          const wStartStr = getDbDateStr(wStart);
+          const wEndStr = getDbDateStr(wEnd);
+          
+          const wWorkouts = (data || []).filter(row => {
+            return row.workout_date >= wStartStr && row.workout_date <= wEndStr;
+          });
+          
+          let wLoad = 0;
+          let wMeters = 0;
+          let wContacts = 0;
+          const wDaily = [];
+          
+          for (let d = 0; d < 7; d++) {
+            const dDate = new Date(wStart.getTime() + d * 24 * 60 * 60 * 1000);
+            const dStr = getDbDateStr(dDate);
+            const dayRecord = wWorkouts.find(row => row.workout_date === dStr);
+            const drills = dayRecord ? (dayRecord.drills || []) : [];
+            
+            const stats = calculateDayVolume(drills);
+            wLoad += stats.totalVolumeScore;
+            wMeters += stats.totalMeters;
+            wContacts += stats.totalContacts;
+            wDaily.push({
+              dateStr: dStr,
+              dayName: DAYS_OF_WEEK[d],
+              load: stats.totalVolumeScore
+            });
+          }
+          
+          weeks.push({
+            weekIndex: w + 1,
+            startStr: wStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+            load: wLoad,
+            meters: wMeters,
+            contacts: wContacts,
+            daily: wDaily
+          });
+        }
+        
+        setFourWeekData(weeks);
+      } catch (err) {
+        console.error("Error fetching 4-week data:", err);
+      } finally {
+        setIs4WeekLoading(false);
+      }
+    };
+    
+    fetch4WeekData();
+  }, [selectedAthleteId, weekStartDateStr, showStatsModal]);
+
   const autoSaveDay = async (day, drillsToSave, titleToSave) => {
     if (!selectedAthleteId) return;
     const dateStr = getDbDateStr(weekDatesFull[DAYS_OF_WEEK.indexOf(day)]);
@@ -734,33 +817,45 @@ export default function TrackFieldPlanner() {
 
       let drillLoad = 0;
 
+      const isSpeed = type === 'speed' || drill.unit === 'meters';
+      const isPlyo = type === 'plyometrics' || type === 'plyos' || drill.unit === 'contacts';
+
       // 1. SPEED (TRACK)
-      if (type === 'speed') {
+      if (isSpeed) {
+        if (s > 0 && dist === 0) dist = 10; 
+        if (dist > 0 && s === 0) s = 1;
         const sprintVolume = s * dist;
         totalMeters += sprintVolume;
         if (intensity > 0) {
           validIntensityCount++;
           sumIntensity += intensity;
         }
-        // Load = (sets * distance * (intensity/100)^2) * 0.2
-        drillLoad = (s * dist * Math.pow(intensity > 0 ? intensity / 100 : 1, 2)) * 0.2;
+        // Load = (Volume * (intensity / 100)^2) * 2.0
+        const intensityFactor = intensity > 0 ? intensity / 100 : 1;
+        drillLoad = (sprintVolume * Math.pow(intensityFactor, 2)) * 2.0;
         cnsLoad += drillLoad * 0.8; // 80% CNS
         structuralLoad += drillLoad * 0.2; // 20% Structural
       }
       // 2. PLYOMETRICS
-      else if (type === 'plyometrics') {
-        totalContacts += s * r;
+      else if (isPlyo) {
+        if (s > 0 && r === 0) r = 1;
+        if (r > 0 && s === 0) s = 1;
+        const plyoVolume = s * r;
+        totalContacts += plyoVolume;
         if (intensity > 0) {
           validIntensityCount++;
           sumIntensity += intensity;
         }
-        // Load = sets * reps * 2.5
-        drillLoad = s * r * 2.5;
+        // Load = Volume * (intensity / 100) * 4.0
+        const intensityFactor = intensity > 0 ? intensity / 100 : 1;
+        drillLoad = plyoVolume * intensityFactor * 4.0;
         cnsLoad += drillLoad * 0.5; // 50% CNS
         structuralLoad += drillLoad * 0.5; // 50% Structural
       }
       // 3. POWER (GYM)
       else if (type === 'power') {
+        if (s > 0 && r === 0) r = 1;
+        if (r > 0 && s === 0) s = 1;
         if (intensity > 0) {
           validIntensityCount++;
           sumIntensity += intensity;
@@ -771,6 +866,8 @@ export default function TrackFieldPlanner() {
       }
       // 4. STRENGTH (GYM)
       else if (type === 'strength') {
+        if (s > 0 && r === 0) r = 1;
+        if (r > 0 && s === 0) s = 1;
         if (intensity > 0) {
           validIntensityCount++;
           sumIntensity += intensity;
@@ -778,17 +875,6 @@ export default function TrackFieldPlanner() {
         // Load = (sets * reps * 1.5 * intensity/100) * 10
         drillLoad = (s * r * 1.5 * (intensity > 0 ? intensity / 100 : 1)) * 10;
         structuralLoad += drillLoad; // 100% Structural
-      }
-      // 5. ISOMETRIC (STABILITY)
-      else if (type === 'isometric') {
-        if (intensity > 0) {
-          validIntensityCount++;
-          sumIntensity += intensity;
-        }
-        // Load = sets * duration (reps) * 0.5
-        drillLoad = s * r * 0.5;
-        cnsLoad += drillLoad * 0.3; // 30% CNS
-        structuralLoad += drillLoad * 0.7; // 70% Structural
       }
 
       totalVolumeScore += drillLoad;
@@ -1113,6 +1199,7 @@ export default function TrackFieldPlanner() {
         distance: '',
         rest: '',
         unit: 'meters',
+        superSetNext: false,
       },
       isNew: true,
     });
@@ -1491,15 +1578,38 @@ export default function TrackFieldPlanner() {
   };
 
   const handlePrintLandscape = () => {
-    document.body.classList.remove('print-portrait');
-    document.body.classList.add('print-landscape');
-    window.print();
+    setPrintOrientation('landscape');
+    setShowPrintModal(true);
   };
 
   const handlePrintPortrait = () => {
-    document.body.classList.remove('print-landscape');
-    document.body.classList.add('print-portrait');
-    window.print();
+    setPrintOrientation('portrait');
+    setShowPrintModal(true);
+  };
+
+  const triggerActualPrint = () => {
+    // 1. Remove all old orientation and theme classes from body
+    document.body.classList.remove(
+      'print-landscape',
+      'print-portrait',
+      'print-theme-classic-crimson',
+      'print-theme-minimal-ink',
+      'print-theme-pro-navy',
+      'print-theme-athletic-green',
+      'print-theme-dark-neon'
+    );
+
+    // 2. Add selected orientation and theme classes to body
+    document.body.classList.add(`print-${printOrientation}`);
+    document.body.classList.add(`print-theme-${printTheme}`);
+
+    // 3. Close the modal first so it is not visible during print
+    setShowPrintModal(false);
+
+    // 4. Wait a tiny bit for React state updates and then open print prompt
+    setTimeout(() => {
+      window.print();
+    }, 150);
   };
 
   if (isLoading) {
@@ -1936,6 +2046,275 @@ export default function TrackFieldPlanner() {
                 </div>
               </div>
 
+              {/* Weekly Workload Curve Chart */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700/80 rounded-2xl space-y-3">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <Activity className="w-4 h-4 text-orange-500" /> Weekly Workload Distribution / منحنى الحمل الأسبوعي
+                  </h4>
+                  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 italic">
+                    Daily Fatigue & Volume Tracking (AU)
+                  </span>
+                </div>
+                
+                <div className="relative w-full h-[150px] bg-white dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800/40 p-2 overflow-hidden shadow-inner">
+                  {(() => {
+                    const maxVal = Math.max(...weeklyStats.dailyData.map((d) => d.load), 1000);
+                    const points = weeklyStats.dailyData.map((d, i) => {
+                      const x = 40 + (470 * i) / 6;
+                      const y = 115 - (d.load / maxVal) * 90;
+                      return { x, y, load: d.load, day: d.day };
+                    });
+
+                    let pathD = '';
+                    let areaD = '';
+                    points.forEach((p, i) => {
+                      if (i === 0) {
+                        pathD = `M ${p.x} ${p.y}`;
+                        areaD = `M ${p.x} 115 L ${p.x} ${p.y}`;
+                      } else {
+                        const prev = points[i - 1];
+                        const dx = (p.x - prev.x) * 0.45;
+                        pathD += ` C ${prev.x + dx} ${prev.y}, ${p.x - dx} ${p.y}, ${p.x} ${p.y}`;
+                        areaD += ` C ${prev.x + dx} ${prev.y}, ${p.x - dx} ${p.y}, ${p.x} ${p.y}`;
+                      }
+                    });
+                    if (points.length > 0) {
+                      areaD += ` L ${points[points.length - 1].x} 115 Z`;
+                    }
+
+                    let chartColor = '#f97316';
+                    if (weeklyStats.loadLabel === 'Recovery/Deload') chartColor = '#3b82f6';
+                    else if (weeklyStats.loadLabel === 'Neural Peak Week') chartColor = '#ef4444';
+                    else if (weeklyStats.loadLabel === 'Balanced Base') chartColor = '#22c55e';
+
+                    const dayAbbrev = {
+                      Saturday: 'Sat',
+                      Sunday: 'Sun',
+                      Monday: 'Mon',
+                      Tuesday: 'Tue',
+                      Wednesday: 'Wed',
+                      Thursday: 'Thu',
+                      Friday: 'Fri'
+                    };
+
+                    return (
+                      <svg viewBox="0 0 540 140" className="w-full h-full text-slate-400 dark:text-slate-600 font-sans">
+                        <defs>
+                          <linearGradient id="chartAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={chartColor} stopOpacity="0.25" />
+                            <stop offset="100%" stopColor={chartColor} stopOpacity="0" />
+                          </linearGradient>
+                          <filter id="shadowFilter" x="-10%" y="-10%" width="120%" height="120%">
+                            <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor={chartColor} floodOpacity="0.2" />
+                          </filter>
+                        </defs>
+
+                        {/* Y-Axis Guidelines */}
+                        <line x1="35" y1="25" x2="520" y2="25" stroke="currentColor" strokeOpacity="0.1" strokeDasharray="3 3" />
+                        <line x1="35" y1="70" x2="520" y2="70" stroke="currentColor" strokeOpacity="0.1" strokeDasharray="3 3" />
+                        <line x1="35" y1="115" x2="520" y2="115" stroke="currentColor" strokeOpacity="0.15" />
+
+                        {/* Area Path */}
+                        {areaD && <path d={areaD} fill="url(#chartAreaGradient)" />}
+
+                        {/* Line Path */}
+                        {pathD && (
+                          <path
+                            d={pathD}
+                            fill="none"
+                            stroke={chartColor}
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            filter="url(#shadowFilter)"
+                          />
+                        )}
+
+                        {/* Guideline Labels */}
+                        <text x="12" y="28" className="text-[8px] font-bold fill-slate-400 select-none">{maxVal}</text>
+                        <text x="12" y="73" className="text-[8px] font-bold fill-slate-400 select-none">{Math.round(maxVal / 2)}</text>
+                        <text x="18" y="118" className="text-[8px] font-bold fill-slate-400 select-none">0</text>
+
+                        {/* Points & Labels */}
+                        {points.map((p, idx) => {
+                          const abbrev = dayAbbrev[p.day] || p.day.substring(0, 3);
+                          return (
+                            <g key={idx} className="group/point">
+                              {/* Day Label on X-Axis */}
+                              <text
+                                x={p.x}
+                                y="132"
+                                textAnchor="middle"
+                                className="text-[9px] font-extrabold fill-slate-500 dark:fill-slate-400 tracking-wider uppercase select-none"
+                              >
+                                {abbrev}
+                              </text>
+
+                              {/* Grid Vertical Guideline */}
+                              <line
+                                x1={p.x}
+                                y1="25"
+                                x2={p.x}
+                                y2="115"
+                                stroke={chartColor}
+                                strokeOpacity="0.08"
+                                strokeWidth="1.5"
+                              />
+
+                              {/* Point Circle */}
+                              <circle
+                                cx={p.x}
+                                cy={p.y}
+                                r="5"
+                                fill={chartColor}
+                                stroke={p.load > 0 ? "#ffffff" : "currentColor"}
+                                strokeWidth="1.5"
+                                className="transition-all duration-300 dark:stroke-slate-950"
+                              />
+
+                              {/* Glowing circle ring */}
+                              <circle
+                                cx={p.x}
+                                cy={p.y}
+                                r="8"
+                                fill={chartColor}
+                                fillOpacity="0"
+                                className="hover:fill-opacity-10 cursor-pointer transition-all duration-150"
+                              />
+
+                              {/* Load text display right above point */}
+                              {p.load > 0 && (
+                                <text
+                                  x={p.x}
+                                  y={p.y - 8}
+                                  textAnchor="middle"
+                                  className="text-[9px] font-black fill-slate-800 dark:fill-slate-200 select-none drop-shadow-sm transition-all"
+                                >
+                                  {p.load}
+                                </text>
+                              )}
+                            </g>
+                          );
+                        })}
+                      </svg>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* 4-Week Macrocycle Workload Breakdown */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700/80 rounded-2xl space-y-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <CalendarIcon className="w-4 h-4 text-orange-500" /> 4-Week Load Cycle Breakdown / دورة الحمل لـ 4 أسابيع
+                  </h4>
+                  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 italic">
+                    Macrocycle Periodization Plan
+                  </span>
+                </div>
+
+                {is4WeekLoading ? (
+                  <div className="flex flex-col items-center justify-center py-6 gap-2">
+                    <Loader2 className="w-6 h-6 text-orange-500 animate-spin" />
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-450">Loading periodization chart...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {fourWeekData.map((w) => {
+                      const maxWeekLoad = Math.max(...fourWeekData.map(wk => wk.load), 1000);
+                      const loadPercentage = Math.min((w.load / maxWeekLoad) * 100, 100);
+                      
+                      // Color coding based on load level
+                      let barColor = 'bg-emerald-500';
+                      let textColor = 'text-emerald-600 dark:text-emerald-400';
+                      let badgeColor = 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100';
+                      if (w.load < 1000) {
+                        barColor = 'bg-blue-500';
+                        textColor = 'text-blue-600 dark:text-blue-400';
+                        badgeColor = 'bg-blue-50 dark:bg-blue-950/20 border-blue-100';
+                      } else if (w.load > 3500) {
+                        barColor = 'bg-red-500';
+                        textColor = 'text-red-600 dark:text-red-400';
+                        badgeColor = 'bg-red-50 dark:bg-red-950/20 border-red-100';
+                      } else if (w.load > 2500) {
+                        barColor = 'bg-orange-500';
+                        textColor = 'text-orange-600 dark:text-orange-400';
+                        badgeColor = 'bg-orange-50 dark:bg-orange-950/20 border-orange-100';
+                      }
+
+                      return (
+                        <div key={w.weekIndex} className="p-3 bg-white dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:border-slate-200 dark:hover:border-slate-700 transition-all">
+                          {/* Week Title & Start Date */}
+                          <div className="w-full sm:w-36 shrink-0 flex items-center justify-between sm:justify-start gap-2.5">
+                            <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase border ${badgeColor} ${textColor}`}>
+                              Week {w.weekIndex}
+                            </span>
+                            <div className="text-right sm:text-left">
+                              <p className="text-[11px] font-black text-slate-800 dark:text-slate-200">
+                                {w.startStr}
+                              </p>
+                              <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
+                                Start Date / بداية الأسبوع
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Workload Progress Bar */}
+                          <div className="flex-1 space-y-1">
+                            <div className="flex justify-between items-center text-[10px]">
+                              <span className="font-bold text-slate-400 uppercase tracking-widest">Load Score</span>
+                              <span className={`font-black ${textColor}`}>{w.load} AU</span>
+                            </div>
+                            <div className="w-full h-2 bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden border border-slate-200/50 dark:border-slate-800/50">
+                              <div
+                                  className={`h-full ${barColor} transition-all duration-500 rounded-full`}
+                                  style={{ width: `${loadPercentage}%` }}
+                              />
+                            </div>
+                            <div className="flex gap-2.5 text-[8px] font-bold text-slate-450 uppercase tracking-wider">
+                              {w.meters > 0 && <span>🏃‍♂️ {w.meters}m</span>}
+                              {w.contacts > 0 && <span>🦘 {w.contacts} contacts</span>}
+                            </div>
+                          </div>
+
+                          {/* Daily Sparkline Bars */}
+                          <div className="flex items-end justify-between sm:justify-end gap-1.5 w-full sm:w-32 h-9 border-t sm:border-t-0 sm:border-l border-slate-100 dark:border-slate-900 pt-2 sm:pt-0 sm:pl-3">
+                            {w.daily.map((d, dIdx) => {
+                              const dayLabel = d.dayName.substring(0, 1);
+                              const maxDailyLoad = Math.max(...w.daily.map(day => day.load), 100);
+                              const dailyHeightPercentage = Math.min((d.load / maxDailyLoad) * 100, 100);
+                              
+                              return (
+                                <div key={dIdx} className="flex flex-col items-center gap-1 group/day relative">
+                                  {/* Hover tooltip for daily load */}
+                                  <span className="absolute bottom-full mb-1 scale-0 group-hover/day:scale-100 bg-slate-900 text-white dark:bg-white dark:text-slate-900 text-[8px] font-black px-1 py-0.5 rounded shadow-md z-30 transition-all pointer-events-none whitespace-nowrap">
+                                    {d.load} AU
+                                  </span>
+                                  
+                                  {/* Vertical Bar */}
+                                  <div className="w-2.5 h-6 bg-slate-100 dark:bg-slate-900 rounded-t-sm flex items-end overflow-hidden border border-slate-200/30 dark:border-slate-800/30">
+                                    <div
+                                      className={`w-full ${barColor} opacity-75 group-hover/day:opacity-100 transition-all`}
+                                      style={{ height: `${dailyHeightPercentage}%` }}
+                                    />
+                                  </div>
+                                  
+                                  {/* Day Initial */}
+                                  <span className="text-[8px] font-extrabold text-slate-400 dark:text-slate-500 uppercase select-none">
+                                    {dayLabel}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               {/* Neural vs Structural Bar */}
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs font-bold text-slate-500">
@@ -2262,6 +2641,28 @@ export default function TrackFieldPlanner() {
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white h-20 resize-none outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+
+              {/* Super Set Toggle */}
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="superSetNext"
+                  checked={!!dayDrillModal.drill.superSetNext}
+                  onChange={(e) =>
+                    setDayDrillModal({
+                      ...dayDrillModal,
+                      drill: { ...dayDrillModal.drill, superSetNext: e.target.checked },
+                    })
+                  }
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-600 cursor-pointer"
+                />
+                <label htmlFor="superSetNext" className="text-xs font-bold text-slate-600 dark:text-slate-400 select-none cursor-pointer flex items-center gap-1.5">
+                  <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                    ⚡ Link with NEXT exercise (Super Set)
+                  </span>
+                  <span className="text-[10px] text-blue-500 font-medium font-arabic text-left">(سوبر سيت - ربط بالتمرين التالي)</span>
+                </label>
+              </div>
             </div>
 
             <div className="p-5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center">
@@ -2312,6 +2713,191 @@ export default function TrackFieldPlanner() {
                   {dayDrillModal.isNew ? 'Add' : 'Save'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PDF & PRINTING STUDIOS MODAL */}
+      {showPrintModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[200] flex items-center justify-center p-4 print:hidden animate-[fadeIn_0.2s_ease-out]">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col">
+            <div className="flex justify-between items-center p-5 md:p-6 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="text-lg md:text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
+                <Printer className="w-5 h-5 text-indigo-500 animate-pulse" /> Printing & PDF Lab / استوديو الطباعة والـ PDF
+              </h3>
+              <button
+                onClick={() => setShowPrintModal(false)}
+                className="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              {/* 1. Orientation Selection */}
+              <div className="space-y-3">
+                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                  1. Layout Orientation / اتجاه الصفحة
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setPrintOrientation('landscape')}
+                    className={`p-4 rounded-2xl border text-left flex flex-col gap-2 transition-all ${
+                      printOrientation === 'landscape'
+                        ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 ring-2 ring-indigo-500/20'
+                        : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <Layout className="w-5 h-5" />
+                      {printOrientation === 'landscape' && <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold">Landscape (1 Page)</p>
+                      <p className="text-[10px] opacity-75 mt-0.5 font-arabic font-medium">بالعرض - ورقة واحدة كامل الأسبوع</p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => setPrintOrientation('portrait')}
+                    className={`p-4 rounded-2xl border text-left flex flex-col gap-2 transition-all ${
+                      printOrientation === 'portrait'
+                        ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 ring-2 ring-indigo-500/20'
+                        : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <FileText className="w-5 h-5" />
+                      {printOrientation === 'portrait' && <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold">Portrait (Vertical)</p>
+                      <p className="text-[10px] opacity-75 mt-0.5 font-arabic font-medium">بالطول - قائمة عمودية</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. Theme Selection */}
+              <div className="space-y-3">
+                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                  2. Visual Print Theme / المظهر الفني للطباعة
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Crimson Theme */}
+                  <button
+                    onClick={() => setPrintTheme('classic-crimson')}
+                    className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all ${
+                      printTheme === 'classic-crimson'
+                        ? 'border-red-500 bg-red-50/30 dark:bg-red-950/10 text-red-700 dark:text-red-400 ring-2 ring-red-500/20'
+                        : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-4 h-4 rounded bg-red-600" />
+                      <div>
+                        <p className="text-xs font-black">Classic Crimson</p>
+                        <p className="text-[9px] opacity-75 font-arabic">الأحمر الكلاسيكي للمدرب</p>
+                      </div>
+                    </div>
+                    {printTheme === 'classic-crimson' && <div className="w-2 h-2 rounded-full bg-red-600" />}
+                  </button>
+
+                  {/* Navy Theme */}
+                  <button
+                    onClick={() => setPrintTheme('pro-navy')}
+                    className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all ${
+                      printTheme === 'pro-navy'
+                        ? 'border-blue-500 bg-blue-50/30 dark:bg-blue-950/10 text-blue-700 dark:text-blue-400 ring-2 ring-blue-500/20'
+                        : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-4 h-4 rounded bg-blue-800" />
+                      <div>
+                        <p className="text-xs font-black">Professional Navy</p>
+                        <p className="text-[9px] opacity-75 font-arabic">الكحلي الاحترافي</p>
+                      </div>
+                    </div>
+                    {printTheme === 'pro-navy' && <div className="w-2 h-2 rounded-full bg-blue-700" />}
+                  </button>
+
+                  {/* Green Theme */}
+                  <button
+                    onClick={() => setPrintTheme('athletic-green')}
+                    className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all ${
+                      printTheme === 'athletic-green'
+                        ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/10 text-emerald-700 dark:text-emerald-400 ring-2 ring-emerald-500/20'
+                        : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-4 h-4 rounded bg-emerald-650" />
+                      <div>
+                        <p className="text-xs font-black">Athletic Green</p>
+                        <p className="text-[9px] opacity-75 font-arabic">الأخضر الرياضي الحركي</p>
+                      </div>
+                    </div>
+                    {printTheme === 'athletic-green' && <div className="w-2 h-2 rounded-full bg-emerald-600" />}
+                  </button>
+
+                  {/* Ink Saver Theme */}
+                  <button
+                    onClick={() => setPrintTheme('minimal-ink')}
+                    className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all ${
+                      printTheme === 'minimal-ink'
+                        ? 'border-slate-900 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white ring-2 ring-slate-900/20'
+                        : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-4 h-4 rounded bg-white border border-slate-900" />
+                      <div>
+                        <p className="text-xs font-black">Minimal Ink Saver</p>
+                        <p className="text-[9px] opacity-75 font-arabic">موفّر الحبر (أبيض وأسود)</p>
+                      </div>
+                    </div>
+                    {printTheme === 'minimal-ink' && <div className="w-2 h-2 rounded-full bg-slate-900 dark:bg-white" />}
+                  </button>
+
+                  {/* Dark Mode Theme */}
+                  <button
+                    onClick={() => setPrintTheme('dark-neon')}
+                    className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all sm:col-span-2 ${
+                      printTheme === 'dark-neon'
+                        ? 'border-sky-500 bg-slate-950 text-sky-400 ring-2 ring-sky-500/20 border-slate-850'
+                        : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-4 h-4 rounded bg-slate-900 border border-slate-800 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 rounded bg-sky-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black">Elite Dark (Digital PDF)</p>
+                        <p className="text-[9px] opacity-75 font-arabic">الداكن الرياضي الاحترافي (مثالي للملفات الرقمية)</p>
+                      </div>
+                    </div>
+                    {printTheme === 'dark-neon' && <div className="w-2 h-2 rounded-full bg-sky-400" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+              <button
+                onClick={() => setShowPrintModal(false)}
+                className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 font-bold text-sm"
+              >
+                Cancel / إلغاء
+              </button>
+              <button
+                onClick={triggerActualPrint}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-sm shadow-lg flex items-center gap-2 transition-all active:scale-95"
+              >
+                <Printer className="w-4 h-4" /> Print Plan / طباعة البرنامج
+              </button>
             </div>
           </div>
         </div>
@@ -2652,6 +3238,28 @@ export default function TrackFieldPlanner() {
               })}
             </div>
           )}
+
+          {/* Print-Only Header Sheet Branding */}
+          <div className="hidden print:block w-full mb-6 p-4 rounded-2xl border border-slate-200 dark:border-slate-850 bg-slate-50 dark:bg-slate-900 print-header-bar">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase print-athlete-name">
+                  {selectedAthlete ? `${selectedAthlete.name}` : 'McCarthy, Dillan'}
+                </h1>
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-450 mt-1 uppercase print-program-sub">
+                  Weekly Training Microcycle Plan • {currentWeekStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] font-black uppercase tracking-widest bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2.5 py-1 rounded-md print-branding-tag">
+                  Track & Field Lab
+                </span>
+                <p className="text-[9px] font-bold text-slate-400 mt-1">
+                  Target Load: {weeklyStats.load} AU • {weeklyStats.loadLabel}
+                </p>
+              </div>
+            </div>
+          </div>
 
           <div
             className={`flex h-full p-2 md:p-4 gap-3.5 print-stacked-layout print:grid print:grid-cols-2 print:gap-x-12 print:gap-y-6 print:p-4 ${
