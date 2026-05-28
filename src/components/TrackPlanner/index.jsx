@@ -831,7 +831,8 @@ export default function TrackFieldPlanner() {
       if (isSpeed) {
         if (s > 0 && dist === 0) dist = 10; 
         if (dist > 0 && s === 0) s = 1;
-        const sprintVolume = s * dist;
+        // Sprint Volume includes sets * reps * distance (e.g. 2x3x300m = 1800m)
+        const sprintVolume = s * (r > 0 ? r : 1) * dist;
         totalMeters += sprintVolume;
         if (intensity > 0) {
           validIntensityCount++;
@@ -840,8 +841,15 @@ export default function TrackFieldPlanner() {
         // Load = (Volume * (intensity / 100)^2) * 2.0
         const intensityFactor = intensity > 0 ? intensity / 100 : 1;
         drillLoad = (sprintVolume * Math.pow(intensityFactor, 2)) * 2.0;
-        cnsLoad += drillLoad * 0.8; // 80% CNS
-        structuralLoad += drillLoad * 0.2; // 20% Structural
+        
+        // Dynamically split fatigue load based on speed intensity
+        if (intensity > 75) {
+          cnsLoad += drillLoad * 0.8; // 80% CNS
+          structuralLoad += drillLoad * 0.2; // 20% Structural
+        } else {
+          cnsLoad += drillLoad * 0.1; // 10% CNS
+          structuralLoad += drillLoad * 0.9; // 90% Structural
+        }
       }
       // 2. PLYOMETRICS
       else if (isPlyo) {
