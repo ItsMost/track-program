@@ -1,5 +1,5 @@
 {
-  "name": "Track & Field Lab",
+  "name": "Track Lab",
   "short_name": "Track Lab",
   "description": "Elite Track & Field Program Planner and Workload Analyzer",
   "start_url": "/",
@@ -10,15 +10,15 @@
   "categories": ["sports", "fitness", "productivity"],
   "icons": [
     {
-      "src": "/icon.svg",
+      "src": "/icon.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon.svg",
+      "src": "/icon.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ]

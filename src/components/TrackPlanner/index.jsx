@@ -145,7 +145,6 @@ export default function TrackFieldPlanner() {
     startWeek: 1,
     endWeek: 4,
   });
-  const [showRulebookModal, setShowRulebookModal] = useState(false);
 
   const [draggedItem, setDraggedItem] = useState(null);
   const [createProgramModal, setCreateProgramModal] = useState({
@@ -2151,7 +2150,7 @@ export default function TrackFieldPlanner() {
                     Monthly Plan Audit
                   </h3>
                   <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                    Track & Field Lab
+                    Track Lab
                   </span>
                 </div>
               </div>
@@ -2317,7 +2316,6 @@ export default function TrackFieldPlanner() {
         handleToast={handleToast}
         setSaveWeekTemplateModal={setSaveWeekTemplateModal}
         setSaveBlockRangeModal={setSaveBlockRangeModal}
-        setShowRulebookModal={setShowRulebookModal}
         weeklyStats={weeklyStats}
         onDeleteAthlete={handleDeleteAthlete}
       />
@@ -3613,50 +3611,68 @@ export default function TrackFieldPlanner() {
             </div>
           )}
 
-          {/* HORIZONTALLY SCROLLABLE MOBILE DAY CAROUSEL */}
+          {/* HORIZONTALLY SCROLLABLE MOBILE DAY CAROUSEL - ULTRA PREMIUM NATIVE STYLE */}
           {isMobileView && (
-            <div className="flex gap-2 overflow-x-auto px-4 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200/60 dark:border-slate-800/80 print:hidden select-none scrollbar-none">
+            <div className="sticky top-[0px] z-40 flex gap-3 overflow-x-auto px-4 py-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/60 print:hidden select-none scrollbar-none shadow-sm shadow-slate-100/10 dark:shadow-none transition-all duration-300">
               {DAYS_OF_WEEK.map((day, idx) => {
                 const drills = schedule[day] || [];
                 const stats = calculateDayVolume(drills);
                 const load = stats.totalVolumeScore;
 
-                let pillColor = 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900 text-slate-500 dark:text-slate-400';
-                if (load > 0) {
-                  if (load < 1000) {
-                    pillColor = 'border-blue-300 bg-blue-50/60 dark:border-blue-900/40 dark:bg-blue-955/20 text-blue-600 dark:text-blue-400';
-                  } else if (load > 3000) {
-                    pillColor = 'border-red-300 bg-red-50/60 dark:border-red-900/40 dark:bg-red-955/20 text-red-600 dark:text-red-400';
+                const isActive = activeMobileDay === day;
+                let pillStyle = '';
+
+                if (isActive) {
+                  pillStyle = 'border-orange-500 bg-gradient-to-br from-orange-500 to-amber-500 text-white font-bold shadow-[0_8px_20px_-6px_rgba(249,115,22,0.45)] dark:shadow-[0_8px_24px_-6px_rgba(249,115,22,0.35)] scale-105 z-10';
+                } else {
+                  if (load > 0) {
+                    if (load < 1000) {
+                      pillStyle = 'border-blue-200 dark:border-blue-900/40 bg-blue-50/40 dark:bg-blue-955/15 text-blue-600 dark:text-blue-400 hover:border-blue-300';
+                    } else if (load > 3000) {
+                      pillStyle = 'border-red-200 dark:border-red-900/40 bg-red-50/40 dark:bg-red-955/15 text-red-600 dark:text-red-400 hover:border-red-300';
+                    } else {
+                      pillStyle = 'border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/40 dark:bg-emerald-955/15 text-emerald-600 dark:text-emerald-400 hover:border-emerald-300';
+                    }
                   } else {
-                    pillColor = 'border-green-300 bg-green-50/60 dark:border-green-900/40 dark:bg-green-955/20 text-green-600 dark:text-green-400';
+                    pillStyle = 'border-slate-200/60 dark:border-slate-800/60 bg-slate-50/40 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-850 hover:border-slate-300 dark:hover:border-slate-700';
                   }
                 }
-
-                const isActive = activeMobileDay === day;
 
                 return (
                   <button
                     key={`mob-pill-${day}`}
                     onClick={() => setActiveMobileDay(day)}
-                    className={`flex flex-col items-center min-w-[70px] p-2 rounded-2xl border transition-all relative ${pillColor} ${
-                      isActive
-                        ? 'scale-105 font-bold shadow-md shadow-orange-500/10 border-orange-500 dark:border-orange-500 bg-orange-500/5 dark:bg-orange-500/5'
-                        : 'opacity-75 hover:opacity-100'
-                    }`}
+                    className={`flex flex-col items-center min-w-[72px] p-2.5 rounded-2xl border transition-all duration-300 relative hover:scale-[1.02] ${pillStyle}`}
                   >
-                    <span className="text-[9px] uppercase font-black tracking-wider">
+                    <span className={`text-[9px] uppercase font-black tracking-widest ${isActive ? 'text-white/90' : 'text-slate-450 dark:text-slate-500'}`}>
                       {day.slice(0, 3)}
                     </span>
-                    <span className="text-xs font-black mt-0.5">
+                    <span className={`text-base font-black mt-0.5 leading-none ${isActive ? 'text-white' : 'text-slate-800 dark:text-slate-200'}`}>
                       {weekDates[idx]}
                     </span>
-                    {load > 0 && (
-                      <span className="text-[8px] font-black uppercase mt-1 px-1 bg-white/60 dark:bg-black/30 rounded-md">
+                    {load > 0 ? (
+                      <span className={`text-[8px] font-black uppercase mt-2 px-1.5 py-0.5 rounded-lg border ${
+                        isActive
+                          ? 'bg-white/20 border-white/30 text-white'
+                          : load < 1000
+                            ? 'bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400'
+                            : load > 3000
+                              ? 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400'
+                              : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                      }`}>
                         {load} AU
+                      </span>
+                    ) : (
+                      <span className={`text-[8px] font-black uppercase mt-2 px-1.5 py-0.5 rounded-lg border ${
+                        isActive
+                          ? 'bg-white/10 border-white/20 text-white/80'
+                          : 'bg-slate-100 dark:bg-slate-800/80 border-slate-200/50 dark:border-slate-700/50 text-slate-450 dark:text-slate-500'
+                      }`}>
+                        REST
                       </span>
                     )}
                     {isActive && (
-                      <span className="absolute bottom-1 w-5 h-0.5 bg-orange-500 rounded-full animate-[pulse_1.5s_infinite]"></span>
+                      <span className="absolute bottom-1 w-6 h-0.5 bg-white rounded-full shadow-[0_1px_4px_rgba(255,255,255,0.5)]"></span>
                     )}
                   </button>
                 );
@@ -3677,7 +3693,7 @@ export default function TrackFieldPlanner() {
               </div>
               <div className="text-right">
                 <span className="text-[10px] font-black uppercase tracking-widest bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2.5 py-1 rounded-md print-branding-tag">
-                  Track & Field Lab
+                  Track Lab
                 </span>
                 <p className="text-[9px] font-bold text-slate-400 mt-1">
                   Target Load: {weeklyStats.load} AU • {weeklyStats.loadLabel}
@@ -4188,7 +4204,7 @@ export default function TrackFieldPlanner() {
         <div style={{ borderBottom: '2px solid #e2e8f0', paddingBottom: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
             <span style={{ fontSize: '9px', fontWeight: '900', textTransform: 'uppercase', tracking: '0.1em', color: '#f97316' }}>
-              Track & Field Lab
+              Track Lab
             </span>
             <span style={{ fontSize: '9px', fontWeight: 'bold', color: '#64748b' }}>
               {activeMobileDay} • Day {weekDates[DAYS_OF_WEEK.indexOf(activeMobileDay)]}
@@ -4310,136 +4326,6 @@ export default function TrackFieldPlanner() {
         </div>
       </div>
 
-      {/* PRINT-ONLY COACH'S RULEBOOK & PROTOCOL GUIDELINES INJECTION MANUAL */}
-      <div className="hidden print:block print:break-before-page border-t-2 border-slate-350 dark:border-slate-800 pt-8 mt-12 w-full max-w-4xl mx-auto font-sans text-slate-900">
-        <div className="flex justify-between items-center border-b border-slate-300 pb-4 mb-6">
-          <div>
-            <h2 className="text-xl font-extrabold text-slate-800 uppercase tracking-wide">
-              Coach's Rulebook & Protocol Guidelines / دليل وقوانين المدرب للتدريب
-            </h2>
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
-              Track & Field Lab • Core Athlete Performance Manual
-            </p>
-          </div>
-          <div className="text-right">
-            <span className="text-[10px] font-black uppercase bg-slate-200 text-slate-700 px-3 py-1 rounded">
-              Elite Standard
-            </span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50">
-            <h4 className="text-xs font-black text-orange-600 dark:text-orange-500 uppercase tracking-wider mb-2 flex items-center gap-1.5 border-b border-slate-200 pb-2">
-              🧠 Neural Stress Split (CNS) vs Structural Load
-            </h4>
-            <ul className="text-[10px] text-slate-600 font-medium space-y-2 leading-relaxed">
-              <li>
-                <strong className="text-slate-800">CNS Neural Drive:</strong> High intensity (RPE 9-10) activities such as max velocity sprinting, reactive plyometrics, and Olympic powerlifting. Requires complete 48 to 72 hours recovery to reload motor units.
-              </li>
-              <li>
-                <strong className="text-slate-800">Structural Stress:</strong> Muscular and joint loading (hypertrophy lifting, tempo runs, general conditioning) excluding core/isometrics/mobility to prevent workload skews.
-              </li>
-            </ul>
-          </div>
-
-          <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50">
-            <h4 className="text-xs font-black text-red-600 dark:text-red-500 uppercase tracking-wider mb-2 flex items-center gap-1.5 border-b border-slate-200 pb-2">
-              ⚡ RPE Intensity Law (Rating of Perceived Exertion)
-            </h4>
-            <div className="text-[9px] text-slate-600 font-medium space-y-1.5 leading-normal">
-              <p><strong>RPE 10 (100%):</strong> Absolute Max Effort. Sled/Block starts, Fly runs, or 1RM power testing. Zero deceleration allowed.</p>
-              <p><strong>RPE 9 (95%):</strong> Near Max Effort. Primary speed development, heavy strength blocks, primary plyometrics.</p>
-              <p><strong>RPE 8 (90%):</strong> High Intensity. Speed-endurance, submax hypertrophic gym sessions.</p>
-              <p><strong>RPE 7 (85%):</strong> Moderate/Hard. Aerobic/anaerobic tempo sessions, general coordination drills.</p>
-              <p><strong>RPE 5-6 (Light):</strong> Active recovery, core holds, isometrics, and active flexibility blocks.</p>
-            </div>
-          </div>
-
-          <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50">
-            <h4 className="text-xs font-black text-indigo-600 dark:text-indigo-500 uppercase tracking-wider mb-2 flex items-center gap-1.5 border-b border-slate-200 pb-2">
-              🏃 Velocity & Distance Notation Rules
-            </h4>
-            <ul className="text-[10px] text-slate-600 font-medium space-y-2 leading-relaxed">
-              <li>
-                <strong className="text-slate-800">Notation Setup:</strong> Speed drills are written as <span className="font-bold text-slate-700">Sets x Distance</span> (e.g., <span className="underline">3 x 60m</span> at 95% intensity = 180m total sprinting volume).
-              </li>
-              <li>
-                <strong className="text-slate-800">Rest Interval Protocols:</strong> Rep Rest / Set Rest (e.g. <span className="font-bold text-slate-700">90s / 5m</span>). Complete recovery is mandatory for neural blocks to guarantee high-velocity recruitment without mechanical breakdown.
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="mt-8 text-center text-[8px] text-slate-400 font-medium border-t border-slate-200 pt-4 uppercase tracking-widest">
-          SYSTEM WORKLOAD PROTOCOL MANIFESTO • DESIGNED FOR HIGH PERFORMANCE
-        </div>
-      </div>
-
-      {/* EXPANDABLE COACH'S RULEBOOK & PROTOCOL GUIDELINES MODAL */}
-      {showRulebookModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[250] flex items-center justify-center p-4 print:hidden animate-[fadeIn_0.2s_ease-out]" onClick={() => setShowRulebookModal(false)}>
-          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center p-5 md:p-6 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white flex items-center gap-2 uppercase">
-                <ShieldCheck className="w-5 h-5 text-orange-500 animate-pulse" /> Coach's Rulebook & Protocols / دليل وقوانين المدرب
-              </h3>
-              <button
-                onClick={() => setShowRulebookModal(false)}
-                className="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 rounded-full"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-150 dark:border-slate-850">
-                  <h4 className="text-xs font-black text-red-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                    ⚡ RPE Intensity Law / قانون شدة المجهود
-                  </h4>
-                  <div className="text-[11px] text-slate-600 dark:text-slate-400 space-y-2 leading-relaxed">
-                    <p><strong>RPE 10 (100%):</strong> أقصى مجهود ممكن. انطلاقات من الكتل أو قياس السرعة القصوى. يتطلب راحة كاملة.</p>
-                    <p><strong>RPE 9 (95%):</strong> مجهود شبه أقصى. تنمية السرعة الأساسية وتدريبات القوة المتفجرة.</p>
-                    <p><strong>RPE 8 (90%):</strong> شدة عالية. تنمية تحمل السرعة ومجموعات التضخيم العضلي الفرعية.</p>
-                    <p><strong>RPE 7 (85%):</strong> شدة متوسطة/عالية. تدريبات الجري الإيقاعي (Tempo) وبناء القدرة الهوائية.</p>
-                    <p><strong>RPE 5-6:</strong> استشفاء نشط. ثبات متساوي القياس (Isometrics) وتدريبات الحركية.</p>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-150 dark:border-slate-850">
-                  <h4 className="text-xs font-black text-orange-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                    🧠 CNS vs Structural Stress / مقارنة الحمل العصبي والجسدي
-                  </h4>
-                  <div className="text-[11px] text-slate-600 dark:text-slate-400 space-y-2 leading-relaxed">
-                    <p><strong>CNS Neuro-Stress (80% CNS):</strong> الأنشطة التي تتطلب إشعالاً عصبياً فائقاً مثل الجري بأقصى سرعة والقفز الارتدادي ورفعات القوة. تتطلب 48-72 ساعة راحة كاملة بين الجلسات.</p>
-                    <p><strong>Structural stress (100% Struct):</strong> تدريبات التضخيم ورفع الأثقال التقليدي والجري الخفيف التي تجهد النسيج العضلي والعظام. يرجى الملاحظة أن تدريبات الإطالة والمرونة والثبات معزولة تماماً عن الحسابات العصبي لتجنب انحراف البيانات.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-150 dark:border-slate-850">
-                <h4 className="text-xs font-black text-indigo-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                  🏃 Velocity & Distances Notation Rules / تدوين المسافات وفترات الراحة
-                </h4>
-                <div className="text-[11px] text-slate-600 dark:text-slate-400 space-y-2 leading-relaxed">
-                  <p><strong>صيغة تدوين الجري والسرعة:</strong> تكتب التمارين بصيغة (مجموعات × مسافة) مثل 3x60m أي 3 تكرارات لمسافة 60 متراً (الحجم الكلي 180 متراً).</p>
-                  <p><strong>قاعدة فترات الراحة:</strong> ترمز فترات الراحة لـ (راحة بين التكرارات / راحة بين المجموعات) مثل "90s / 5m" أي 90 ثانية استشفاء بين الجريات و 5 دقائق بين المجموعات. الراحة الكاملة ضرورية للمحافظة على أقصى كفاءة للمخ والجهاز العصبي.</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-              <button
-                onClick={() => setShowRulebookModal(false)}
-                className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-md transition-all active:scale-95"
-              >
-                Close / إغلاق الدليل
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
