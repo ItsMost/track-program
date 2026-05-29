@@ -813,6 +813,8 @@ export default function TrackFieldPlanner() {
         return; // Exclude completely from day and week load metrics
       }
       const intensity = parseFloat(drill.percentage) || 0;
+      const intensityUnit = drill.intensityUnit || (drill.unit === 'x BW' ? 'x BW' : '%');
+
       let s = parseFloat(String(drill.sets).replace(/[^\d.]/g, '')) || 0;
       let r = parseFloat(String(drill.reps).replace(/[^\d.]/g, '')) || 0;
       let dist = parseFloat(String(drill.distance).replace(/[^\d.]/g, '')) || 0;
@@ -827,6 +829,49 @@ export default function TrackFieldPlanner() {
       const isSpeed = type === 'speed' || drill.unit === 'meters';
       const isPlyo = type === 'plyometrics' || type === 'plyos' || drill.unit === 'contacts';
 
+      // Determine intensity factor (0.0 to 1.0+) and convert to relative % 1RM
+      let intensityFactor = 1;
+      let actualPct = intensity;
+      
+      if (intensity > 0) {
+        if (intensityUnit === 'x BW' && selectedAthlete && selectedAthlete.weight) {
+          const athWeight = parseFloat(selectedAthlete.weight) || 70;
+          const targetWeight = intensity * athWeight;
+          
+          // Find matching lift 1RM
+          const titleLower = (drill.title || '').toLowerCase();
+          let liftMax = 0;
+          
+          if (titleLower.includes('bench')) {
+            liftMax = parseFloat(selectedAthlete.bench) || 0;
+          } else if (titleLower.includes('clean')) {
+            liftMax = parseFloat(selectedAthlete.clean) || 0;
+          } else if (titleLower.includes('deadlift')) {
+            liftMax = parseFloat(selectedAthlete.deadlift) || 0;
+          } else if (titleLower.includes('squat')) {
+            if (titleLower.includes('half')) {
+              liftMax = parseFloat(selectedAthlete.halfSquat) || 0;
+            } else if (titleLower.includes('quarter')) {
+              liftMax = parseFloat(selectedAthlete.quarterSquat) || 0;
+            } else {
+              liftMax = parseFloat(selectedAthlete.fullSquat) || 0;
+            }
+          }
+          
+          if (liftMax > 0) {
+            intensityFactor = targetWeight / liftMax;
+          } else {
+            // Fallback: estimate 1RM as 2.0x bodyweight for squats/lifts, or bench 1.2x etc.
+            let bwMultiplier = 2.0;
+            if (titleLower.includes('bench') || titleLower.includes('clean')) bwMultiplier = 1.2;
+            intensityFactor = targetWeight / (athWeight * bwMultiplier);
+          }
+          actualPct = Math.round(intensityFactor * 100);
+        } else {
+          intensityFactor = intensity / 100;
+        }
+      }
+
       // 1. SPEED (TRACK)
       if (isSpeed) {
         if (s > 0 && dist === 0) dist = 10; 
@@ -836,14 +881,13 @@ export default function TrackFieldPlanner() {
         totalMeters += sprintVolume;
         if (intensity > 0) {
           validIntensityCount++;
-          sumIntensity += intensity;
+          sumIntensity += actualPct;
         }
         // Load = (Volume * (intensity / 100)^2) * 2.0
-        const intensityFactor = intensity > 0 ? intensity / 100 : 1;
         drillLoad = (sprintVolume * Math.pow(intensityFactor, 2)) * 2.0;
         
         // Dynamically split fatigue load based on speed intensity
-        if (intensity > 75) {
+        if (actualPct > 75) {
           cnsLoad += drillLoad * 0.8; // 80% CNS
           structuralLoad += drillLoad * 0.2; // 20% Structural
         } else {
@@ -859,10 +903,9 @@ export default function TrackFieldPlanner() {
         totalContacts += plyoVolume;
         if (intensity > 0) {
           validIntensityCount++;
-          sumIntensity += intensity;
+          sumIntensity += actualPct;
         }
         // Load = Volume * (intensity / 100) * 4.0
-        const intensityFactor = intensity > 0 ? intensity / 100 : 1;
         drillLoad = plyoVolume * intensityFactor * 4.0;
         cnsLoad += drillLoad * 0.5; // 50% CNS
         structuralLoad += drillLoad * 0.5; // 50% Structural
@@ -873,10 +916,10 @@ export default function TrackFieldPlanner() {
         if (r > 0 && s === 0) s = 1;
         if (intensity > 0) {
           validIntensityCount++;
-          sumIntensity += intensity;
+          sumIntensity += actualPct;
         }
-        // Load = (sets * reps * 2.0 * intensity/100) * 10
-        drillLoad = (s * r * 2.0 * (intensity > 0 ? intensity / 100 : 1)) * 10;
+        // Load = (sets * reps * 2.0 * intensityFactor) * 10
+        drillLoad = (s * r * 2.0 * intensityFactor) * 10;
         cnsLoad += drillLoad; // 100% CNS
       }
       // 4. STRENGTH (GYM)
@@ -885,10 +928,10 @@ export default function TrackFieldPlanner() {
         if (r > 0 && s === 0) s = 1;
         if (intensity > 0) {
           validIntensityCount++;
-          sumIntensity += intensity;
+          sumIntensity += actualPct;
         }
-        // Load = (sets * reps * 1.5 * intensity/100) * 10
-        drillLoad = (s * r * 1.5 * (intensity > 0 ? intensity / 100 : 1)) * 10;
+        // Load = (sets * reps * 1.5 * intensityFactor) * 10
+        drillLoad = (s * r * 1.5 * intensityFactor) * 10;
         structuralLoad += drillLoad; // 100% Structural
       }
 
@@ -907,7 +950,7 @@ export default function TrackFieldPlanner() {
       cnsLoad: Math.round(cnsLoad),
       structuralLoad: Math.round(structuralLoad),
     };
-  }, []);
+  }, [selectedAthlete]);
 
   const weeklyStats = useMemo(() => {
     let totalLoad = 0;
@@ -2750,30 +2793,94 @@ export default function TrackFieldPlanner() {
                     ))}
                   </select>
                 </div>
-                <div className="w-32">
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
-                    {dayDrillModal.drill.type === 'speed'
-                      ? 'Speed (%Max V)'
-                      : 'Intensity (%1RM)'}
-                  </label>
-                  <div className="relative w-full">
-                    <input
-                      type="number"
-                      value={dayDrillModal.drill.percentage || ''}
-                      onChange={(e) =>
-                        setDayDrillModal({
-                          ...dayDrillModal,
-                          drill: {
-                            ...dayDrillModal.drill,
-                            percentage: e.target.value,
-                          },
-                        })
-                      }
-                      className="w-full text-sm py-2.5 pl-7 pr-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="0"
-                    />
-                    <Percent className="w-3.5 h-3.5 absolute left-2 top-3 text-slate-400" />
+                
+                <div className="flex gap-2 w-48 shrink-0">
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="block text-xs font-bold text-slate-500 uppercase">
+                        {dayDrillModal.drill.type === 'speed' ? 'Speed' : 'Intensity'}
+                      </label>
+                      {dayDrillModal.drill.type !== 'speed' && (dayDrillModal.drill.intensityUnit === 'x BW' || dayDrillModal.drill.unit === 'x BW') && selectedAthlete && selectedAthlete.weight && (
+                        (() => {
+                          const bwVal = parseFloat(dayDrillModal.drill.percentage) || 0;
+                          const targetKg = bwVal * parseFloat(selectedAthlete.weight);
+                          if (targetKg > 0) {
+                            const titleLower = (dayDrillModal.drill.title || '').toLowerCase();
+                            let liftMax = 0;
+                            if (titleLower.includes('bench')) {
+                              liftMax = parseFloat(selectedAthlete.bench) || 0;
+                            } else if (titleLower.includes('clean')) {
+                              liftMax = parseFloat(selectedAthlete.clean) || 0;
+                            } else if (titleLower.includes('deadlift')) {
+                              liftMax = parseFloat(selectedAthlete.deadlift) || 0;
+                            } else if (titleLower.includes('squat')) {
+                              if (titleLower.includes('half')) {
+                                liftMax = parseFloat(selectedAthlete.halfSquat) || 0;
+                              } else if (titleLower.includes('quarter')) {
+                                liftMax = parseFloat(selectedAthlete.quarterSquat) || 0;
+                              } else {
+                                liftMax = parseFloat(selectedAthlete.fullSquat) || 0;
+                              }
+                            }
+                            if (liftMax > 0) {
+                              const pct = Math.round((targetKg / liftMax) * 100);
+                              return <span className="text-[10px] font-black text-rose-500 lowercase font-sans">{targetKg.toFixed(1)}kg ({pct}% 1RM)</span>;
+                            }
+                            return <span className="text-[10px] font-black text-rose-500 lowercase font-sans">{targetKg.toFixed(1)}kg</span>;
+                          }
+                          return null;
+                        })()
+                      )}
+                    </div>
+                    <div className="relative w-full">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={dayDrillModal.drill.percentage || ''}
+                        onChange={(e) =>
+                          setDayDrillModal({
+                            ...dayDrillModal,
+                            drill: {
+                              ...dayDrillModal.drill,
+                              percentage: e.target.value,
+                            },
+                          })
+                        }
+                        className="w-full text-sm py-2.5 pl-7 pr-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 animate-[fadeIn_0.2s_ease-out]"
+                        placeholder="0"
+                      />
+                      {dayDrillModal.drill.intensityUnit === 'x BW' || dayDrillModal.drill.unit === 'x BW' ? (
+                        <span className="absolute left-2.5 top-3 text-[10px] font-black text-slate-450 dark:text-slate-500">xBW</span>
+                      ) : (
+                        <Percent className="w-3.5 h-3.5 absolute left-2 top-3 text-slate-400" />
+                      )}
+                    </div>
                   </div>
+                  {dayDrillModal.drill.type !== 'speed' && (
+                    <div className="w-18 shrink-0">
+                      <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
+                        Unit
+                      </label>
+                      <select
+                        value={dayDrillModal.drill.intensityUnit || (dayDrillModal.drill.unit === 'x BW' ? 'x BW' : '%')}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setDayDrillModal({
+                            ...dayDrillModal,
+                            drill: {
+                              ...dayDrillModal.drill,
+                              intensityUnit: val,
+                              unit: val === 'x BW' ? 'x BW' : 'reps'
+                            },
+                          });
+                        }}
+                        className="w-full text-sm py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="%">%</option>
+                        <option value="x BW">x BW</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -3447,16 +3554,71 @@ export default function TrackFieldPlanner() {
                   </div>
                 )}
 
-                {/* Intensity (Percentage) */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Intensity (%)</label>
-                  <input
-                    type="text"
-                    value={addExerciseModal.percentage}
-                    onChange={(e) => setAddExerciseModal({ ...addExerciseModal, percentage: e.target.value })}
-                    placeholder="e.g. 95"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
-                  />
+                {/* Intensity */}
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="block text-xs font-bold text-slate-500 uppercase">Intensity</label>
+                      {addExerciseModal.type !== 'speed' && (addExerciseModal.intensityUnit === 'x BW' || addExerciseModal.unit === 'x BW') && selectedAthlete && selectedAthlete.weight && (
+                        (() => {
+                          const bwVal = parseFloat(addExerciseModal.percentage) || 0;
+                          const targetKg = bwVal * parseFloat(selectedAthlete.weight);
+                          if (targetKg > 0) {
+                            const titleLower = (addExerciseModal.title || '').toLowerCase();
+                            let liftMax = 0;
+                            if (titleLower.includes('bench')) {
+                              liftMax = parseFloat(selectedAthlete.bench) || 0;
+                            } else if (titleLower.includes('clean')) {
+                              liftMax = parseFloat(selectedAthlete.clean) || 0;
+                            } else if (titleLower.includes('deadlift')) {
+                              liftMax = parseFloat(selectedAthlete.deadlift) || 0;
+                            } else if (titleLower.includes('squat')) {
+                              if (titleLower.includes('half')) {
+                                liftMax = parseFloat(selectedAthlete.halfSquat) || 0;
+                              } else if (titleLower.includes('quarter')) {
+                                liftMax = parseFloat(selectedAthlete.quarterSquat) || 0;
+                              } else {
+                                liftMax = parseFloat(selectedAthlete.fullSquat) || 0;
+                              }
+                            }
+                            if (liftMax > 0) {
+                              const pct = Math.round((targetKg / liftMax) * 100);
+                              return <span className="text-[10px] font-black text-rose-500 lowercase font-sans">{targetKg.toFixed(1)}kg ({pct}% 1RM)</span>;
+                            }
+                            return <span className="text-[10px] font-black text-rose-500 lowercase font-sans">{targetKg.toFixed(1)}kg</span>;
+                          }
+                          return null;
+                        })()
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={addExerciseModal.percentage}
+                      onChange={(e) => setAddExerciseModal({ ...addExerciseModal, percentage: e.target.value })}
+                      placeholder="e.g. 95"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
+                    />
+                  </div>
+                  {addExerciseModal.type !== 'speed' && (
+                    <div className="w-20">
+                      <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Unit</label>
+                      <select
+                        value={addExerciseModal.intensityUnit || (addExerciseModal.unit === 'x BW' ? 'x BW' : '%')}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setAddExerciseModal({
+                            ...addExerciseModal,
+                            intensityUnit: val,
+                            unit: val === 'x BW' ? 'x BW' : 'reps'
+                          });
+                        }}
+                        className="w-full text-sm py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                      >
+                        <option value="%">%</option>
+                        <option value="x BW">x BW</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 {/* Rest */}
@@ -4274,7 +4436,7 @@ export default function TrackFieldPlanner() {
                   )}
                   {drill.percentage && (
                     <span style={{ fontSize: '8px', fontWeight: 'black', color: '#ea580c', backgroundColor: '#ffedd5', padding: '1px 5px', borderRadius: '4px' }}>
-                      {drill.percentage}%
+                      {drill.percentage}{(drill.intensityUnit === 'x BW' || drill.unit === 'x BW') ? 'x BW' : '%'}
                     </span>
                   )}
                   {drill.rest && (

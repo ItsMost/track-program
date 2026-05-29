@@ -174,6 +174,7 @@ const TimelineCard = memo(function TimelineCard({
     const pct = parseFloat(drill.percentage);
     if (isNaN(pct) || pct <= 0) return null;
 
+    const isBW = drill.intensityUnit === 'x BW' || drill.unit === 'x BW';
     const titleLower = (drill.title || '').toLowerCase();
     let liftMax = null;
     let liftName = '';
@@ -198,6 +199,19 @@ const TimelineCard = memo(function TimelineCard({
         liftMax = athlete?.fullSquat;
         liftName = 'Squat';
       }
+    }
+
+    if (isBW) {
+      const bwVal = parseFloat(athlete?.weight) || 70;
+      const targetWeight = pct * bwVal;
+      if (liftMax) {
+        const maxVal = parseFloat(liftMax);
+        if (maxVal > 0) {
+          const pct1RM = Math.round((targetWeight / maxVal) * 100);
+          return { name: liftName || 'BW Load', weight: targetWeight.toFixed(1), pct1RM };
+        }
+      }
+      return { name: liftName || 'BW Load', weight: targetWeight.toFixed(1) };
     }
 
     if (!liftName) return null; // No match found
@@ -296,7 +310,7 @@ const TimelineCard = memo(function TimelineCard({
               </span>
               {drill.percentage ? (
                 <span className="px-1 py-0.2 rounded text-[8px] font-black bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-100/50 dark:border-rose-950/30">
-                  {drill.percentage}% {type === 'speed' ? 'Vmax' : '1RM'}
+                  {drill.percentage}{(drill.intensityUnit === 'x BW' || drill.unit === 'x BW') ? 'x BW' : '%'} {type === 'speed' ? 'Vmax' : '1RM'}
                 </span>
               ) : null}
             </div>
@@ -406,9 +420,13 @@ const TimelineCard = memo(function TimelineCard({
                 </span>
               );
             }
+            const isBW = drill.intensityUnit === 'x BW' || drill.unit === 'x BW';
+            const titleStr = isBW 
+              ? `Calculated load for ${load.name} at ${drill.percentage}x Body Weight.`
+              : `Calculated load for ${load.name} at ${drill.percentage}% 1RM.`;
             return (
-              <span className="text-sky-600 dark:text-sky-400 bg-sky-500/10 px-1 py-0.2 rounded text-[8px] font-black border border-sky-500/20" title={`Calculated load for ${load.name} at ${drill.percentage}% 1RM.`}>
-                🏋️ {load.name}: {load.weight}kg
+              <span className="text-sky-600 dark:text-sky-400 bg-sky-500/10 px-1 py-0.2 rounded text-[8px] font-black border border-sky-500/20" title={titleStr}>
+                🏋️ {load.name}: {load.weight}kg {load.pct1RM ? `(${load.pct1RM}% 1RM)` : ''}
               </span>
             );
           })()}
