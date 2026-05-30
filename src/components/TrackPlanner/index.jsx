@@ -1212,6 +1212,7 @@ export default function TrackFieldPlanner() {
     if (!draggedItem || draggedItem.source !== 'timeline') return;
     const { drill } = draggedItem;
     const drillData = {
+      id: `drill-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
       title: drill.title || '',
       details: drill.details || '',
       type: drill.type || 'speed',
@@ -1327,6 +1328,58 @@ export default function TrackFieldPlanner() {
       return newTitles;
     });
   }, [schedule, pushToHistory, autoSaveDay]);
+
+  const handleSaveDayTitleFromMonth = useCallback(async (dateKeyStr, newTitle) => {
+    if (!selectedAthleteId) return;
+
+    // Update local monthWorkouts state
+    setMonthWorkouts((prev) => ({
+      ...prev,
+      [dateKeyStr]: {
+        ...(prev[dateKeyStr] || { hasDrills: false }),
+        title: newTitle,
+      },
+    }));
+
+    // If the modified date falls in the currently active week, let's update dayTitles!
+    const dayIndex = weekDatesFull.map(d => getDbDateStr(d)).indexOf(dateKeyStr);
+    if (dayIndex !== -1) {
+      const dayName = DAYS_OF_WEEK[dayIndex];
+      setDayTitles(prev => ({
+        ...prev,
+        [dayName]: newTitle
+      }));
+    }
+
+    try {
+      // Fetch existing drills first to prevent overwriting them with empty
+      const { data: existing } = await supabase
+        .from('track_athlete_workouts')
+        .select('drills')
+        .eq('athlete_id', selectedAthleteId)
+        .eq('workout_date', dateKeyStr)
+        .maybeSingle();
+
+      const existingDrills = existing?.drills || [];
+
+      // Now upsert
+      const { error } = await supabase.from('track_athlete_workouts').upsert(
+        {
+          athlete_id: selectedAthleteId,
+          workout_date: dateKeyStr,
+          workout_title: newTitle,
+          drills: existingDrills,
+        },
+        { onConflict: 'athlete_id,workout_date' }
+      );
+
+      if (error) {
+        console.error("Error saving day title from month calendar:", error);
+      }
+    } catch (err) {
+      console.error("Exception saving day title from month calendar:", err);
+    }
+  }, [selectedAthleteId, weekDatesFull, supabase]);
 
   const confirmDelete = useCallback(async () => {
     if (deleteConfirmation.type === 'week') {
@@ -1866,9 +1919,13 @@ export default function TrackFieldPlanner() {
         handleToast(`Failed to update drill: ${error.message}`);
       }
     } else {
+      const drillWithId = {
+        ...drillData,
+        id: `drill-${Date.now()}-${Math.floor(Math.random() * 10000)}`
+      };
       const { data, error } = await supabase
         .from('track_library_drills')
-        .insert([drillData])
+        .insert([drillWithId])
         .select();
       if (!error && data) {
         setLibrary((prev) => ({ ...prev, drills: [data[0], ...(prev?.drills || [])] }));
@@ -2290,13 +2347,13 @@ export default function TrackFieldPlanner() {
                       new Date().getFullYear() === year;
 
                     cells.push(
-                      <button
+                      <div
                         key={`day-box-${d}`}
                         onClick={() => {
                           setCurrentDate(boxDate);
                           setShowMonthCalendar(false);
                         }}
-                        className={`group relative h-24 sm:h-32 rounded-2xl border text-left p-2.5 transition-all flex flex-col justify-between ${
+                        className={`group relative h-24 sm:h-32 rounded-2xl border text-left p-2.5 transition-all flex flex-col justify-between cursor-pointer ${
                           isToday
                             ? 'border-orange-500 bg-orange-50/30 dark:bg-orange-950/10 shadow-md ring-1 ring-orange-400'
                             : workout?.hasDrills
@@ -2319,22 +2376,17 @@ export default function TrackFieldPlanner() {
                           )}
                         </div>
 
-                        <div className="w-full mt-2 overflow-hidden flex-1 flex flex-col justify-end">
-                          {workout?.title ? (
-                            <span className="text-[10px] font-bold text-slate-950 dark:text-slate-50 leading-tight block truncate group-hover:text-orange-500 transition-colors">
-                              {workout.title}
-                            </span>
-                          ) : workout?.hasDrills ? (
-                            <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-tight block">
-                              Active Plan
-                            </span>
-                          ) : (
-                            <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 select-none block italic opacity-60">
-                              Rest/Off
-                            </span>
-                          )}
+                        <div className="w-full mt-2 flex flex-col justify-end relative z-10">
+                          <input
+                            type="text"
+                            value={workout?.title || ''}
+                            placeholder={workout?.hasDrills ? "Active Plan" : "Rest/Off"}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => handleSaveDayTitleFromMonth(dateKeyStr, e.target.value)}
+                            className="w-full bg-transparent border-none text-[10px] font-bold text-slate-950 dark:text-slate-50 p-0 outline-none leading-tight placeholder-slate-450 dark:placeholder-slate-500 hover:bg-slate-100/50 dark:hover:bg-slate-850/50 focus:bg-slate-100 dark:focus:bg-slate-800 px-1 rounded transition-all focus:ring-0"
+                          />
                         </div>
-                      </button>
+                      </div>
                     );
                   }
 
@@ -2832,7 +2884,14 @@ export default function TrackFieldPlanner() {
                         })()
                       )}
                     </div>
-                    <div className="relative w-full">
+                    <div className="flex items-center rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 focus-within:ring-2 focus-within:ring-blue-500 overflow-hidden w-full h-[42px] transition-all">
+                      <div className="pl-3 pr-1 text-slate-400 dark:text-slate-500 flex items-center shrink-0 select-none">
+                        {dayDrillModal.drill.intensityUnit === 'x BW' || dayDrillModal.drill.unit === 'x BW' ? (
+                          <span className="text-[10px] font-black tracking-wider text-slate-400 dark:text-slate-500">xBW</span>
+                        ) : (
+                          <Percent className="w-3.5 h-3.5" />
+                        )}
+                      </div>
                       <input
                         type="number"
                         step="0.01"
@@ -2846,14 +2905,9 @@ export default function TrackFieldPlanner() {
                             },
                           })
                         }
-                        className="w-full text-sm py-2.5 pl-7 pr-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 animate-[fadeIn_0.2s_ease-out]"
+                        className="flex-grow w-full text-sm py-2 px-1.5 bg-transparent border-none outline-none text-slate-800 dark:text-white font-medium focus:ring-0 focus:ring-offset-0"
                         placeholder="0"
                       />
-                      {dayDrillModal.drill.intensityUnit === 'x BW' || dayDrillModal.drill.unit === 'x BW' ? (
-                        <span className="absolute left-2.5 top-3 text-[10px] font-black text-slate-450 dark:text-slate-500">xBW</span>
-                      ) : (
-                        <Percent className="w-3.5 h-3.5 absolute left-2 top-3 text-slate-400" />
-                      )}
                     </div>
                   </div>
                   {dayDrillModal.drill.type !== 'speed' && (
@@ -3591,13 +3645,22 @@ export default function TrackFieldPlanner() {
                         })()
                       )}
                     </div>
-                    <input
-                      type="text"
-                      value={addExerciseModal.percentage}
-                      onChange={(e) => setAddExerciseModal({ ...addExerciseModal, percentage: e.target.value })}
-                      placeholder="e.g. 95"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
-                    />
+                    <div className="flex items-center rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus-within:ring-2 focus-within:ring-orange-500 overflow-hidden w-full h-[42px] transition-all">
+                      <div className="pl-3 pr-1 text-slate-400 dark:text-slate-500 flex items-center shrink-0 select-none">
+                        {addExerciseModal.intensityUnit === 'x BW' || addExerciseModal.unit === 'x BW' ? (
+                          <span className="text-[10px] font-black tracking-wider text-slate-400 dark:text-slate-500">xBW</span>
+                        ) : (
+                          <Percent className="w-3.5 h-3.5" />
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        value={addExerciseModal.percentage || ''}
+                        onChange={(e) => setAddExerciseModal({ ...addExerciseModal, percentage: e.target.value })}
+                        placeholder="e.g. 95"
+                        className="flex-grow w-full text-sm py-2 px-1.5 bg-transparent border-none outline-none text-slate-800 dark:text-white font-medium focus:ring-0 focus:ring-offset-0"
+                      />
+                    </div>
                   </div>
                   {addExerciseModal.type !== 'speed' && (
                     <div className="w-20">
