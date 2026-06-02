@@ -52,7 +52,8 @@ import { supabase, isRealSupabase } from '../../supabaseClient.js';
 // 1. Updated Track & Field Specific Categories
 const EXERCISE_CATEGORIES = {
   speed: 'Speed (Track)',
-  jumps: 'Long & Triple Jump',
+  long_jump: 'Long Jump',
+  triple_jump: 'Triple Jump',
   plyometrics: 'Plyometrics',
   power: 'Power (Gym)',
   strength: 'Strength (Gym)',
@@ -912,7 +913,7 @@ export default function TrackFieldPlanner() {
         structuralLoad += drillLoad * 0.5; // 50% Structural
       }
       // 2.5 JUMPS (LONG & TRIPLE JUMP) - Elite CNS & Reactive Landing Forces
-      else if (type === 'jumps') {
+      else if (type === 'long_jump' || type === 'triple_jump') {
         if (s > 0 && r === 0) r = 1;
         if (r > 0 && s === 0) s = 1;
         const jumpsVolume = s * r;
@@ -2850,7 +2851,7 @@ export default function TrackFieldPlanner() {
                       const newType = e.target.value;
                       let newUnit = dayDrillModal.drill.unit;
                       if (newType === 'speed') newUnit = 'meters';
-                      else if (newType === 'plyometrics' || newType === 'jumps') newUnit = 'contacts';
+                      else if (newType === 'plyometrics' || newType === 'long_jump' || newType === 'triple_jump') newUnit = 'contacts';
                       else if (newType === 'isometric' || newType === 'mobility') newUnit = 'sec';
                       else newUnit = 'reps';
                       setDayDrillModal({
@@ -3054,7 +3055,7 @@ export default function TrackFieldPlanner() {
                 {dayDrillModal.drill.type !== 'speed' && dayDrillModal.drill.type !== 'isometric' && (
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
-                      {dayDrillModal.drill.type === 'plyometrics' || dayDrillModal.drill.type === 'jumps' ? 'Contacts / Jumps' : 'Reps'}
+                      {dayDrillModal.drill.type === 'plyometrics' || dayDrillModal.drill.type === 'long_jump' || dayDrillModal.drill.type === 'triple_jump' ? 'Contacts / Jumps' : 'Reps'}
                     </label>
                     <input
                       type="text"
@@ -3065,7 +3066,7 @@ export default function TrackFieldPlanner() {
                           drill: {
                             ...dayDrillModal.drill,
                             reps: e.target.value,
-                            unit: (dayDrillModal.drill.type === 'plyometrics' || dayDrillModal.drill.type === 'jumps') ? 'contacts' : 'reps'
+                            unit: (dayDrillModal.drill.type === 'plyometrics' || dayDrillModal.drill.type === 'long_jump' || dayDrillModal.drill.type === 'triple_jump') ? 'contacts' : 'reps'
                           },
                         })
                       }
@@ -3589,7 +3590,7 @@ export default function TrackFieldPlanner() {
                     const newType = e.target.value;
                     let defaultUnit = addExerciseModal.unit;
                     if (newType === 'speed') defaultUnit = 'meters';
-                    else if (newType === 'plyometrics' || newType === 'jumps') defaultUnit = 'contacts';
+                    else if (newType === 'plyometrics' || newType === 'long_jump' || newType === 'triple_jump') defaultUnit = 'contacts';
                     else if (newType === 'isometric' || newType === 'mobility') defaultUnit = 'sec';
                     else defaultUnit = 'reps';
                     setAddExerciseModal({ 
@@ -3623,7 +3624,7 @@ export default function TrackFieldPlanner() {
                 {/* Reps */}
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
-                    {addExerciseModal.type === 'plyometrics' || addExerciseModal.type === 'jumps' ? 'Contacts / Jumps' : 'Reps'}
+                    {addExerciseModal.type === 'plyometrics' || addExerciseModal.type === 'long_jump' || addExerciseModal.type === 'triple_jump' ? 'Contacts / Jumps' : 'Reps'}
                   </label>
                   <input
                     type="text"
