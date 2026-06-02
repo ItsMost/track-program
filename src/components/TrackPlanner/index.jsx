@@ -52,6 +52,7 @@ import { supabase, isRealSupabase } from '../../supabaseClient.js';
 // 1. Updated Track & Field Specific Categories
 const EXERCISE_CATEGORIES = {
   speed: 'Speed (Track)',
+  jumps: 'Long & Triple Jump',
   plyometrics: 'Plyometrics',
   power: 'Power (Gym)',
   strength: 'Strength (Gym)',
@@ -909,6 +910,21 @@ export default function TrackFieldPlanner() {
         drillLoad = plyoVolume * intensityFactor * 4.0;
         cnsLoad += drillLoad * 0.5; // 50% CNS
         structuralLoad += drillLoad * 0.5; // 50% Structural
+      }
+      // 2.5 JUMPS (LONG & TRIPLE JUMP) - Elite CNS & Reactive Landing Forces
+      else if (type === 'jumps') {
+        if (s > 0 && r === 0) r = 1;
+        if (r > 0 && s === 0) s = 1;
+        const jumpsVolume = s * r;
+        totalContacts += jumpsVolume;
+        if (intensity > 0) {
+          validIntensityCount++;
+          sumIntensity += actualPct;
+        }
+        // Load = Volume * (intensity / 100) * 5.0 (Extreme landing forces / impact multiplier)
+        drillLoad = jumpsVolume * intensityFactor * 5.0;
+        cnsLoad += drillLoad * 0.7; // 70% CNS (High velocity approach + explosive takeoff)
+        structuralLoad += drillLoad * 0.3; // 30% Structural (Extreme landing deceleration impact)
       }
       // 3. POWER (GYM)
       else if (type === 'power') {
@@ -2830,12 +2846,22 @@ export default function TrackFieldPlanner() {
                   </label>
                   <select
                     value={dayDrillModal.drill.type}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const newType = e.target.value;
+                      let newUnit = dayDrillModal.drill.unit;
+                      if (newType === 'speed') newUnit = 'meters';
+                      else if (newType === 'plyometrics' || newType === 'jumps') newUnit = 'contacts';
+                      else if (newType === 'isometric' || newType === 'mobility') newUnit = 'sec';
+                      else newUnit = 'reps';
                       setDayDrillModal({
                         ...dayDrillModal,
-                        drill: { ...dayDrillModal.drill, type: e.target.value },
-                      })
-                    }
+                        drill: {
+                          ...dayDrillModal.drill,
+                          type: newType,
+                          unit: newUnit
+                        },
+                      });
+                    }}
                     className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {Object.entries(EXERCISE_CATEGORIES).map(([key, label]) => (
@@ -3028,7 +3054,7 @@ export default function TrackFieldPlanner() {
                 {dayDrillModal.drill.type !== 'speed' && dayDrillModal.drill.type !== 'isometric' && (
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
-                      {dayDrillModal.drill.type === 'plyometrics' ? 'Contacts' : 'Reps'}
+                      {dayDrillModal.drill.type === 'plyometrics' || dayDrillModal.drill.type === 'jumps' ? 'Contacts / Jumps' : 'Reps'}
                     </label>
                     <input
                       type="text"
@@ -3039,7 +3065,7 @@ export default function TrackFieldPlanner() {
                           drill: {
                             ...dayDrillModal.drill,
                             reps: e.target.value,
-                            unit: dayDrillModal.drill.type === 'plyometrics' ? 'contacts' : 'reps'
+                            unit: (dayDrillModal.drill.type === 'plyometrics' || dayDrillModal.drill.type === 'jumps') ? 'contacts' : 'reps'
                           },
                         })
                       }
@@ -3559,7 +3585,19 @@ export default function TrackFieldPlanner() {
                 <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Category</label>
                 <select
                   value={addExerciseModal.type}
-                  onChange={(e) => setAddExerciseModal({ ...addExerciseModal, type: e.target.value })}
+                  onChange={(e) => {
+                    const newType = e.target.value;
+                    let defaultUnit = addExerciseModal.unit;
+                    if (newType === 'speed') defaultUnit = 'meters';
+                    else if (newType === 'plyometrics' || newType === 'jumps') defaultUnit = 'contacts';
+                    else if (newType === 'isometric' || newType === 'mobility') defaultUnit = 'sec';
+                    else defaultUnit = 'reps';
+                    setAddExerciseModal({ 
+                      ...addExerciseModal, 
+                      type: newType,
+                      unit: defaultUnit
+                    });
+                  }}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
                 >
                   {Object.entries(EXERCISE_CATEGORIES).map(([key, label]) => (
@@ -3584,7 +3622,9 @@ export default function TrackFieldPlanner() {
 
                 {/* Reps */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Reps</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
+                    {addExerciseModal.type === 'plyometrics' || addExerciseModal.type === 'jumps' ? 'Contacts / Jumps' : 'Reps'}
+                  </label>
                   <input
                     type="text"
                     value={addExerciseModal.reps}

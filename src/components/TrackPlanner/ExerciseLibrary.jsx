@@ -15,6 +15,7 @@ import {
 
 const CATEGORY_TAGS = {
   speed: 'Speed',
+  jumps: 'Jumps',
   plyometrics: 'Plyo',
   power: 'Power',
   strength: 'Strength',

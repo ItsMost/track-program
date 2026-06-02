@@ -27,6 +27,12 @@ const CATEGORY_META = {
     labelColor: 'text-amber-600 dark:text-amber-400',
     label: 'Plyos'
   },
+  jumps: {
+    icon: Zap,
+    color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-500/20',
+    labelColor: 'text-emerald-600 dark:text-emerald-400',
+    label: 'Jumps'
+  },
   power: {
     icon: Dumbbell,
     color: 'text-sky-500 bg-sky-50 dark:bg-sky-950/30 border-sky-500/20',
@@ -285,6 +291,7 @@ const TimelineCard = memo(function TimelineCard({
       <div className="flex shrink-0 w-1 relative rounded-full overflow-hidden my-0.5">
         <div className={`w-full h-full rounded-full ${
           type === 'speed' || type === 'plyometrics' ? 'bg-amber-500' :
+          type === 'jumps' ? 'bg-emerald-500' :
           type === 'power' || type === 'strength' ? 'bg-sky-500' :
           type === 'isometric' || type === 'mobility' ? 'bg-orange-500' :
           type === 'core' ? 'bg-purple-500' : 'bg-slate-400'
