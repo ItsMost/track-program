@@ -312,3 +312,118 @@ export const DEFAULT_800M_PROGRAM = {
     }
   ]
 };
+
+export const DEFAULT_6WEEK_800M_PROGRAM = {
+  id: 'default-6week-800m-vo2max',
+  program_name: '800m VO2 Max & General Endurance (6-Week Block)',
+  weeks: [
+    {
+      title: 'Week 1 - Base Acclimatization',
+      drills: {
+        Saturday: [
+          { title: 'Easy Endurance Run (40 min)', details: 'Aerobic run at 65-70% intensity on flat grass or trail. Focus on steady breathing.', type: 'endurance_easy', percentage: 68, sets: '1', reps: '1', distance: '5500', rest: '0m', unit: 'meters' }
+        ],
+        Sunday: [],
+        Monday: [
+          { title: 'VO2 Max Intro Intervals (5x600m)', details: 'Run 600m at VO2 Max velocity (approx. 90% intensity). Builds cardiac stroke volume.', type: 'endurance_vo2max', percentage: 90, sets: '1', reps: '5', distance: '600', rest: '3m', unit: 'meters' }
+        ],
+        Tuesday: [],
+        Wednesday: [
+          { title: 'Extensive Tempo (8x200m)', details: 'Rhythmic 200m running at 75-80% intensity. Focus on upright posture.', type: 'endurance_400', percentage: 75, sets: '1', reps: '8', distance: '200', rest: '90s', unit: 'meters' }
+        ],
+        Thursday: [],
+        Friday: []
+      }
+    },
+    {
+      title: 'Week 2 - Cardiovascular Capacity & Hill Loading',
+      drills: {
+        Saturday: [
+          { title: 'Aerobic Base Run (45 min)', details: 'Continuous easy run at 68% intensity to expand capillary network.', type: 'endurance_easy', percentage: 68, sets: '1', reps: '1', distance: '6000', rest: '0m', unit: 'meters' }
+        ],
+        Sunday: [],
+        Monday: [
+          { title: 'Uphill VO2 Max Power Repeats (8x2 min)', details: 'Run uphill at 90% effort. Focus on knee drive. Walk down slowly for recovery.', type: 'endurance_vo2max', percentage: 90, sets: '1', reps: '8', distance: '400', rest: '2.5m', unit: 'meters' }
+        ],
+        Tuesday: [],
+        Wednesday: [
+          { title: 'Critical Velocity Aerobic Power (5x800m)', details: '800m repetitions at 80% intensity. Builds high aerobic efficiency.', type: 'endurance_800', percentage: 80, sets: '1', reps: '5', distance: '800', rest: '75s', unit: 'meters' }
+        ],
+        Thursday: [],
+        Friday: []
+      }
+    },
+    {
+      title: 'Week 3 - Peak Aerobic Volume (Peak Loading)',
+      drills: {
+        Saturday: [
+          { title: 'Long Aerobic Base Run (50 min)', details: 'Steady continuous running at 65-70% intensity. Builds primary endurance.', type: 'endurance_easy', percentage: 70, sets: '1', reps: '1', distance: '7000', rest: '0m', unit: 'meters' }
+        ],
+        Sunday: [],
+        Monday: [
+          { title: 'Classic VO2 Max Intervals (5x1000m)', details: '1000m reps at 95% intensity (3k pace). Highest oxygen intake load of the block.', type: 'endurance_vo2max', percentage: 95, sets: '1', reps: '5', distance: '1000', rest: '3m', unit: 'meters' }
+        ],
+        Tuesday: [],
+        Wednesday: [
+          { title: 'Intensive Tempo Lactic Intervals (5x400m)', details: '400m reps at 85% intensity. Focus on relaxed shoulders and rhythm.', type: 'endurance_400', percentage: 85, sets: '1', reps: '5', distance: '400', rest: '150s', unit: 'meters' }
+        ],
+        Thursday: [],
+        Friday: []
+      }
+    },
+    {
+      title: 'Week 4 - Active Recovery & Regeneration',
+      drills: {
+        Saturday: [
+          { title: 'Recovery Run (30 min)', details: 'Very light active recovery jog at 60-65% intensity on grass.', type: 'endurance_easy', percentage: 62, sets: '1', reps: '1', distance: '4000', rest: '0m', unit: 'meters' }
+        ],
+        Sunday: [],
+        Monday: [
+          { title: 'Billat 30-30s VO2 Max (15 reps)', details: 'Alternating 30 seconds at 100% VO2 Max with 30 seconds easy jogging recovery.', type: 'endurance_vo2max', percentage: 100, sets: '1', reps: '15', distance: '150', rest: '30s', unit: 'meters' }
+        ],
+        Tuesday: [],
+        Wednesday: [
+          { title: 'Relaxed Speed Strides (6x150m)', details: 'Relaxed run-throughs at 80% intensity with complete rest to keep legs fresh.', type: 'endurance_easy', percentage: 80, sets: '1', reps: '6', distance: '150', rest: '2m', unit: 'meters' }
+        ],
+        Thursday: [],
+        Friday: []
+      }
+    },
+    {
+      title: 'Week 5 - Specific VO2 Max Peak Capacity',
+      drills: {
+        Saturday: [
+          { title: 'Aerobic Base Run (45 min)', details: 'Steady continuous run at 68% intensity.', type: 'endurance_easy', percentage: 68, sets: '1', reps: '1', distance: '6000', rest: '0m', unit: 'meters' }
+        ],
+        Sunday: [],
+        Monday: [
+          { title: 'High-Volume VO2 Max (4x1200m)', details: '1200m reps at 92% intensity. Builds late race pace durability.', type: 'endurance_vo2max', percentage: 92, sets: '1', reps: '4', distance: '1200', rest: '4m', unit: 'meters' }
+        ],
+        Tuesday: [],
+        Wednesday: [
+          { title: 'VO2 Max Continuous Fartlek (20 min)', details: 'Run continuous 20 min alternating 3 min hard (92% effort) and 2 min easy jog.', type: 'endurance_vo2max', percentage: 90, sets: '1', reps: '1', distance: '3500', rest: '0m', unit: 'meters' }
+        ],
+        Thursday: [],
+        Friday: []
+      }
+    },
+    {
+      title: 'Week 6 - Taper & Test Preparation',
+      drills: {
+        Saturday: [
+          { title: 'Light Shakeout Run (30 min)', details: 'Easy recovery run to prepare muscles for final testing.', type: 'endurance_easy', percentage: 65, sets: '1', reps: '1', distance: '4000', rest: '0m', unit: 'meters' }
+        ],
+        Sunday: [],
+        Monday: [
+          { title: 'Sharp VO2 Max Stimulus (5x400m)', details: '400m runs at 95% intensity, but with complete 4m rest. Prepares lungs and heart without fatigue.', type: 'endurance_vo2max', percentage: 95, sets: '1', reps: '5', distance: '400', rest: '4m', unit: 'meters' }
+        ],
+        Tuesday: [],
+        Wednesday: [
+          { title: 'Active Warm-up & Strides (4x100m)', details: '15 min warm-up jog followed by 4x100m progressive strides. Leg speed activation.', type: 'endurance_easy', percentage: 85, sets: '1', reps: '4', distance: '100', rest: '2m', unit: 'meters' }
+        ],
+        Thursday: [],
+        Friday: []
+      }
+    }
+  ]
+};
