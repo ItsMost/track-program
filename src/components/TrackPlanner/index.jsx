@@ -46,7 +46,7 @@ import Sidebar from './Sidebar.jsx';
 import TimelineCard from './TimelineCard.jsx';
 import ExerciseLibrary from './ExerciseLibrary.jsx';
 import AthleteProfileModal from './AthleteProfileModal.jsx';
-import { INITIAL_ATHLETES, INITIAL_LIBRARY } from '../../data/constants.js';
+import { INITIAL_ATHLETES, INITIAL_LIBRARY, DEFAULT_800M_PROGRAM } from '../../data/constants.js';
 import { supabase, isRealSupabase } from '../../supabaseClient.js';
 
 // 1. Updated Track & Field Specific Categories
@@ -523,7 +523,13 @@ export default function TrackFieldPlanner() {
     if (progError) {
       console.error("Supabase programs fetch error:", progError);
     }
-    setPrograms(progData || []);
+    const fetchedPrograms = progData || [];
+    const hasDefault = fetchedPrograms.some(p => p.program_name === DEFAULT_800M_PROGRAM.program_name);
+    if (!hasDefault) {
+      setPrograms([DEFAULT_800M_PROGRAM, ...fetchedPrograms]);
+    } else {
+      setPrograms(fetchedPrograms);
+    }
   };
   useEffect(() => {
     fetchLibraryData();

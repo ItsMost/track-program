@@ -210,3 +210,105 @@ export const INITIAL_LIBRARY = {
     }
   ]
 };
+
+export const DEFAULT_800M_PROGRAM = {
+  id: 'default-800m-endurance-vo2max',
+  program_name: '800m General Endurance & VO2 Max (4-Week Block)',
+  weeks: [
+    {
+      title: 'Week 1 - Aerobic Base & Recovery Foundation',
+      drills: {
+        Saturday: [
+          { title: 'Aerobic Regeneration Run (30 min)', details: 'Easy run at 65-70% intensity to build capillary density and aerobic base. Keep it strictly conversational.', type: 'endurance_easy', percentage: 70, sets: '1', reps: '1', distance: '4000', rest: '0m', unit: 'meters' },
+          { title: 'Core Anti-Extension (Plank)', details: 'Standard plank holding flat posture without lower back arching.', type: 'core_anti_extension', percentage: 0, sets: '3', reps: '30', rest: '45s', unit: 'sec' }
+        ],
+        Sunday: [],
+        Monday: [
+          { title: 'VO2 Max Intro (6x400m)', details: 'Run 400m at VO2 Max pace (approx. 90% effort). Focus on lung capacity and rhythm.', type: 'endurance_vo2max', percentage: 90, sets: '1', reps: '6', distance: '400', rest: '3m', unit: 'meters' },
+          { title: 'Core Rotation (Russian Twists)', details: 'Rotate torso side-to-side holding a light ball.', type: 'core_rotation', percentage: 0, sets: '3', reps: '15', rest: '60s', unit: 'reps' }
+        ],
+        Tuesday: [
+          { title: 'Barbell Back Squat', details: 'Double leg strength to build muscle density and joint stability.', type: 'strength_double_leg', percentage: 70, sets: '3', reps: '8', rest: '2m', unit: 'reps' },
+          { title: 'Deadbugs', details: 'Anti-extension core drill. Press lower back flat into floor.', type: 'core_anti_extension', percentage: 0, sets: '3', reps: '12', rest: '45s', unit: 'reps' }
+        ],
+        Wednesday: [
+          { title: 'Tempo Endurance Intervals (6x200m)', details: 'Run 200m at 75-80% intensity. Focus on relaxed arms and tall posture.', type: 'endurance_400', percentage: 75, sets: '1', reps: '6', distance: '200', rest: '90s', unit: 'meters' }
+        ],
+        Thursday: [
+          { title: 'Mobility & Hip Flexor Stretch', details: 'Perform dynamic mobility drills to stretch active hips and reduce soreness.', type: 'mobility', percentage: 0, sets: '1', reps: '15', rest: '0m', unit: 'sec' }
+        ],
+        Friday: []
+      }
+    },
+    {
+      title: 'Week 2 - Aerobic Capacity & VO2 Max Loading',
+      drills: {
+        Saturday: [
+          { title: 'Base Endurance Run (45 min)', details: 'Longer flat continuous run at 65-70% intensity to improve aerobic threshold.', type: 'endurance_easy', percentage: 70, sets: '1', reps: '1', distance: '6000', rest: '0m', unit: 'meters' }
+        ],
+        Sunday: [],
+        Monday: [
+          { title: 'VO2 Max Capacity Intervals (4x800m)', details: '800m runs at 92% intensity. Builds cardiac output and specific VO2 Max power.', type: 'endurance_vo2max', percentage: 92, sets: '1', reps: '4', distance: '800', rest: '3m', unit: 'meters' },
+          { title: 'Deadbugs', details: 'Slow opposite arm/leg drop to protect the spine and stabilize the trunk.', type: 'core_anti_extension', percentage: 0, sets: '3', reps: '12', rest: '45s', unit: 'reps' }
+        ],
+        Tuesday: [
+          { title: 'Bulgarian Split Squat (Dumbbell)', details: 'Single-leg strength focus to correct imbalance and increase hip stability.', type: 'strength_single_leg', percentage: 75, sets: '3', reps: '8', rest: '90s', unit: 'reps' },
+          { title: 'Core Rotation (Cable Woodchops)', details: 'Rotational torso pull to build functional core strength for running rotations.', type: 'core_rotation', percentage: 70, sets: '3', reps: '10', rest: '60s', unit: 'reps' }
+        ],
+        Wednesday: [
+          { title: 'Hill Resistance Intervals (8x150m Uphill)', details: 'Run uphill at 90% effort. Focus on powerful knee drive and walk-down recoveries.', type: 'endurance_800', percentage: 90, sets: '1', reps: '8', distance: '150', rest: '2m', unit: 'meters' }
+        ],
+        Thursday: [
+          { title: 'Deep Active Mobility Stretches', details: 'Dynamic leg swings, hip circles, and calf stretches.', type: 'mobility', percentage: 0, sets: '1', reps: '15', rest: '0m', unit: 'sec' }
+        ],
+        Friday: []
+      }
+    },
+    {
+      title: 'Week 3 - Peak VO2 Max & Lactic Threshold',
+      drills: {
+        Saturday: [
+          { title: 'Aerobic Recovery Jog (30 min)', details: 'Slow regenerative run at 60-65% intensity on grass.', type: 'endurance_easy', percentage: 65, sets: '1', reps: '1', distance: '4000', rest: '0m', unit: 'meters' }
+        ],
+        Sunday: [],
+        Monday: [
+          { title: 'Peak VO2 Max Intervals (4x1000m)', details: 'Hard 1000m runs at 95% intensity (3k pace). Highest aerobic workload of the block.', type: 'endurance_vo2max', percentage: 95, sets: '1', reps: '4', distance: '1000', rest: '3m', unit: 'meters' },
+          { title: 'Ab Wheel Rollouts', details: 'Anti-extension core drill. Roll forward, keeping spine neutral.', type: 'core_anti_extension', percentage: 0, sets: '3', reps: '8', rest: '60s', unit: 'reps' }
+        ],
+        Tuesday: [
+          { title: 'Trap Bar Deadlift', details: 'Develops posterior chain drive and power.', type: 'strength_double_leg', percentage: 80, sets: '3', reps: '5', rest: '2m', unit: 'reps' },
+          { title: 'Core Anti-Rotation (Pallof Press)', details: 'Resist rotational pull using cable or band tension.', type: 'core_anti_rotation', percentage: 0, sets: '3', reps: '12', rest: '60s', unit: 'reps' }
+        ],
+        Wednesday: [
+          { title: 'Lactic Capacity Runs (3x600m)', details: 'Run 600m at 90% intensity. Focus on lactic tolerance and maintaining speed under heavy fatigue.', type: 'endurance_800', percentage: 90, sets: '1', reps: '3', distance: '600', rest: '8m', unit: 'meters' }
+        ],
+        Thursday: [
+          { title: 'Lower Body Mobility Session', details: 'Focused calf, ankle, hamstring, and hip mobility work.', type: 'mobility', percentage: 0, sets: '1', reps: '20', rest: '0m', unit: 'sec' }
+        ],
+        Friday: []
+      }
+    },
+    {
+      title: 'Week 4 - Taper & Specific Sharpener',
+      drills: {
+        Saturday: [
+          { title: 'Pre-Competition Shakeout (20 min)', details: 'Very light jog on grass followed by dynamic stretching.', type: 'endurance_easy', percentage: 60, sets: '1', reps: '1', distance: '2500', rest: '0m', unit: 'meters' }
+        ],
+        Sunday: [],
+        Monday: [
+          { title: 'Sharp VO2 Max Boosters (6x400m)', details: 'Run 400m at 95% intensity, but with complete recovery to sharpen aerobic velocity without residual fatigue.', type: 'endurance_vo2max', percentage: 95, sets: '1', reps: '6', distance: '400', rest: '4m', unit: 'meters' }
+        ],
+        Tuesday: [
+          { title: 'Bodyweight Squats & Core', details: 'Very light strength maintenance session.', type: 'strength_double_leg', percentage: 50, sets: '2', reps: '10', rest: '60s', unit: 'reps' }
+        ],
+        Wednesday: [
+          { title: 'Event Pacing Simulation (1x600m + 1x300m)', details: 'Run 600m at target 800m race pace, rest 10 minutes, then run 300m fast. Sharpens pacing feel.', type: 'endurance_800', percentage: 95, sets: '1', reps: '1', distance: '600', rest: '10m', unit: 'meters' }
+        ],
+        Thursday: [
+          { title: 'Light Active Stretch', details: 'Gentle full body mobility.', type: 'mobility', percentage: 0, sets: '1', reps: '15', rest: '0m', unit: 'sec' }
+        ],
+        Friday: []
+      }
+    }
+  ]
+};
