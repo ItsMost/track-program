@@ -921,8 +921,25 @@ export default function TrackFieldPlanner() {
           validIntensityCount++;
           sumIntensity += actualPct;
         }
-        // Load = (Volume * (intensity / 100)^2) * 2.0
-        drillLoad = (sprintVolume * Math.pow(intensityFactor, 2)) * 2.0;
+
+        // Determine multiplier based on endurance subcategory
+        let speedMultiplier = 2.0;
+        if (baseType === 'endurance') {
+          if (type === 'endurance_easy') {
+            speedMultiplier = 0.1;
+          } else if (type === 'endurance_800') {
+            speedMultiplier = 0.25;
+          } else if (type === 'endurance_vo2max') {
+            speedMultiplier = 0.4;
+          } else if (type === 'endurance_400') {
+            speedMultiplier = 0.5;
+          } else {
+            speedMultiplier = 0.3; // Default endurance
+          }
+        }
+
+        // Load = (Volume * (intensity / 100)^2) * speedMultiplier
+        drillLoad = (sprintVolume * Math.pow(intensityFactor, 2)) * speedMultiplier;
         
         // Dynamically split fatigue load based on intensity
         if (actualPct > 75) {
