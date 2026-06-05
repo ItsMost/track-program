@@ -54,6 +54,7 @@ const EXERCISE_CATEGORIES = {
   speed: 'Speed (Track)',
   long_jump: 'Long Jump',
   triple_jump: 'Triple Jump',
+  endurance: 'Endurance',
   plyometrics: 'Plyometrics',
   power: 'Power (Gym)',
   strength: 'Strength (Gym)',
@@ -61,6 +62,38 @@ const EXERCISE_CATEGORIES = {
   mobility: 'Mobility',
   core: 'Core',
   physical: 'Physical',
+};
+
+const SUBCATEGORIES = {
+  endurance: {
+    all: 'All',
+    endurance_400: '400m',
+    endurance_800: '800m'
+  },
+  core: {
+    all: 'All',
+    core_rotation: 'Rotation',
+    core_anti_rotation: 'Anti-Rotation',
+    core_extension: 'Extension',
+    core_anti_extension: 'Anti-Extension'
+  },
+  strength: {
+    all: 'All',
+    strength_single_leg: 'Single Leg',
+    strength_double_leg: 'Double Leg',
+    strength_upper: 'Upper Body'
+  }
+};
+
+const getBaseCategory = (type) => {
+  if (!type) return 'speed';
+  const lower = type.toLowerCase();
+  if (lower.startsWith('endurance')) return 'endurance';
+  if (lower.startsWith('core')) return 'core';
+  if (lower.startsWith('strength')) return 'strength';
+  if (lower.startsWith('long_jump')) return 'long_jump';
+  if (lower.startsWith('triple_jump')) return 'triple_jump';
+  return lower;
 };
 
 const DAYS_OF_WEEK = [
@@ -811,7 +844,8 @@ export default function TrackFieldPlanner() {
 
     dayDrills.forEach((drill) => {
       const type = (drill.type || '').toLowerCase();
-      if (type === 'isometric' || type === 'core' || type === 'mobility') {
+      const baseType = getBaseCategory(type);
+      if (baseType === 'isometric' || baseType === 'core' || baseType === 'mobility') {
         return; // Exclude completely from day and week load metrics
       }
       const intensity = parseFloat(drill.percentage) || 0;
@@ -821,15 +855,15 @@ export default function TrackFieldPlanner() {
       let r = parseFloat(String(drill.reps).replace(/[^\d.]/g, '')) || 0;
       let dist = parseFloat(String(drill.distance).replace(/[^\d.]/g, '')) || 0;
 
-      if (s > 0 && r === 0 && type !== 'speed') r = 1;
-      if (r > 0 && s === 0 && type !== 'speed') s = 1;
-      if (s > 0 && dist === 0 && type === 'speed') dist = 10; 
-      if (dist > 0 && s === 0 && type === 'speed') s = 1;
+      if (s > 0 && r === 0 && baseType !== 'speed' && baseType !== 'endurance') r = 1;
+      if (r > 0 && s === 0 && baseType !== 'speed' && baseType !== 'endurance') s = 1;
+      if (s > 0 && dist === 0 && (baseType === 'speed' || baseType === 'endurance')) dist = 10; 
+      if (dist > 0 && s === 0 && (baseType === 'speed' || baseType === 'endurance')) s = 1;
 
       let drillLoad = 0;
 
-      const isSpeed = type === 'speed' || drill.unit === 'meters';
-      const isPlyo = type === 'plyometrics' || type === 'plyos' || drill.unit === 'contacts';
+      const isSpeed = baseType === 'speed' || baseType === 'endurance' || drill.unit === 'meters';
+      const isPlyo = baseType === 'plyometrics' || baseType === 'plyos' || drill.unit === 'contacts';
 
       // Determine intensity factor (0.0 to 1.0+) and convert to relative % 1RM
       let intensityFactor = 1;
@@ -874,7 +908,7 @@ export default function TrackFieldPlanner() {
         }
       }
 
-      // 1. SPEED (TRACK)
+      // 1. SPEED (TRACK) / ENDURANCE
       if (isSpeed) {
         if (s > 0 && dist === 0) dist = 10; 
         if (dist > 0 && s === 0) s = 1;
@@ -888,7 +922,7 @@ export default function TrackFieldPlanner() {
         // Load = (Volume * (intensity / 100)^2) * 2.0
         drillLoad = (sprintVolume * Math.pow(intensityFactor, 2)) * 2.0;
         
-        // Dynamically split fatigue load based on speed intensity
+        // Dynamically split fatigue load based on intensity
         if (actualPct > 75) {
           cnsLoad += drillLoad * 0.8; // 80% CNS
           structuralLoad += drillLoad * 0.2; // 20% Structural
@@ -913,7 +947,7 @@ export default function TrackFieldPlanner() {
         structuralLoad += drillLoad * 0.5; // 50% Structural
       }
       // 2.5 JUMPS (LONG & TRIPLE JUMP) - Elite CNS & Reactive Landing Forces
-      else if (type === 'long_jump' || type === 'triple_jump') {
+      else if (baseType === 'long_jump' || baseType === 'triple_jump') {
         if (s > 0 && r === 0) r = 1;
         if (r > 0 && s === 0) s = 1;
         const jumpsVolume = s * r;
@@ -928,7 +962,7 @@ export default function TrackFieldPlanner() {
         structuralLoad += drillLoad * 0.3; // 30% Structural (Extreme landing deceleration impact)
       }
       // 3. POWER (GYM)
-      else if (type === 'power') {
+      else if (baseType === 'power') {
         if (s > 0 && r === 0) r = 1;
         if (r > 0 && s === 0) s = 1;
         if (intensity > 0) {
@@ -940,7 +974,7 @@ export default function TrackFieldPlanner() {
         cnsLoad += drillLoad; // 100% CNS
       }
       // 4. STRENGTH (GYM)
-      else if (type === 'strength') {
+      else if (baseType === 'strength') {
         if (s > 0 && r === 0) r = 1;
         if (r > 0 && s === 0) s = 1;
         if (intensity > 0) {
@@ -2846,13 +2880,18 @@ export default function TrackFieldPlanner() {
                     Category
                   </label>
                   <select
-                    value={dayDrillModal.drill.type}
+                    value={getBaseCategory(dayDrillModal.drill.type)}
                     onChange={(e) => {
-                      const newType = e.target.value;
+                      const newBaseType = e.target.value;
+                      let newType = newBaseType;
+                      if (newBaseType === 'endurance') newType = 'endurance_400';
+                      else if (newBaseType === 'core') newType = 'core_rotation';
+                      else if (newBaseType === 'strength') newType = 'strength_single_leg';
+                      
                       let newUnit = dayDrillModal.drill.unit;
-                      if (newType === 'speed') newUnit = 'meters';
-                      else if (newType === 'plyometrics' || newType === 'long_jump' || newType === 'triple_jump') newUnit = 'contacts';
-                      else if (newType === 'isometric' || newType === 'mobility') newUnit = 'sec';
+                      if (newBaseType === 'speed' || newBaseType === 'endurance') newUnit = 'meters';
+                      else if (newBaseType === 'plyometrics' || newBaseType === 'long_jump' || newBaseType === 'triple_jump') newUnit = 'contacts';
+                      else if (newBaseType === 'isometric' || newBaseType === 'mobility') newUnit = 'sec';
                       else newUnit = 'reps';
                       setDayDrillModal({
                         ...dayDrillModal,
@@ -2871,6 +2910,30 @@ export default function TrackFieldPlanner() {
                       </option>
                     ))}
                   </select>
+
+                  {SUBCATEGORIES[getBaseCategory(dayDrillModal.drill.type)] && (
+                    <div className="mt-3 animate-[fadeIn_0.15s_ease-out]">
+                      <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
+                        Subcategory
+                      </label>
+                      <select
+                        value={dayDrillModal.drill.type}
+                        onChange={(e) =>
+                          setDayDrillModal({
+                            ...dayDrillModal,
+                            drill: { ...dayDrillModal.drill, type: e.target.value }
+                          })
+                        }
+                        className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {Object.entries(SUBCATEGORIES[getBaseCategory(dayDrillModal.drill.type)])
+                          .filter(([k]) => k !== 'all')
+                          .map(([key, label]) => (
+                            <option key={key} value={key}>{label}</option>
+                          ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex gap-2 w-48 shrink-0">
@@ -3585,13 +3648,18 @@ export default function TrackFieldPlanner() {
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Category</label>
                 <select
-                  value={addExerciseModal.type}
+                  value={getBaseCategory(addExerciseModal.type)}
                   onChange={(e) => {
-                    const newType = e.target.value;
+                    const newBaseType = e.target.value;
+                    let newType = newBaseType;
+                    if (newBaseType === 'endurance') newType = 'endurance_400';
+                    else if (newBaseType === 'core') newType = 'core_rotation';
+                    else if (newBaseType === 'strength') newType = 'strength_single_leg';
+
                     let defaultUnit = addExerciseModal.unit;
-                    if (newType === 'speed') defaultUnit = 'meters';
-                    else if (newType === 'plyometrics' || newType === 'long_jump' || newType === 'triple_jump') defaultUnit = 'contacts';
-                    else if (newType === 'isometric' || newType === 'mobility') defaultUnit = 'sec';
+                    if (newBaseType === 'speed' || newBaseType === 'endurance') defaultUnit = 'meters';
+                    else if (newBaseType === 'plyometrics' || newBaseType === 'long_jump' || newBaseType === 'triple_jump') defaultUnit = 'contacts';
+                    else if (newBaseType === 'isometric' || newBaseType === 'mobility') defaultUnit = 'sec';
                     else defaultUnit = 'reps';
                     setAddExerciseModal({ 
                       ...addExerciseModal, 
@@ -3605,6 +3673,30 @@ export default function TrackFieldPlanner() {
                     <option key={key} value={key}>{label}</option>
                   ))}
                 </select>
+
+                {SUBCATEGORIES[getBaseCategory(addExerciseModal.type)] && (
+                  <div className="mt-3 animate-[fadeIn_0.15s_ease-out]">
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
+                      Subcategory
+                    </label>
+                    <select
+                      value={addExerciseModal.type}
+                      onChange={(e) =>
+                        setAddExerciseModal({
+                          ...addExerciseModal,
+                          type: e.target.value
+                        })
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
+                    >
+                      {Object.entries(SUBCATEGORIES[getBaseCategory(addExerciseModal.type)])
+                        .filter(([k]) => k !== 'all')
+                        .map(([key, label]) => (
+                          <option key={key} value={key}>{label}</option>
+                        ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Grid for Parameters */}

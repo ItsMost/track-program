@@ -17,6 +17,7 @@ const CATEGORY_TAGS = {
   speed: 'Speed',
   long_jump: 'Long Jump',
   triple_jump: 'Triple Jump',
+  endurance: 'Endurance',
   plyometrics: 'Plyo',
   power: 'Power',
   strength: 'Strength',
@@ -24,6 +25,50 @@ const CATEGORY_TAGS = {
   mobility: 'Mobility',
   core: 'Core',
   physical: 'Physical'
+};
+
+const SUBCATEGORIES = {
+  endurance: {
+    all: 'All',
+    endurance_400: '400m',
+    endurance_800: '800m'
+  },
+  core: {
+    all: 'All',
+    core_rotation: 'Rotation',
+    core_anti_rotation: 'Anti-Rotation',
+    core_extension: 'Extension',
+    core_anti_extension: 'Anti-Extension'
+  },
+  strength: {
+    all: 'All',
+    strength_single_leg: 'Single Leg',
+    strength_double_leg: 'Double Leg',
+    strength_upper: 'Upper Body'
+  }
+};
+
+const getBaseCategory = (type) => {
+  if (!type) return 'speed';
+  const lower = type.toLowerCase();
+  if (lower.startsWith('endurance')) return 'endurance';
+  if (lower.startsWith('core')) return 'core';
+  if (lower.startsWith('strength')) return 'strength';
+  if (lower.startsWith('long_jump')) return 'long_jump';
+  if (lower.startsWith('triple_jump')) return 'triple_jump';
+  return lower;
+};
+
+const getCategoryDisplayName = (type) => {
+  const base = getBaseCategory(type);
+  const baseLabel = CATEGORY_TAGS[base] || base;
+  if (SUBCATEGORIES[base] && type !== base) {
+    const subLabel = SUBCATEGORIES[base][type];
+    if (subLabel) {
+      return `${baseLabel} (${subLabel})`;
+    }
+  }
+  return baseLabel;
 };
 
 export default function ExerciseLibrary({
@@ -43,13 +88,25 @@ export default function ExerciseLibrary({
   const [activeTab, setActiveTab] = useState('drills');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategoryFilter, setActiveCategoryFilter] = useState('all');
+  const [activeSubcategoryFilter, setActiveSubcategoryFilter] = useState('all');
 
   // Handle Search & Category Filtering
   const filteredDrills = (library.drills || []).filter((d) => {
     const type = (d.type || '').toLowerCase();
+    const baseCategory = getBaseCategory(type);
     
     // Category Filter
-    if (activeCategoryFilter !== 'all' && type !== activeCategoryFilter) {
+    if (activeCategoryFilter !== 'all' && baseCategory !== activeCategoryFilter) {
+      return false;
+    }
+
+    // Subcategory Filter
+    if (
+      activeCategoryFilter !== 'all' &&
+      SUBCATEGORIES[activeCategoryFilter] &&
+      activeSubcategoryFilter !== 'all' &&
+      type !== activeSubcategoryFilter
+    ) {
       return false;
     }
 
@@ -103,30 +160,57 @@ export default function ExerciseLibrary({
 
         {/* Quick Category Filter Pills inside Drills Tab */}
         {activeTab === 'drills' && (
-          <div className="flex gap-1.5 overflow-x-auto mt-2 pb-1.5 select-none scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
-            <button
-              onClick={() => setActiveCategoryFilter('all')}
-              className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border shrink-0 ${
-                activeCategoryFilter === 'all'
-                  ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
-                  : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400'
-              }`}
-            >
-              All
-            </button>
-            {Object.entries(CATEGORY_TAGS).map(([key, label]) => (
+          <div className="flex flex-col gap-1.5 mt-2">
+            <div className="flex gap-1.5 overflow-x-auto pb-1.5 select-none scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
               <button
-                key={`filter-pill-${key}`}
-                onClick={() => setActiveCategoryFilter(key)}
+                onClick={() => {
+                  setActiveCategoryFilter('all');
+                  setActiveSubcategoryFilter('all');
+                }}
                 className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border shrink-0 ${
-                  activeCategoryFilter === key
+                  activeCategoryFilter === 'all'
                     ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
                     : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400'
                 }`}
               >
-                {label}
+                All
               </button>
-            ))}
+              {Object.entries(CATEGORY_TAGS).map(([key, label]) => (
+                <button
+                  key={`filter-pill-${key}`}
+                  onClick={() => {
+                    setActiveCategoryFilter(key);
+                    setActiveSubcategoryFilter('all');
+                  }}
+                  className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border shrink-0 ${
+                    activeCategoryFilter === key
+                      ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
+                      : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Subcategory Pills Row */}
+            {activeCategoryFilter !== 'all' && SUBCATEGORIES[activeCategoryFilter] && (
+              <div className="flex gap-1.5 overflow-x-auto pb-1 select-none scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 border-t border-slate-100 dark:border-slate-800/60 pt-1.5 animate-[fadeIn_0.2s_ease-out]">
+                {Object.entries(SUBCATEGORIES[activeCategoryFilter]).map(([key, label]) => (
+                  <button
+                    key={`subcategory-pill-${key}`}
+                    onClick={() => setActiveSubcategoryFilter(key)}
+                    className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all border shrink-0 ${
+                      activeSubcategoryFilter === key
+                        ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
+                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -222,7 +306,7 @@ export default function ExerciseLibrary({
                         {drill.title}
                       </h4>
                       <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">
-                        {CATEGORY_TAGS[drill.type] || drill.type}
+                        {getCategoryDisplayName(drill.type)}
                       </span>
                     </div>
                   </div>

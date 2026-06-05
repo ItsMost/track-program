@@ -39,6 +39,12 @@ const CATEGORY_META = {
     labelColor: 'text-teal-600 dark:text-teal-400',
     label: 'Triple Jump'
   },
+  endurance: {
+    icon: Activity,
+    color: 'text-rose-500 bg-rose-50 dark:bg-rose-950/30 border-rose-500/20',
+    labelColor: 'text-rose-600 dark:text-rose-400',
+    label: 'Endurance'
+  },
   power: {
     icon: Dumbbell,
     color: 'text-sky-500 bg-sky-50 dark:bg-sky-950/30 border-sky-500/20',
@@ -77,6 +83,48 @@ const CATEGORY_META = {
   }
 };
 
+const getBaseCategory = (type) => {
+  if (!type) return 'speed';
+  const lower = type.toLowerCase();
+  if (lower.startsWith('endurance')) return 'endurance';
+  if (lower.startsWith('core')) return 'core';
+  if (lower.startsWith('strength')) return 'strength';
+  if (lower.startsWith('long_jump')) return 'long_jump';
+  if (lower.startsWith('triple_jump')) return 'triple_jump';
+  return lower;
+};
+
+const SUBCATEGORIES = {
+  endurance: {
+    endurance_400: '400m',
+    endurance_800: '800m'
+  },
+  core: {
+    core_rotation: 'Rotation',
+    core_anti_rotation: 'Anti-Rotation',
+    core_extension: 'Extension',
+    core_anti_extension: 'Anti-Extension'
+  },
+  strength: {
+    strength_single_leg: 'Single Leg',
+    strength_double_leg: 'Double Leg',
+    strength_upper: 'Upper Body'
+  }
+};
+
+const getCategoryDisplayName = (type) => {
+  const base = getBaseCategory(type);
+  const meta = CATEGORY_META[base] || CATEGORY_META.speed;
+  const baseLabel = meta.label || base;
+  if (SUBCATEGORIES[base] && type !== base) {
+    const subLabel = SUBCATEGORIES[base][type];
+    if (subLabel) {
+      return `${baseLabel} (${subLabel})`;
+    }
+  }
+  return baseLabel;
+};
+
 const TimelineCard = memo(function TimelineCard({
   drill,
   day,
@@ -96,11 +144,12 @@ const TimelineCard = memo(function TimelineCard({
   const [showNotes, setShowNotes] = useState(false);
 
   const type = (drill.type || 'speed').toLowerCase();
-  const meta = CATEGORY_META[type] || CATEGORY_META.speed;
+  const baseCategory = getBaseCategory(type);
+  const meta = CATEGORY_META[baseCategory] || CATEGORY_META.speed;
   const IconComponent = meta.icon;
 
   const calculateTargetPace = () => {
-    if (type !== 'speed' || !drill.percentage || !drill.distance) return null;
+    if ((baseCategory !== 'speed' && baseCategory !== 'endurance') || !drill.percentage || !drill.distance) return null;
     const pct = parseFloat(drill.percentage);
     const dist = parseFloat(drill.distance);
     if (isNaN(pct) || isNaN(dist) || dist <= 0 || pct <= 0) return null;
@@ -181,7 +230,7 @@ const TimelineCard = memo(function TimelineCard({
   };
 
   const calculateTargetLoad = () => {
-    const isStrengthOrPower = type === 'strength' || type === 'power';
+    const isStrengthOrPower = baseCategory === 'strength' || baseCategory === 'power';
     if (!isStrengthOrPower || !drill.percentage) return null;
     const pct = parseFloat(drill.percentage);
     if (isNaN(pct) || pct <= 0) return null;
@@ -253,7 +302,7 @@ const TimelineCard = memo(function TimelineCard({
 
   const renderParameters = () => {
     const params = [];
-    if (type === 'speed') {
+    if (baseCategory === 'speed' || baseCategory === 'endurance') {
       const parts = [];
       if (drill.sets) parts.push(drill.sets);
       
@@ -296,12 +345,13 @@ const TimelineCard = memo(function TimelineCard({
       {/* Dynamic Left Colored Indicator Stripe */}
       <div className="flex shrink-0 w-1 relative rounded-full overflow-hidden my-0.5">
         <div className={`w-full h-full rounded-full ${
-          type === 'speed' || type === 'plyometrics' ? 'bg-amber-500' :
-          type === 'long_jump' ? 'bg-emerald-500' :
-          type === 'triple_jump' ? 'bg-teal-500' :
-          type === 'power' || type === 'strength' ? 'bg-sky-500' :
-          type === 'isometric' || type === 'mobility' ? 'bg-orange-500' :
-          type === 'core' ? 'bg-purple-500' : 'bg-slate-400'
+          baseCategory === 'speed' || baseCategory === 'plyometrics' ? 'bg-amber-500' :
+          baseCategory === 'endurance' ? 'bg-rose-500' :
+          baseCategory === 'long_jump' ? 'bg-emerald-500' :
+          baseCategory === 'triple_jump' ? 'bg-teal-500' :
+          baseCategory === 'power' || baseCategory === 'strength' ? 'bg-sky-500' :
+          baseCategory === 'isometric' || baseCategory === 'mobility' ? 'bg-orange-500' :
+          baseCategory === 'core' ? 'bg-purple-500' : 'bg-slate-400'
         }`} />
       </div>
 
@@ -320,11 +370,11 @@ const TimelineCard = memo(function TimelineCard({
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className={`text-[8px] font-black uppercase tracking-wider flex items-center gap-0.5 ${meta.labelColor || 'text-slate-500'}`}>
                 <IconComponent className="w-2.5 h-2.5 shrink-0" />
-                {meta.label}
+                {getCategoryDisplayName(drill.type)}
               </span>
               {drill.percentage ? (
                 <span className="px-1 py-0.2 rounded text-[8px] font-black bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-100/50 dark:border-rose-950/30">
-                  {drill.percentage}{(drill.intensityUnit === 'x BW' || drill.unit === 'x BW') ? 'x BW' : '%'} {type === 'speed' ? 'Vmax' : '1RM'}
+                  {drill.percentage}{(drill.intensityUnit === 'x BW' || drill.unit === 'x BW') ? 'x BW' : '%'} {(baseCategory === 'speed' || baseCategory === 'endurance') ? 'Vmax' : '1RM'}
                 </span>
               ) : null}
             </div>
