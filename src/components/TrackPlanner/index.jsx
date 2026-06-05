@@ -68,7 +68,9 @@ const SUBCATEGORIES = {
   endurance: {
     all: 'All',
     endurance_400: '400m',
-    endurance_800: '800m'
+    endurance_800: '800m',
+    endurance_easy: 'Easy Run',
+    endurance_vo2max: 'VO2 Max'
   },
   core: {
     all: 'All',
