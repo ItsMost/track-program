@@ -86,15 +86,22 @@ const CATEGORY_META = {
 const getBaseCategory = (type) => {
   if (!type) return 'speed';
   const lower = type.toLowerCase();
+  if (lower.startsWith('speed')) return 'speed';
   if (lower.startsWith('endurance')) return 'endurance';
   if (lower.startsWith('core')) return 'core';
   if (lower.startsWith('strength')) return 'strength';
+  if (lower.startsWith('mobility')) return 'mobility';
   if (lower.startsWith('long_jump')) return 'long_jump';
   if (lower.startsWith('triple_jump')) return 'triple_jump';
   return lower;
 };
 
 const SUBCATEGORIES = {
+  speed: {
+    speed_acceleration: 'Acceleration',
+    speed_max_velocity: 'Max Velocity',
+    speed_endurance: 'Speed Endurance'
+  },
   endurance: {
     endurance_400: '400m',
     endurance_800: '800m',
@@ -111,6 +118,10 @@ const SUBCATEGORIES = {
     strength_single_leg: 'Single Leg',
     strength_double_leg: 'Double Leg',
     strength_upper: 'Upper Body'
+  },
+  mobility: {
+    mobility_warmup: 'RAMP Warm-up',
+    mobility_recovery: 'Recovery & Flexibility'
   }
 };
 

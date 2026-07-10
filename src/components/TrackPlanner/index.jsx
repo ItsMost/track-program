@@ -46,7 +46,7 @@ import Sidebar from './Sidebar.jsx';
 import TimelineCard from './TimelineCard.jsx';
 import ExerciseLibrary from './ExerciseLibrary.jsx';
 import AthleteProfileModal from './AthleteProfileModal.jsx';
-import { INITIAL_ATHLETES, INITIAL_LIBRARY, DEFAULT_800M_PROGRAM, DEFAULT_6WEEK_800M_PROGRAM } from '../../data/constants.js';
+import { INITIAL_ATHLETES, INITIAL_LIBRARY, DEFAULT_800M_PROGRAM, DEFAULT_6WEEK_800M_PROGRAM, DEFAULT_LONG_JUMP_PROGRAM, DEFAULT_TRIPLE_JUMP_PROGRAM } from '../../data/constants.js';
 import { supabase, isRealSupabase } from '../../supabaseClient.js';
 
 // 1. Updated Track & Field Specific Categories
@@ -65,6 +65,12 @@ const EXERCISE_CATEGORIES = {
 };
 
 const SUBCATEGORIES = {
+  speed: {
+    all: 'All',
+    speed_acceleration: 'Acceleration',
+    speed_max_velocity: 'Max Velocity',
+    speed_endurance: 'Speed Endurance'
+  },
   endurance: {
     all: 'All',
     endurance_400: '400m',
@@ -84,15 +90,22 @@ const SUBCATEGORIES = {
     strength_single_leg: 'Single Leg',
     strength_double_leg: 'Double Leg',
     strength_upper: 'Upper Body'
+  },
+  mobility: {
+    all: 'All',
+    mobility_warmup: 'RAMP Warm-up',
+    mobility_recovery: 'Recovery & Flexibility'
   }
 };
 
 const getBaseCategory = (type) => {
   if (!type) return 'speed';
   const lower = type.toLowerCase();
+  if (lower.startsWith('speed')) return 'speed';
   if (lower.startsWith('endurance')) return 'endurance';
   if (lower.startsWith('core')) return 'core';
   if (lower.startsWith('strength')) return 'strength';
+  if (lower.startsWith('mobility')) return 'mobility';
   if (lower.startsWith('long_jump')) return 'long_jump';
   if (lower.startsWith('triple_jump')) return 'triple_jump';
   return lower;
@@ -532,6 +545,14 @@ export default function TrackFieldPlanner() {
     const hasDefault2 = merged.some(p => p.program_name === DEFAULT_6WEEK_800M_PROGRAM.program_name);
     if (!hasDefault2) {
       merged = [DEFAULT_6WEEK_800M_PROGRAM, ...merged];
+    }
+    const hasDefault3 = merged.some(p => p.program_name === DEFAULT_LONG_JUMP_PROGRAM.program_name);
+    if (!hasDefault3) {
+      merged = [DEFAULT_LONG_JUMP_PROGRAM, ...merged];
+    }
+    const hasDefault4 = merged.some(p => p.program_name === DEFAULT_TRIPLE_JUMP_PROGRAM.program_name);
+    if (!hasDefault4) {
+      merged = [DEFAULT_TRIPLE_JUMP_PROGRAM, ...merged];
     }
     setPrograms(merged);
   };

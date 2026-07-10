@@ -80,26 +80,26 @@ export const DAYS_OF_WEEK = [
 export const INITIAL_LIBRARY = {
   drills: [
     // === SPEED/SPRINTING (TRACK) - 20 DRILLS ===
-    { id: 's1', title: '10m Acceleration Sprints', details: 'Focus on low torso angles and dynamic horizontal projection.', type: 'speed', percentage: 100, sets: '5', reps: '1', distance: '10', rest: '2m', unit: 'meters' },
-    { id: 's2', title: '20m Acceleration Sprints', details: 'Maintain powerful piston-like leg drive and aggressive arm action.', type: 'speed', percentage: 100, sets: '4', reps: '1', distance: '20', rest: '3m', unit: 'meters' },
-    { id: 's3', title: '30m Fly Sprints', details: '20m build up zone, 30m maximum speed zone. Stay tall and vertical.', type: 'speed', percentage: 100, sets: '3', reps: '1', distance: '30', rest: '5m', unit: 'meters' },
-    { id: 's4', title: '60m Max Velocity Sprints', details: 'Full sprint focusing on relaxed shoulders, upright posture, and rapid recovery.', type: 'speed', percentage: 100, sets: '4', reps: '1', distance: '60', rest: '6m', unit: 'meters' },
-    { id: 's5', title: 'Block Starts Practice', details: 'React to gunshot cue. Explode from blocks, triple extension.', type: 'speed', percentage: 100, sets: '6', reps: '1', distance: '20', rest: '3m', unit: 'meters' },
-    { id: 's6', title: 'Resisted Sled Sprints', details: 'Use sled equal to 10% body weight. Maintain powerful knee drive.', type: 'speed', percentage: 95, sets: '4', reps: '1', distance: '20', rest: '3m', unit: 'meters' },
-    { id: 's7', title: 'Assisted Over-Speed Runs', details: 'Downhill or bungee assistance. Focus on rapid stride turnover.', type: 'speed', percentage: 102, sets: '3', reps: '1', distance: '30', rest: '4m', unit: 'meters' },
-    { id: 's8', title: 'Curved Sprinting Drills', details: 'Sprint around curves focusing on lateral stability and arm swing.', type: 'speed', percentage: 95, sets: '4', reps: '1', distance: '40', rest: '3m', unit: 'meters' },
-    { id: 's9', title: '150m Speed Endurance', details: 'High-intensity sprints maintaining technical integrity over distance.', type: 'speed', percentage: 95, sets: '3', reps: '1', distance: '150', rest: '8m', unit: 'meters' },
-    { id: 's10', title: '300m Tempo Runs', details: 'Rhythmic striding for aerobic capacity. Focus on clean running mechanics.', type: 'speed', percentage: 80, sets: '4', reps: '1', distance: '300', rest: '4m', unit: 'meters' },
-    { id: 's11', title: 'Transition Phase Runs', details: 'Focus on transitioning from acceleration drive block to upright max velocity.', type: 'speed', percentage: 100, sets: '4', reps: '1', distance: '40', rest: '4m', unit: 'meters' },
-    { id: 's12', title: '20m Acceleration Block Starts', details: 'Low exit angle from block. Low heel recovery for first 5 steps.', type: 'speed', percentage: 100, sets: '5', reps: '1', distance: '20', rest: '3m', unit: 'meters' },
-    { id: 's13', title: '30m Block Starts', details: 'Transition smooth acceleration into vertical projection.', type: 'speed', percentage: 100, sets: '4', reps: '1', distance: '30', rest: '4m', unit: 'meters' },
-    { id: 's14', title: '40m Block Starts', details: 'Full drive phase up to 30m. Head down, relax upper body.', type: 'speed', percentage: 100, sets: '4', reps: '1', distance: '40', rest: '4m', unit: 'meters' },
-    { id: 's15', title: '60m Sprints (Stands)', details: 'Upright max velocity mechanics. Front side mechanics focus.', type: 'speed', percentage: 98, sets: '3', reps: '1', distance: '60', rest: '5m', unit: 'meters' },
-    { id: 's16', title: '120m Speed Endurance', details: 'High quality speed maintenance. Keep hips high at the finish line.', type: 'speed', percentage: 95, sets: '3', reps: '1', distance: '120', rest: '6m', unit: 'meters' },
-    { id: 's17', title: '200m Tempo Strides', details: 'Aerobic restoration strides. 75% effort. Focus on posture and breathing.', type: 'speed', percentage: 75, sets: '6', reps: '1', distance: '200', rest: '3m', unit: 'meters' },
-    { id: 's18', title: 'Hill Sprints', details: 'Explosive short uphill sprints. Overloads posterior chain.', type: 'speed', percentage: 100, sets: '6', reps: '1', distance: '30', rest: '3m', unit: 'meters' },
-    { id: 's19', title: 'Bungee Resisted Sprints', details: 'Accelerate against bungee tension to build starting horizontal force.', type: 'speed', percentage: 95, sets: '4', reps: '1', distance: '15', rest: '3m', unit: 'meters' },
-    { id: 's20', title: 'Over-Speed Towing Sprints', details: 'Bungee assisted max velocity. Focus on stride frequency.', type: 'speed', percentage: 103, sets: '3', reps: '1', distance: '40', rest: '4m', unit: 'meters' },
+    { id: 's1', title: '10m Acceleration Sprints', details: 'Focus on low torso angles and dynamic horizontal projection.', type: 'speed_acceleration', percentage: 100, sets: '5', reps: '1', distance: '10', rest: '2m', unit: 'meters' },
+    { id: 's2', title: '20m Acceleration Sprints', details: 'Maintain powerful piston-like leg drive and aggressive arm action.', type: 'speed_acceleration', percentage: 100, sets: '4', reps: '1', distance: '20', rest: '3m', unit: 'meters' },
+    { id: 's3', title: '30m Fly Sprints', details: '20m build up zone, 30m maximum speed zone. Stay tall and vertical.', type: 'speed_max_velocity', percentage: 100, sets: '3', reps: '1', distance: '30', rest: '5m', unit: 'meters' },
+    { id: 's4', title: '60m Max Velocity Sprints', details: 'Full sprint focusing on relaxed shoulders, upright posture, and rapid recovery.', type: 'speed_max_velocity', percentage: 100, sets: '4', reps: '1', distance: '60', rest: '6m', unit: 'meters' },
+    { id: 's5', title: 'Block Starts Practice', details: 'React to gunshot cue. Explode from blocks, triple extension.', type: 'speed_acceleration', percentage: 100, sets: '6', reps: '1', distance: '20', rest: '3m', unit: 'meters' },
+    { id: 's6', title: 'Resisted Sled Sprints', details: 'Use sled equal to 10% body weight. Maintain powerful knee drive.', type: 'speed_acceleration', percentage: 95, sets: '4', reps: '1', distance: '20', rest: '3m', unit: 'meters' },
+    { id: 's7', title: 'Assisted Over-Speed Runs', details: 'Downhill or bungee assistance. Focus on rapid stride turnover.', type: 'speed_max_velocity', percentage: 102, sets: '3', reps: '1', distance: '30', rest: '4m', unit: 'meters' },
+    { id: 's8', title: 'Curved Sprinting Drills', details: 'Sprint around curves focusing on lateral stability and arm swing.', type: 'speed_max_velocity', percentage: 95, sets: '4', reps: '1', distance: '40', rest: '3m', unit: 'meters' },
+    { id: 's9', title: '150m Speed Endurance', details: 'High-intensity sprints maintaining technical integrity over distance.', type: 'speed_endurance', percentage: 95, sets: '3', reps: '1', distance: '150', rest: '8m', unit: 'meters' },
+    { id: 's10', title: '300m Tempo Runs', details: 'Rhythmic striding for aerobic capacity. Focus on clean running mechanics.', type: 'speed_endurance', percentage: 80, sets: '4', reps: '1', distance: '300', rest: '4m', unit: 'meters' },
+    { id: 's11', title: 'Transition Phase Runs', details: 'Focus on transitioning from acceleration drive block to upright max velocity.', type: 'speed_acceleration', percentage: 100, sets: '4', reps: '1', distance: '40', rest: '4m', unit: 'meters' },
+    { id: 's12', title: '20m Acceleration Block Starts', details: 'Low exit angle from block. Low heel recovery for first 5 steps.', type: 'speed_acceleration', percentage: 100, sets: '5', reps: '1', distance: '20', rest: '3m', unit: 'meters' },
+    { id: 's13', title: '30m Block Starts', details: 'Transition smooth acceleration into vertical projection.', type: 'speed_acceleration', percentage: 100, sets: '4', reps: '1', distance: '30', rest: '4m', unit: 'meters' },
+    { id: 's14', title: '40m Block Starts', details: 'Full drive phase up to 30m. Head down, relax upper body.', type: 'speed_acceleration', percentage: 100, sets: '4', reps: '1', distance: '40', rest: '4m', unit: 'meters' },
+    { id: 's15', title: '60m Sprints (Stands)', details: 'Upright max velocity mechanics. Front side mechanics focus.', type: 'speed_max_velocity', percentage: 98, sets: '3', reps: '1', distance: '60', rest: '5m', unit: 'meters' },
+    { id: 's16', title: '120m Speed Endurance', details: 'High quality speed maintenance. Keep hips high at the finish line.', type: 'speed_endurance', percentage: 95, sets: '3', reps: '1', distance: '120', rest: '6m', unit: 'meters' },
+    { id: 's17', title: '200m Tempo Strides', details: 'Aerobic restoration strides. 75% effort. Focus on posture and breathing.', type: 'speed_endurance', percentage: 75, sets: '6', reps: '1', distance: '200', rest: '3m', unit: 'meters' },
+    { id: 's18', title: 'Hill Sprints', details: 'Explosive short uphill sprints. Overloads posterior chain.', type: 'speed_acceleration', percentage: 100, sets: '6', reps: '1', distance: '30', rest: '3m', unit: 'meters' },
+    { id: 's19', title: 'Bungee Resisted Sprints', details: 'Accelerate against bungee tension to build starting horizontal force.', type: 'speed_acceleration', percentage: 95, sets: '4', reps: '1', distance: '15', rest: '3m', unit: 'meters' },
+    { id: 's20', title: 'Over-Speed Towing Sprints', details: 'Bungee assisted max velocity. Focus on stride frequency.', type: 'speed_max_velocity', percentage: 103, sets: '3', reps: '1', distance: '40', rest: '4m', unit: 'meters' },
 
     // === PLYOMETRICS/JUMPS - 20 DRILLS ===
     { id: 'p1', title: 'Depth Jumps (40cm)', details: 'Step off box and instantly explode vertically. Minimize ground contact time.', type: 'plyometrics', percentage: 95, sets: '4', reps: '5', rest: '2m', unit: 'contacts' },
@@ -181,16 +181,16 @@ export const INITIAL_LIBRARY = {
     { id: 'is11', title: 'Hanging Knee Raises', details: 'Focus on posterior pelvic tilt and pulling with lower abs.', type: 'core', percentage: 50, sets: '3', reps: '12', rest: '1m', unit: 'reps' },
     { id: 'is12', title: 'Russian Twists', details: 'Rotational core strength. Keep feet elevated and move under control.', type: 'core', percentage: 45, sets: '3', reps: '20', rest: '1m', unit: 'reps' },
     { id: 'is13', title: 'Ab Wheel Rollouts', details: 'Core extension strength. Do not arch lower back at extension.', type: 'core', percentage: 60, sets: '3', reps: '10', rest: '1.5m', unit: 'reps' },
-    { id: 'is15', title: "World's Greatest Stretch", details: 'Step into deep lunge, rotate torso, extend hamstring.', type: 'mobility', percentage: null, sets: '3', reps: '5', rest: '1m', unit: 'reps' },
-    { id: 'is16', title: '90/90 Hip Switches', details: 'Rhythmic internal/external hip rotation while seated.', type: 'mobility', percentage: null, sets: '2', reps: '10', rest: '45s', unit: 'reps' },
-    { id: 'is17', title: 'Thoracic Rotations', details: 'Quadruped position, hand behind head, rotate elbow upward.', type: 'mobility', percentage: null, sets: '3', reps: '8', rest: '45s', unit: 'reps' },
-    { id: 'is18', title: 'Deep Squat Prys', details: 'Sit in deep squat, use elbows to pry knees outward.', type: 'mobility', percentage: null, sets: '3', reps: '45', rest: '1m', unit: 'sec' },
-    { id: 'is19', title: 'Adductor Rock-Backs', details: 'Quadruped with one leg extended laterally. Rock hips backward.', type: 'mobility', percentage: null, sets: '3', reps: '10', rest: '45s', unit: 'reps' },
-    { id: 'is20', title: 'Ankle Dorsiflexion Mobilization', details: 'Use band or wall to drive knee forward over toe while keeping heel glued.', type: 'mobility', percentage: null, sets: '3', reps: '12', rest: '1m', unit: 'reps' },
-    { id: 's46', title: 'Wickets Sprinting (Cones Run)', details: 'Speed drill running over 10-15 mini hurdles/cones spaced to optimize vertical posture, front-side mechanics, and stride frequency.', type: 'speed', percentage: 100, sets: '5', reps: '1', distance: '40', rest: '4m', unit: 'meters' },
-    { id: 's47', title: 'Resisted Sled Release Sprints (20m+20m)', details: 'Sprint 20m resisted by sled, release sled and sprint 20m free to maximize neural acceleration.', type: 'speed', percentage: 100, sets: '3', reps: '2', distance: '40', rest: '5m', unit: 'meters' },
-    { id: 's48', title: 'Assisted Bungee Overspeed Sprinting', details: 'Bungee pull-assistance to run 3-5% faster than maximum speed. Focus on stride frequency.', type: 'speed', percentage: 103, sets: '3', reps: '1', distance: '30', rest: '4m', unit: 'meters' },
-    { id: 's49', title: '3-Point Acceleration Sprints (30m)', details: 'Sprint 30m from a 3-point track stance. Focus on piston-like drive and projection.', type: 'speed', percentage: 100, sets: '5', reps: '1', distance: '30', rest: '3m', unit: 'meters' },
+    { id: 'is15', title: "World's Greatest Stretch", details: 'Step into deep lunge, rotate torso, extend hamstring.', type: 'mobility_warmup', percentage: null, sets: '3', reps: '5', rest: '1m', unit: 'reps' },
+    { id: 'is16', title: '90/90 Hip Switches', details: 'Rhythmic internal/external hip rotation while seated.', type: 'mobility_recovery', percentage: null, sets: '2', reps: '10', rest: '45s', unit: 'reps' },
+    { id: 'is17', title: 'Thoracic Rotations', details: 'Quadruped position, hand behind head, rotate elbow upward.', type: 'mobility_warmup', percentage: null, sets: '3', reps: '8', rest: '45s', unit: 'reps' },
+    { id: 'is18', title: 'Deep Squat Prys', details: 'Sit in deep squat, use elbows to pry knees outward.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '45', rest: '1m', unit: 'sec' },
+    { id: 'is19', title: 'Adductor Rock-Backs', details: 'Quadruped with one leg extended laterally. Rock hips backward.', type: 'mobility_warmup', percentage: null, sets: '3', reps: '10', rest: '45s', unit: 'reps' },
+    { id: 'is20', title: 'Ankle Dorsiflexion Mobilization', details: 'Use band or wall to drive knee forward over toe while keeping heel glued.', type: 'mobility_warmup', percentage: null, sets: '3', reps: '12', rest: '1m', unit: 'reps' },
+    { id: 's46', title: 'Wickets Sprinting (Cones Run)', details: 'Speed drill running over 10-15 mini hurdles/cones spaced to optimize vertical posture, front-side mechanics, and stride frequency.', type: 'speed_max_velocity', percentage: 100, sets: '5', reps: '1', distance: '40', rest: '4m', unit: 'meters' },
+    { id: 's47', title: 'Resisted Sled Release Sprints (20m+20m)', details: 'Sprint 20m resisted by sled, release sled and sprint 20m free to maximize neural acceleration.', type: 'speed_acceleration', percentage: 100, sets: '3', reps: '2', distance: '40', rest: '5m', unit: 'meters' },
+    { id: 's48', title: 'Assisted Bungee Overspeed Sprinting', details: 'Bungee pull-assistance to run 3-5% faster than maximum speed. Focus on stride frequency.', type: 'speed_max_velocity', percentage: 103, sets: '3', reps: '1', distance: '30', rest: '4m', unit: 'meters' },
+    { id: 's49', title: '3-Point Acceleration Sprints (30m)', details: 'Sprint 30m from a 3-point track stance. Focus on piston-like drive and projection.', type: 'speed_acceleration', percentage: 100, sets: '5', reps: '1', distance: '30', rest: '3m', unit: 'meters' },
     { id: 'lj1', title: 'Short-Approach Long Jump (6-8 Strides)', details: 'Runway approach of 6-8 strides. Focus on penultimate drop and explosive takeoff.', type: 'long_jump', percentage: 95, sets: '4', reps: '3', distance: null, rest: '3m', unit: 'contacts' },
     { id: 'lj2', title: 'Full-Approach Long Jump', details: 'Complete runway approach. Focus on maintaining max speed into takeoff board.', type: 'long_jump', percentage: 100, sets: '3', reps: '2', distance: null, rest: '5m', unit: 'contacts' },
     { id: 'lj3', title: 'Long Jump Takeoff from Box (15cm)', details: 'Low box takeoff. Enhances vertical lift and flight posture (hang or hitch-kick).', type: 'long_jump', percentage: 90, sets: '4', reps: '4', distance: null, rest: '2m', unit: 'contacts' },
@@ -310,7 +310,19 @@ export const INITIAL_LIBRARY = {
     // === STRENGTH UPPER BODY (3 DRILLS) ===
     { id: 'stu1', title: 'Barbell Bench Press', details: 'Develops chest, shoulders, and triceps pressing power.', type: 'strength_upper', percentage: 80, sets: '4', reps: '6', distance: null, rest: '2m', unit: 'reps' },
     { id: 'stu2', title: 'Weighted Pull-ups', details: 'Overhand pull-ups with weight plates attached to dip belt. Develops lat and upper back strength.', type: 'strength_upper', percentage: 75, sets: '3', reps: '6', distance: null, rest: '2m', unit: 'reps' },
-    { id: 'stu3', title: 'Standing Overhead Barbell Press (OHP)', details: 'Strict barbell pressing. Builds shoulder strength and vertical core stabilization.', type: 'strength_upper', percentage: 80, sets: '3', reps: '6', distance: null, rest: '2m', unit: 'reps' }
+    { id: 'stu3', title: 'Standing Overhead Barbell Press (OHP)', details: 'Strict barbell pressing. Builds shoulder strength and vertical core stabilization.', type: 'strength_upper', percentage: 80, sets: '3', reps: '6', distance: null, rest: '2m', unit: 'reps' },
+
+    // === RAMP WARM-UP & RECOVERY - 10 DRILLS ===
+    { id: 'mob1', title: 'RAMP: Dynamic Hip & Ankle Activation', details: 'Dynamic leg swings (lateral & linear), ankle rocks, and deep squat prys. Prepares joints for high-velocity impacts.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '10', rest: '0s', unit: 'reps' },
+    { id: 'mob2', title: 'RAMP: Glute & Hamstring Activation', details: 'Banded glute bridges, single-leg hinges, and dynamic cobras. Activates posterior chain muscles for sprinting.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '12', rest: '0s', unit: 'reps' },
+    { id: 'mob3', title: 'RAMP: Neural Potentiation Bounding', details: 'Low-impact pogo jumps, A-skips, and straight-leg bounds. Elevates heart rate and wakes up the central nervous system.', type: 'mobility_warmup', percentage: null, sets: '2', reps: '20', rest: '30s', unit: 'contacts' },
+    { id: 'mob4', title: 'RAMP: 3D Torso & Core Mobilization', details: 'Dynamic thoracic spine rotations, walking lunges with torso twists, and lateral lunges. Prepares multi-planar movement.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '8', rest: '0s', unit: 'reps' },
+    { id: 'mob5', title: 'RAMP: Speed/Jump Transition Accelerations', details: '3x30m progressive strides (from 50% to 90% velocity) focusing on upright sprinting mechanics. Potentiates final neural state.', type: 'mobility_warmup', percentage: 90, sets: '1', reps: '3', distance: '30', rest: '60s', unit: 'meters' },
+    { id: 'mob6', title: 'Active Lower-Body Flush Routine', details: '15 minutes of dynamic calf rolls, foam rolling hamstrings/quads, and active deep breathing to flush lactic acid.', type: 'mobility_recovery', percentage: null, sets: '1', reps: '15', rest: '0s', unit: 'sec' },
+    { id: 'mob7', title: 'Psoas & Hip Flexor Static Release', details: '90-second deep kneeling hip flexor stretch with slight torso rotation, held statically to release tightness.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '90', rest: '0s', unit: 'sec' },
+    { id: 'mob8', title: 'Adductor & Hamstring Banded Stretch', details: 'Laying on back using a strap to stretch adductors and hamstrings statically in multiple planes.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '60', rest: '0s', unit: 'sec' },
+    { id: 'mob9', title: 'Thoracic & Lats Decompression Hold', details: 'Child\'s pose with elevated elbows on a box, holding statically to decompress upper back and shoulders.', type: 'mobility_recovery', percentage: null, sets: '2', reps: '60', rest: '0s', unit: 'sec' },
+    { id: 'mob10', title: 'Contract-Relax Hamstring Stretch (PNF)', details: 'Partner or band-assisted contract-relax stretching of hamstrings to increase range of motion.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '30', rest: '0s', unit: 'sec' }
   ],
   templates: [
     {
@@ -318,7 +330,7 @@ export const INITIAL_LIBRARY = {
       title: 'Neural Speed Acceleration Day',
       type: 'day',
       drills: [
-        { id: 'lib-t1-1', title: 'Block Starts Practice', details: 'React to gunshot cue. Triple extension.', type: 'speed', percentage: 100, sets: 5, reps: 1, distance: 20, rest: '3m', unit: 'meters' },
+        { id: 'lib-t1-1', title: 'Block Starts Practice', details: 'React to gunshot cue. Triple extension.', type: 'speed_acceleration', percentage: 100, sets: 5, reps: 1, distance: 20, rest: '3m', unit: 'meters' },
         { id: 'lib-t1-2', title: 'Power Clean from Floor', details: 'Aggressive hip extension pull.', type: 'power', percentage: 85, sets: 5, reps: 2, rest: '3m', unit: 'reps' }
       ]
     },
@@ -543,6 +555,188 @@ export const DEFAULT_6WEEK_800M_PROGRAM = {
         Tuesday: [],
         Wednesday: [
           { title: 'Active Warm-up & Strides (4x100m)', details: '15 min warm-up jog followed by 4x100m progressive strides. Leg speed activation.', type: 'endurance_easy', percentage: 85, sets: '1', reps: '4', distance: '100', rest: '2m', unit: 'meters' }
+        ],
+        Thursday: [],
+        Friday: []
+      }
+    }
+  ]
+};
+
+export const DEFAULT_LONG_JUMP_PROGRAM = {
+  id: 'default-long-jump-speed-takeoff',
+  program_name: 'Long Jump Runway Speed & Takeoff Power (4-Week Block)',
+  weeks: [
+    {
+      title: 'Week 1 - Takeoff Acceleration & Lift Foundation',
+      drills: {
+        Saturday: [
+          { title: 'Short-Approach Long Jump (6-8 Strides)', details: 'Runway approach of 6-8 strides. Focus on penultimate drop and explosive takeoff.', type: 'long_jump', percentage: 95, sets: '4', reps: '3', distance: null, rest: '3m', unit: 'contacts' },
+          { title: 'Wickets Sprinting (Cones Run)', details: 'Speed drill running over 10-15 mini hurdles/cones spaced to optimize vertical posture, front-side mechanics, and stride frequency.', type: 'speed_max_velocity', percentage: 100, sets: '5', reps: '1', distance: '40', rest: '4m', unit: 'meters' }
+        ],
+        Sunday: [],
+        Monday: [
+          { title: 'Long Jump Takeoff from Box (15cm)', details: 'Low box takeoff. Enhances vertical lift and flight posture (hang or hitch-kick).', type: 'long_jump', percentage: 90, sets: '4', reps: '4', distance: null, rest: '2m', unit: 'contacts' },
+          { title: 'Barbell Back Squat', details: 'Full back squats to develop maximum leg strength and power.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '5', distance: null, rest: '3m', unit: 'reps' }
+        ],
+        Tuesday: [],
+        Wednesday: [
+          { title: 'Double-Leg Broad Jump to Sand Pit', details: 'Horizontal explosive power from standing two-foot position.', type: 'long_jump', percentage: 90, sets: '4', reps: '5', distance: null, rest: '2m', unit: 'contacts' },
+          { title: 'Standing Cable Hip Flexion', details: 'Ankle strap attached to low cable. Explode knee upward to hip height, then lower under control to build sprinting drive power.', type: 'strength_single_leg', percentage: 75, sets: '3', reps: '8', distance: null, rest: '75s', unit: 'reps' }
+        ],
+        Thursday: [],
+        Friday: []
+      }
+    },
+    {
+      title: 'Week 2 - Specific Power & Lift Optimization',
+      drills: {
+        Saturday: [
+          { title: 'Short-Approach Long Jump (6-8 Strides)', details: 'Runway approach of 6-8 strides. Focus on penultimate drop and explosive takeoff.', type: 'long_jump', percentage: 95, sets: '5', reps: '3', distance: null, rest: '3m', unit: 'contacts' },
+          { title: '3-Point Acceleration Sprints (30m)', details: 'Sprint 30m from a 3-point track stance. Focus on piston-like drive and projection.', type: 'speed_acceleration', percentage: 100, sets: '5', reps: '1', distance: '30', rest: '3m', unit: 'meters' }
+        ],
+        Sunday: [],
+        Monday: [
+          { title: 'Depth Drop to Long Jump Takeoff', details: 'Step off a 30cm box, land, and immediately perform a horizontal long jump takeoff.', type: 'long_jump', percentage: 95, sets: '3', reps: '4', distance: null, rest: '3m', unit: 'contacts' },
+          { title: 'Trap Bar Deadlift', details: 'Deadlift using hex-bar to reduce spinal shear. Develops maximum posterior chain drive.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '5', distance: null, rest: '3m', unit: 'reps' }
+        ],
+        Tuesday: [],
+        Wednesday: [
+          { title: 'Hurdle Hops to Long Jump Takeoff', details: 'Elastic reactive takeoff immediately after landing over a hurdle.', type: 'long_jump', percentage: 90, sets: '4', reps: '4', distance: null, rest: '3m', unit: 'contacts' },
+          { title: 'Standing Cable Hip Flexion', details: 'Ankle strap attached to low cable. Explode knee upward to hip height, then lower under control to build sprinting drive power.', type: 'strength_single_leg', percentage: 75, sets: '3', reps: '8', distance: null, rest: '75s', unit: 'reps' }
+        ],
+        Thursday: [],
+        Friday: []
+      }
+    },
+    {
+      title: 'Week 3 - Peak Velocity & Horizontal Takeoff Power',
+      drills: {
+        Saturday: [
+          { title: 'Full-Approach Long Jump', details: 'Complete runway approach. Focus on maintaining max speed into takeoff board.', type: 'long_jump', percentage: 100, sets: '3', reps: '2', distance: null, rest: '5m', unit: 'contacts' },
+          { title: 'Wickets Sprinting (Cones Run)', details: 'Speed drill running over 10-15 mini hurdles/cones spaced to optimize vertical posture, front-side mechanics, and stride frequency.', type: 'speed_max_velocity', percentage: 100, sets: '4', reps: '1', distance: '40', rest: '4m', unit: 'meters' }
+        ],
+        Sunday: [],
+        Monday: [
+          { title: 'Pop-Up Takeoff from 2-4 Strides', details: 'Focus on rapid penultimate-to-ultimate contact. Jump high into the pit landing on the takeoff leg or butt.', type: 'long_jump', percentage: 85, sets: '4', reps: '5', distance: null, rest: '2m', unit: 'contacts' },
+          { title: 'Barbell Back Squat', details: 'Full back squats to develop maximum leg strength and power.', type: 'strength_double_leg', percentage: 90, sets: '3', reps: '3', distance: null, rest: '3m', unit: 'reps' }
+        ],
+        Tuesday: [],
+        Wednesday: [
+          { title: 'Double-Leg Broad Jump to Sand Pit', details: 'Horizontal explosive power from standing two-foot position.', type: 'long_jump', percentage: 90, sets: '4', reps: '5', distance: null, rest: '2m', unit: 'contacts' },
+          { title: 'Resisted Wall Drill Knee Drives', details: 'Leaning against a wall at 45-degree angle. Loop band around feet and drive knees explosively in a piston motion.', type: 'strength_single_leg', percentage: 70, sets: '4', reps: '10', distance: null, rest: '75s', unit: 'reps' }
+        ],
+        Thursday: [],
+        Friday: []
+      }
+    },
+    {
+      title: 'Week 4 - Stride Taper & Technical Sharpness',
+      drills: {
+        Saturday: [
+          { title: 'Short-Approach Long Jump (6-8 Strides)', details: 'Runway approach of 6-8 strides. Focus on penultimate drop and explosive takeoff.', type: 'long_jump', percentage: 90, sets: '3', reps: '2', distance: null, rest: '3m', unit: 'contacts' },
+          { title: '3-Point Acceleration Sprints (30m)', details: 'Sprint 30m from a 3-point track stance. Focus on piston-like drive and projection.', type: 'speed_acceleration', percentage: 95, sets: '3', reps: '1', distance: '30', rest: '3m', unit: 'meters' }
+        ],
+        Sunday: [],
+        Monday: [
+          { title: 'Long Jump Takeoff from Box (15cm)', details: 'Low box takeoff. Enhances vertical lift and flight posture (hang or hitch-kick).', type: 'long_jump', percentage: 85, sets: '3', reps: '3', distance: null, rest: '2m', unit: 'contacts' },
+          { title: 'Weighted Step-ups to Box (50cm)', details: 'Step up onto box holding dumbbells. Focuses on explosive glute drive and knee tracking.', type: 'strength_single_leg', percentage: 70, sets: '3', reps: '6', distance: null, rest: '75s', unit: 'reps' }
+        ],
+        Tuesday: [],
+        Wednesday: [
+          { title: 'Hitch-Kick Technique on Springboard', details: 'Use a low springboard or trampoline to gain air time. Practice cycling the legs (hitch-kick) in the air.', type: 'long_jump', percentage: 85, sets: '3', reps: '4', distance: null, rest: '3m', unit: 'contacts' },
+          { title: 'Lying Banded Psoas March', details: 'Lying on back with resistance band around feet, pull one knee to chest while holding the other leg straight and stable. Highly specific hip flexor activation.', type: 'strength_single_leg', percentage: 60, sets: '3', reps: '10', distance: null, rest: '60s', unit: 'reps' }
+        ],
+        Thursday: [],
+        Friday: []
+      }
+    }
+  ]
+};
+
+export const DEFAULT_TRIPLE_JUMP_PROGRAM = {
+  id: 'default-triple-jump-stiffness-phases',
+  program_name: 'Triple Jump Landing Stiffness & Phase Distribution (4-Week Block)',
+  weeks: [
+    {
+      title: 'Week 1 - Phase Coordination & Landing Stiffness',
+      drills: {
+        Saturday: [
+          { title: 'Triple Jump - Short Approach (6-8 Strides)', details: 'Short runup focusing on landing phase coordination and Hop-Step-Jump rhythm.', type: 'triple_jump', percentage: 95, sets: '4', reps: '3', distance: null, rest: '4m', unit: 'contacts' },
+          { title: 'Alternate Leg Bounding to Pit (RLRL)', details: 'Maximal horizontal projection bounds focusing on active clawing motion.', type: 'triple_jump', percentage: 90, sets: '3', reps: '10', distance: null, rest: '3m', unit: 'contacts' }
+        ],
+        Sunday: [],
+        Monday: [
+          { title: 'Depth Drop to Triple Jump Takeoff', details: 'Step off a 30cm box, land, and immediately perform a triple jump Hop phase.', type: 'triple_jump', percentage: 95, sets: '3', reps: '4', distance: null, rest: '3m', unit: 'contacts' },
+          { title: 'Barbell Hip Thrust (Heavy)', details: 'Maximum barbell hip thrust. Load glutes and hamstrings at short muscle lengths to build horizontal sprinting power.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '6', distance: null, rest: '2m', unit: 'reps' }
+        ],
+        Tuesday: [],
+        Wednesday: [
+          { title: 'Hop-to-Step Phase transition', details: 'Focus on jumping from landing leg and driving opposite knee up for the Step phase.', type: 'triple_jump', percentage: 90, sets: '4', reps: '4', distance: null, rest: '3m', unit: 'contacts' },
+          { title: 'Ankle Pogo Hops', details: 'Keep knees stiff, react solely through the ankle joint.', type: 'plyometrics', percentage: 85, sets: '3', reps: '15', rest: '1m', unit: 'contacts' }
+        ],
+        Thursday: [],
+        Friday: []
+      }
+    },
+    {
+      title: 'Week 2 - Unilateral Power & Shock Absorption',
+      drills: {
+        Saturday: [
+          { title: 'Triple Jump - Short Approach (6-8 Strides)', details: 'Short runup focusing on landing phase coordination and Hop-Step-Jump rhythm.', type: 'triple_jump', percentage: 95, sets: '4', reps: '4', distance: null, rest: '4m', unit: 'contacts' },
+          { title: 'Continuous Step-Phase Bounding', details: 'Perform consecutive step-phase bounds on the same leg. Promotes knee drive suspension and hip strength.', type: 'triple_jump', percentage: 90, sets: '3', reps: '6', distance: null, rest: '3m', unit: 'contacts' }
+        ],
+        Sunday: [],
+        Monday: [
+          { title: 'Single-Leg Speed Hops over Foam Obstacles', details: 'Reactively hop on takeoff leg over 5 low hurdles into pit.', type: 'triple_jump', percentage: 85, sets: '3', reps: '5', distance: null, rest: '3m', unit: 'contacts' },
+          { title: 'Trap Bar Deadlift', details: 'Deadlift using hex-bar to reduce spinal shear. Develops maximum posterior chain drive.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '5', distance: null, rest: '3m', unit: 'reps' }
+        ],
+        Tuesday: [],
+        Wednesday: [
+          { title: 'Step-to-Jump Phase transition', details: 'Elevated step phase bounding into the sand pit. Develops hip strength.', type: 'triple_jump', percentage: 90, sets: '4', reps: '4', distance: null, rest: '3m', unit: 'contacts' },
+          { title: 'Single-Leg Hip Thrust (Weighted)', details: 'Unilateral hip extension. Shoulders on bench, elevate one leg, drive hips upward against a dumbbell/plate for glute power.', type: 'strength_single_leg', percentage: 75, sets: '3', reps: '8', distance: null, rest: '90s', unit: 'reps' }
+        ],
+        Thursday: [],
+        Friday: []
+      }
+    },
+    {
+      title: 'Week 3 - Peak Velocity & Runway Integration',
+      drills: {
+        Saturday: [
+          { title: 'Full-Approach Triple Jump', details: 'Full runway speed. Focus on even phase distribution (33% Hop, 30% Step, 37% Jump).', type: 'triple_jump', percentage: 100, sets: '3', reps: '2', distance: null, rest: '6m', unit: 'contacts' },
+          { title: 'Speed Bounds with Weighted Belt (2kg)', details: 'Continuous alternative leg bounding on grass with a light weight belt. Focus on flat foot clawing action.', type: 'triple_jump', percentage: 90, sets: '3', reps: '8', distance: null, rest: '2.5m', unit: 'contacts' }
+        ],
+        Sunday: [],
+        Monday: [
+          { title: 'Depth Drop to Triple Jump Takeoff', details: 'Step off a 30cm box, land, and immediately perform a triple jump Hop phase.', type: 'triple_jump', percentage: 95, sets: '4', reps: '3', distance: null, rest: '3m', unit: 'contacts' },
+          { title: 'Barbell Hip Thrust (Heavy)', details: 'Maximum barbell hip thrust. Load glutes and hamstrings at short muscle lengths to build horizontal sprinting power.', type: 'strength_double_leg', percentage: 90, sets: '3', reps: '4', distance: null, rest: '2.5m', unit: 'reps' }
+        ],
+        Tuesday: [],
+        Wednesday: [
+          { title: 'Hop-to-Step Phase transition', details: 'Focus on jumping from landing leg and driving opposite knee up for the Step phase.', type: 'triple_jump', percentage: 90, sets: '4', reps: '4', distance: null, rest: '3m', unit: 'contacts' },
+          { title: 'Standing Hop-Step-Jump into Pit', details: 'Triple jump from a standing position. Focuses on producing horizontal power from zero velocity.', type: 'triple_jump', percentage: 85, sets: '4', reps: '4', distance: null, rest: '2m', unit: 'contacts' }
+        ],
+        Thursday: [],
+        Friday: []
+      }
+    },
+    {
+      title: 'Week 4 - Technical Taper & Stiffness Tuning',
+      drills: {
+        Saturday: [
+          { title: 'Triple Jump - Short Approach (6-8 Strides)', details: 'Short runup focusing on landing phase coordination and Hop-Step-Jump rhythm.', type: 'triple_jump', percentage: 90, sets: '3', reps: '2', distance: null, rest: '4m', unit: 'contacts' },
+          { title: 'Continuous Hop Phase Bounds (RRR / LLL)', details: 'Repetitive single-leg hops to develop specific landing stiffness.', type: 'triple_jump', percentage: 80, sets: '3', reps: '4', distance: null, rest: '3m', unit: 'contacts' }
+        ],
+        Sunday: [],
+        Monday: [
+          { title: 'Box-to-Box Step Phase (30cm boxes)', details: 'Take off from a box, land on the same leg on the ground, then drive onto a second box. Teaches shock absorption.', type: 'triple_jump', percentage: 85, sets: '3', reps: '3', distance: null, rest: '3m', unit: 'contacts' },
+          { title: 'Single-Leg Romanian Deadlift (SL RDL)', details: 'Dumbbell single-leg deadlift. Builds powerful hamstrings and glutes while enhancing balance.', type: 'strength_single_leg', percentage: 70, sets: '3', reps: '6', distance: null, rest: '90s', unit: 'reps' }
+        ],
+        Tuesday: [],
+        Wednesday: [
+          { title: 'Double-Arm Swing Coordination Bounds', details: 'Bounding drills focusing exclusively on the double-arm punch technique at the takeoff of each phase.', type: 'triple_jump', percentage: 80, sets: '4', reps: '4', distance: null, rest: '2m', unit: 'contacts' },
+          { title: 'Ankle Pogo Hops', details: 'Keep knees stiff, react solely through the ankle joint.', type: 'plyometrics', percentage: 80, sets: '3', reps: '10', rest: '1m', unit: 'contacts' }
         ],
         Thursday: [],
         Friday: []
