@@ -571,20 +571,44 @@ export const DEFAULT_LONG_JUMP_PROGRAM = {
       title: 'Week 1 - Takeoff Acceleration & Lift Foundation',
       drills: {
         Saturday: [
+          { title: 'RAMP: Dynamic Hip & Ankle Activation', details: 'Dynamic leg swings (lateral & linear), ankle rocks, and deep squat prys. Prepares joints for high-velocity impacts.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '10', rest: '0s', unit: 'reps' },
+          { title: 'Ankle Pogo Hops', details: 'Keep knees stiff, react solely through the ankle joint.', type: 'plyometrics', percentage: 85, sets: '3', reps: '15', rest: '1m', unit: 'contacts' },
           { title: 'Short-Approach Long Jump (6-8 Strides)', details: 'Runway approach of 6-8 strides. Focus on penultimate drop and explosive takeoff.', type: 'long_jump', percentage: 95, sets: '4', reps: '3', distance: null, rest: '3m', unit: 'contacts' },
-          { title: 'Wickets Sprinting (Cones Run)', details: 'Speed drill running over 10-15 mini hurdles/cones spaced to optimize vertical posture, front-side mechanics, and stride frequency.', type: 'speed_max_velocity', percentage: 100, sets: '5', reps: '1', distance: '40', rest: '4m', unit: 'meters' }
+          { title: 'Active Lower-Body Flush Routine', details: '15 minutes of dynamic calf rolls, foam rolling hamstrings/quads, and active deep breathing to flush lactic acid.', type: 'mobility_recovery', percentage: null, sets: '1', reps: '15', rest: '0s', unit: 'sec' }
         ],
-        Sunday: [],
+        Sunday: [
+          { title: 'RAMP: Glute & Hamstring Activation', details: 'Banded glute bridges, single-leg hinges, and dynamic cobras. Activates posterior chain muscles for sprinting.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '12', rest: '0s', unit: 'reps' },
+          { title: 'Barbell Back Squat', details: 'Full back squats to develop maximum leg strength and power.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '5', distance: null, rest: '3m', unit: 'reps' },
+          { title: 'Standing Cable Hip Flexion', details: 'Ankle strap attached to low cable. Explode knee upward to hip height, then lower under control to build sprinting drive power.', type: 'strength_single_leg', percentage: 75, sets: '3', reps: '8', distance: null, rest: '75s', unit: 'reps' },
+          { title: 'Hollow Body Isometric Hold', details: 'Banana-like body posture, raising feet and shoulders slightly off ground with lower back glued down.', type: 'core_anti_extension', percentage: 65, sets: '3', reps: '30', distance: null, rest: '45s', unit: 'sec' },
+          { title: 'Thoracic & Lats Decompression Hold', details: 'Child\'s pose with elevated elbows on a box, holding statically to decompress upper back and shoulders.', type: 'mobility_recovery', percentage: null, sets: '2', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Monday: [
+          { title: 'RAMP: Dynamic Hip & Ankle Activation', details: 'Dynamic leg swings (lateral & linear), ankle rocks, and deep squat prys. Prepares joints for high-velocity impacts.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '10', rest: '0s', unit: 'reps' },
+          { title: 'Wickets Sprinting (Cones Run)', details: 'Speed drill running over 10-15 mini hurdles/cones spaced to optimize vertical posture, front-side mechanics, and stride frequency.', type: 'speed_max_velocity', percentage: 100, sets: '5', reps: '1', distance: '40', rest: '4m', unit: 'meters' },
           { title: 'Long Jump Takeoff from Box (15cm)', details: 'Low box takeoff. Enhances vertical lift and flight posture (hang or hitch-kick).', type: 'long_jump', percentage: 90, sets: '4', reps: '4', distance: null, rest: '2m', unit: 'contacts' },
-          { title: 'Barbell Back Squat', details: 'Full back squats to develop maximum leg strength and power.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '5', distance: null, rest: '3m', unit: 'reps' }
+          { title: 'Psoas & Hip Flexor Static Release', details: '90-second deep kneeling hip flexor stretch with slight torso rotation, held statically to release tightness.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '90', rest: '0s', unit: 'sec' }
         ],
-        Tuesday: [],
+        Tuesday: [
+          { title: 'RAMP: 3D Torso & Core Mobilization', details: 'Dynamic thoracic spine rotations, walking lunges with torso twists, and lateral lunges. Prepares multi-planar movement.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '8', rest: '0s', unit: 'reps' },
+          { title: 'Power Clean from Floor', details: 'Full power clean pulling from floor. Keep spine neutral throughout.', type: 'power', percentage: 85, sets: '5', reps: '2', rest: '3m', unit: 'reps' },
+          { title: 'Bulgarian Split Squats (Dumbbell)', details: 'Rear-foot elevated split squats. Increases single-leg hip stability and quad/glute strength.', type: 'strength_single_leg', percentage: 75, sets: '4', reps: '8', distance: null, rest: '90s', unit: 'reps' },
+          { title: 'Cable Woodchops', details: 'High-to-low cable pulls across body. Trains rotational power and core stability.', type: 'core_rotation', percentage: 75, sets: '3', reps: '10', distance: null, rest: '60s', unit: 'reps' },
+          { title: 'Adductor & Hamstring Banded Stretch', details: 'Laying on back using a strap to stretch adductors and hamstrings statically in multiple planes.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Wednesday: [
+          { title: 'RAMP: Neural Potentiation Bounding', details: 'Low-impact pogo jumps, A-skips, and straight-leg bounds. Elevates heart rate and wakes up the central nervous system.', type: 'mobility_warmup', percentage: null, sets: '2', reps: '20', rest: '30s', unit: 'contacts' },
           { title: 'Double-Leg Broad Jump to Sand Pit', details: 'Horizontal explosive power from standing two-foot position.', type: 'long_jump', percentage: 90, sets: '4', reps: '5', distance: null, rest: '2m', unit: 'contacts' },
-          { title: 'Standing Cable Hip Flexion', details: 'Ankle strap attached to low cable. Explode knee upward to hip height, then lower under control to build sprinting drive power.', type: 'strength_single_leg', percentage: 75, sets: '3', reps: '8', distance: null, rest: '75s', unit: 'reps' }
+          { title: '10m Acceleration Sprints', details: 'Focus on low torso angles and dynamic horizontal projection.', type: 'speed_acceleration', percentage: 100, sets: '5', reps: '1', distance: '10', rest: '2m', unit: 'meters' },
+          { title: 'Active Lower-Body Flush Routine', details: '15 minutes of dynamic calf rolls, foam rolling hamstrings/quads, and active deep breathing to flush lactic acid.', type: 'mobility_recovery', percentage: null, sets: '1', reps: '15', rest: '0s', unit: 'sec' }
         ],
-        Thursday: [],
+        Thursday: [
+          { title: 'RAMP: Glute & Hamstring Activation', details: 'Banded glute bridges, single-leg hinges, and dynamic cobras. Activates posterior chain muscles for sprinting.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '12', rest: '0s', unit: 'reps' },
+          { title: 'Trap Bar Deadlift', details: 'Deadlift using hex-bar to reduce spinal shear. Develops maximum posterior chain drive.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '5', distance: null, rest: '3m', unit: 'reps' },
+          { title: 'Barbell Bench Press', details: 'Develops chest, shoulders, and triceps pressing power.', type: 'strength_upper', percentage: 80, sets: '4', reps: '6', distance: null, rest: '2m', unit: 'reps' },
+          { title: 'Copenhagen Side Plank', details: 'Elevate top leg on bench. Keep bottom leg suspended. Tight adductor brace.', type: 'isometric', percentage: 65, sets: '3', reps: '20', rest: '1m', unit: 'sec' },
+          { title: 'Thoracic & Lats Decompression Hold', details: 'Child\'s pose with elevated elbows on a box, holding statically to decompress upper back and shoulders.', type: 'mobility_recovery', percentage: null, sets: '2', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Friday: []
       }
     },
@@ -592,20 +616,44 @@ export const DEFAULT_LONG_JUMP_PROGRAM = {
       title: 'Week 2 - Specific Power & Lift Optimization',
       drills: {
         Saturday: [
+          { title: 'RAMP: Dynamic Hip & Ankle Activation', details: 'Dynamic leg swings (lateral & linear), ankle rocks, and deep squat prys. Prepares joints for high-velocity impacts.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '10', rest: '0s', unit: 'reps' },
+          { title: 'Ankle Pogo Hops', details: 'Keep knees stiff, react solely through the ankle joint.', type: 'plyometrics', percentage: 85, sets: '3', reps: '15', rest: '1m', unit: 'contacts' },
           { title: 'Short-Approach Long Jump (6-8 Strides)', details: 'Runway approach of 6-8 strides. Focus on penultimate drop and explosive takeoff.', type: 'long_jump', percentage: 95, sets: '5', reps: '3', distance: null, rest: '3m', unit: 'contacts' },
-          { title: '3-Point Acceleration Sprints (30m)', details: 'Sprint 30m from a 3-point track stance. Focus on piston-like drive and projection.', type: 'speed_acceleration', percentage: 100, sets: '5', reps: '1', distance: '30', rest: '3m', unit: 'meters' }
+          { title: 'Active Lower-Body Flush Routine', details: '15 minutes of dynamic calf rolls, foam rolling hamstrings/quads, and active deep breathing to flush lactic acid.', type: 'mobility_recovery', percentage: null, sets: '1', reps: '15', rest: '0s', unit: 'sec' }
         ],
-        Sunday: [],
+        Sunday: [
+          { title: 'RAMP: Glute & Hamstring Activation', details: 'Banded glute bridges, single-leg hinges, and dynamic cobras. Activates posterior chain muscles for sprinting.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '12', rest: '0s', unit: 'reps' },
+          { title: 'Barbell Back Squat', details: 'Full back squats to develop maximum leg strength and power.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '5', distance: null, rest: '3m', unit: 'reps' },
+          { title: 'Standing Cable Hip Flexion', details: 'Ankle strap attached to low cable. Explode knee upward to hip height, then lower under control to build sprinting drive power.', type: 'strength_single_leg', percentage: 75, sets: '3', reps: '8', distance: null, rest: '75s', unit: 'reps' },
+          { title: 'Hollow Body Isometric Hold', details: 'Banana-like body posture, raising feet and shoulders slightly off ground with lower back glued down.', type: 'core_anti_extension', percentage: 65, sets: '3', reps: '30', distance: null, rest: '45s', unit: 'sec' },
+          { title: 'Thoracic & Lats Decompression Hold', details: 'Child\'s pose with elevated elbows on a box, holding statically to decompress upper back and shoulders.', type: 'mobility_recovery', percentage: null, sets: '2', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Monday: [
+          { title: 'RAMP: Dynamic Hip & Ankle Activation', details: 'Dynamic leg swings (lateral & linear), ankle rocks, and deep squat prys. Prepares joints for high-velocity impacts.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '10', rest: '0s', unit: 'reps' },
+          { title: '3-Point Acceleration Sprints (30m)', details: 'Sprint 30m from a 3-point track stance. Focus on piston-like drive and projection.', type: 'speed_acceleration', percentage: 100, sets: '5', reps: '1', distance: '30', rest: '3m', unit: 'meters' },
           { title: 'Depth Drop to Long Jump Takeoff', details: 'Step off a 30cm box, land, and immediately perform a horizontal long jump takeoff.', type: 'long_jump', percentage: 95, sets: '3', reps: '4', distance: null, rest: '3m', unit: 'contacts' },
-          { title: 'Trap Bar Deadlift', details: 'Deadlift using hex-bar to reduce spinal shear. Develops maximum posterior chain drive.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '5', distance: null, rest: '3m', unit: 'reps' }
+          { title: 'Psoas & Hip Flexor Static Release', details: '90-second deep kneeling hip flexor stretch with slight torso rotation, held statically to release tightness.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '90', rest: '0s', unit: 'sec' }
         ],
-        Tuesday: [],
+        Tuesday: [
+          { title: 'RAMP: 3D Torso & Core Mobilization', details: 'Dynamic thoracic spine rotations, walking lunges with torso twists, and lateral lunges. Prepares multi-planar movement.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '8', rest: '0s', unit: 'reps' },
+          { title: 'Power Clean from Floor', details: 'Full power clean pulling from floor. Keep spine neutral throughout.', type: 'power', percentage: 85, sets: '5', reps: '2', rest: '3m', unit: 'reps' },
+          { title: 'Bulgarian Split Squats (Dumbbell)', details: 'Rear-foot elevated split squats. Increases single-leg hip stability and quad/glute strength.', type: 'strength_single_leg', percentage: 75, sets: '4', reps: '8', distance: null, rest: '90s', unit: 'reps' },
+          { title: 'Cable Woodchops', details: 'High-to-low cable pulls across body. Trains rotational power and core stability.', type: 'core_rotation', percentage: 75, sets: '3', reps: '10', distance: null, rest: '60s', unit: 'reps' },
+          { title: 'Adductor & Hamstring Banded Stretch', details: 'Laying on back using a strap to stretch adductors and hamstrings statically in multiple planes.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Wednesday: [
+          { title: 'RAMP: Neural Potentiation Bounding', details: 'Low-impact pogo jumps, A-skips, and straight-leg bounds. Elevates heart rate and wakes up the central nervous system.', type: 'mobility_warmup', percentage: null, sets: '2', reps: '20', rest: '30s', unit: 'contacts' },
           { title: 'Hurdle Hops to Long Jump Takeoff', details: 'Elastic reactive takeoff immediately after landing over a hurdle.', type: 'long_jump', percentage: 90, sets: '4', reps: '4', distance: null, rest: '3m', unit: 'contacts' },
-          { title: 'Standing Cable Hip Flexion', details: 'Ankle strap attached to low cable. Explode knee upward to hip height, then lower under control to build sprinting drive power.', type: 'strength_single_leg', percentage: 75, sets: '3', reps: '8', distance: null, rest: '75s', unit: 'reps' }
+          { title: '20m Acceleration Sprints', details: 'Maintain powerful piston-like leg drive and aggressive arm action.', type: 'speed_acceleration', percentage: 100, sets: '4', reps: '1', distance: '20', rest: '3m', unit: 'meters' },
+          { title: 'Active Lower-Body Flush Routine', details: '15 minutes of dynamic calf rolls, foam rolling hamstrings/quads, and active deep breathing to flush lactic acid.', type: 'mobility_recovery', percentage: null, sets: '1', reps: '15', rest: '0s', unit: 'sec' }
         ],
-        Thursday: [],
+        Thursday: [
+          { title: 'RAMP: Glute & Hamstring Activation', details: 'Banded glute bridges, single-leg hinges, and dynamic cobras. Activates posterior chain muscles for sprinting.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '12', rest: '0s', unit: 'reps' },
+          { title: 'Trap Bar Deadlift', details: 'Deadlift using hex-bar to reduce spinal shear. Develops maximum posterior chain drive.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '5', distance: null, rest: '3m', unit: 'reps' },
+          { title: 'Barbell Bench Press', details: 'Develops chest, shoulders, and triceps pressing power.', type: 'strength_upper', percentage: 80, sets: '4', reps: '6', distance: null, rest: '2m', unit: 'reps' },
+          { title: 'Copenhagen Side Plank', details: 'Elevate top leg on bench. Keep bottom leg suspended. Tight adductor brace.', type: 'isometric', percentage: 65, sets: '3', reps: '20', rest: '1m', unit: 'sec' },
+          { title: 'Thoracic & Lats Decompression Hold', details: 'Child\'s pose with elevated elbows on a box, holding statically to decompress upper back and shoulders.', type: 'mobility_recovery', percentage: null, sets: '2', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Friday: []
       }
     },
@@ -613,20 +661,44 @@ export const DEFAULT_LONG_JUMP_PROGRAM = {
       title: 'Week 3 - Peak Velocity & Horizontal Takeoff Power',
       drills: {
         Saturday: [
+          { title: 'RAMP: Dynamic Hip & Ankle Activation', details: 'Dynamic leg swings (lateral & linear), ankle rocks, and deep squat prys. Prepares joints for high-velocity impacts.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '10', rest: '0s', unit: 'reps' },
+          { title: 'Ankle Pogo Hops', details: 'Keep knees stiff, react solely through the ankle joint.', type: 'plyometrics', percentage: 85, sets: '3', reps: '15', rest: '1m', unit: 'contacts' },
           { title: 'Full-Approach Long Jump', details: 'Complete runway approach. Focus on maintaining max speed into takeoff board.', type: 'long_jump', percentage: 100, sets: '3', reps: '2', distance: null, rest: '5m', unit: 'contacts' },
-          { title: 'Wickets Sprinting (Cones Run)', details: 'Speed drill running over 10-15 mini hurdles/cones spaced to optimize vertical posture, front-side mechanics, and stride frequency.', type: 'speed_max_velocity', percentage: 100, sets: '4', reps: '1', distance: '40', rest: '4m', unit: 'meters' }
+          { title: 'Active Lower-Body Flush Routine', details: '15 minutes of dynamic calf rolls, foam rolling hamstrings/quads, and active deep breathing to flush lactic acid.', type: 'mobility_recovery', percentage: null, sets: '1', reps: '15', rest: '0s', unit: 'sec' }
         ],
-        Sunday: [],
+        Sunday: [
+          { title: 'RAMP: Glute & Hamstring Activation', details: 'Banded glute bridges, single-leg hinges, and dynamic cobras. Activates posterior chain muscles for sprinting.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '12', rest: '0s', unit: 'reps' },
+          { title: 'Barbell Back Squat', details: 'Full back squats to develop maximum leg strength and power.', type: 'strength_double_leg', percentage: 90, sets: '3', reps: '3', distance: null, rest: '3m', unit: 'reps' },
+          { title: 'Resisted Wall Drill Knee Drives', details: 'Leaning against a wall at 45-degree angle. Loop band around feet and drive knees explosively in a piston motion.', type: 'strength_single_leg', percentage: 70, sets: '4', reps: '10', distance: null, rest: '75s', unit: 'reps' },
+          { title: 'Hollow Body Isometric Hold', details: 'Banana-like body posture, raising feet and shoulders slightly off ground with lower back glued down.', type: 'core_anti_extension', percentage: 65, sets: '3', reps: '30', distance: null, rest: '45s', unit: 'sec' },
+          { title: 'Thoracic & Lats Decompression Hold', details: 'Child\'s pose with elevated elbows on a box, holding statically to decompress upper back and shoulders.', type: 'mobility_recovery', percentage: null, sets: '2', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Monday: [
+          { title: 'RAMP: Dynamic Hip & Ankle Activation', details: 'Dynamic leg swings (lateral & linear), ankle rocks, and deep squat prys. Prepares joints for high-velocity impacts.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '10', rest: '0s', unit: 'reps' },
+          { title: 'Wickets Sprinting (Cones Run)', details: 'Speed drill running over 10-15 mini hurdles/cones spaced to optimize vertical posture, front-side mechanics, and stride frequency.', type: 'speed_max_velocity', percentage: 100, sets: '4', reps: '1', distance: '40', rest: '4m', unit: 'meters' },
           { title: 'Pop-Up Takeoff from 2-4 Strides', details: 'Focus on rapid penultimate-to-ultimate contact. Jump high into the pit landing on the takeoff leg or butt.', type: 'long_jump', percentage: 85, sets: '4', reps: '5', distance: null, rest: '2m', unit: 'contacts' },
-          { title: 'Barbell Back Squat', details: 'Full back squats to develop maximum leg strength and power.', type: 'strength_double_leg', percentage: 90, sets: '3', reps: '3', distance: null, rest: '3m', unit: 'reps' }
+          { title: 'Psoas & Hip Flexor Static Release', details: '90-second deep kneeling hip flexor stretch with slight torso rotation, held statically to release tightness.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '90', rest: '0s', unit: 'sec' }
         ],
-        Tuesday: [],
+        Tuesday: [
+          { title: 'RAMP: 3D Torso & Core Mobilization', details: 'Dynamic thoracic spine rotations, walking lunges with torso twists, and lateral lunges. Prepares multi-planar movement.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '8', rest: '0s', unit: 'reps' },
+          { title: 'Power Clean from Floor', details: 'Full power clean pulling from floor. Keep spine neutral throughout.', type: 'power', percentage: 85, sets: '5', reps: '2', rest: '3m', unit: 'reps' },
+          { title: 'Bulgarian Split Squats (Dumbbell)', details: 'Rear-foot elevated split squats. Increases single-leg hip stability and quad/glute strength.', type: 'strength_single_leg', percentage: 75, sets: '4', reps: '8', distance: null, rest: '90s', unit: 'reps' },
+          { title: 'Cable Woodchops', details: 'High-to-low cable pulls across body. Trains rotational power and core stability.', type: 'core_rotation', percentage: 75, sets: '3', reps: '10', distance: null, rest: '60s', unit: 'reps' },
+          { title: 'Adductor & Hamstring Banded Stretch', details: 'Laying on back using a strap to stretch adductors and hamstrings statically in multiple planes.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Wednesday: [
+          { title: 'RAMP: Neural Potentiation Bounding', details: 'Low-impact pogo jumps, A-skips, and straight-leg bounds. Elevates heart rate and wakes up the central nervous system.', type: 'mobility_warmup', percentage: null, sets: '2', reps: '20', rest: '30s', unit: 'contacts' },
           { title: 'Double-Leg Broad Jump to Sand Pit', details: 'Horizontal explosive power from standing two-foot position.', type: 'long_jump', percentage: 90, sets: '4', reps: '5', distance: null, rest: '2m', unit: 'contacts' },
-          { title: 'Resisted Wall Drill Knee Drives', details: 'Leaning against a wall at 45-degree angle. Loop band around feet and drive knees explosively in a piston motion.', type: 'strength_single_leg', percentage: 70, sets: '4', reps: '10', distance: null, rest: '75s', unit: 'reps' }
+          { title: '30m Fly Sprints', details: '20m build up zone, 30m maximum speed zone. Stay tall and vertical.', type: 'speed_max_velocity', percentage: 100, sets: '3', reps: '1', distance: '30', rest: '5m', unit: 'meters' },
+          { title: 'Active Lower-Body Flush Routine', details: '15 minutes of dynamic calf rolls, foam rolling hamstrings/quads, and active deep breathing to flush lactic acid.', type: 'mobility_recovery', percentage: null, sets: '1', reps: '15', rest: '0s', unit: 'sec' }
         ],
-        Thursday: [],
+        Thursday: [
+          { title: 'RAMP: Glute & Hamstring Activation', details: 'Banded glute bridges, single-leg hinges, and dynamic cobras. Activates posterior chain muscles for sprinting.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '12', rest: '0s', unit: 'reps' },
+          { title: 'Trap Bar Deadlift', details: 'Deadlift using hex-bar to reduce spinal shear. Develops maximum posterior chain drive.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '5', distance: null, rest: '3m', unit: 'reps' },
+          { title: 'Barbell Bench Press', details: 'Develops chest, shoulders, and triceps pressing power.', type: 'strength_upper', percentage: 80, sets: '4', reps: '6', distance: null, rest: '2m', unit: 'reps' },
+          { title: 'Copenhagen Side Plank', details: 'Elevate top leg on bench. Keep bottom leg suspended. Tight adductor brace.', type: 'isometric', percentage: 65, sets: '3', reps: '20', rest: '1m', unit: 'sec' },
+          { title: 'Thoracic & Lats Decompression Hold', details: 'Child\'s pose with elevated elbows on a box, holding statically to decompress upper back and shoulders.', type: 'mobility_recovery', percentage: null, sets: '2', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Friday: []
       }
     },
@@ -634,20 +706,44 @@ export const DEFAULT_LONG_JUMP_PROGRAM = {
       title: 'Week 4 - Stride Taper & Technical Sharpness',
       drills: {
         Saturday: [
+          { title: 'RAMP: Dynamic Hip & Ankle Activation', details: 'Dynamic leg swings (lateral & linear), ankle rocks, and deep squat prys. Prepares joints for high-velocity impacts.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '10', rest: '0s', unit: 'reps' },
+          { title: 'Ankle Pogo Hops', details: 'Keep knees stiff, react solely through the ankle joint.', type: 'plyometrics', percentage: 80, sets: '3', reps: '10', rest: '1m', unit: 'contacts' },
           { title: 'Short-Approach Long Jump (6-8 Strides)', details: 'Runway approach of 6-8 strides. Focus on penultimate drop and explosive takeoff.', type: 'long_jump', percentage: 90, sets: '3', reps: '2', distance: null, rest: '3m', unit: 'contacts' },
-          { title: '3-Point Acceleration Sprints (30m)', details: 'Sprint 30m from a 3-point track stance. Focus on piston-like drive and projection.', type: 'speed_acceleration', percentage: 95, sets: '3', reps: '1', distance: '30', rest: '3m', unit: 'meters' }
+          { title: 'Active Lower-Body Flush Routine', details: '15 minutes of dynamic calf rolls, foam rolling hamstrings/quads, and active deep breathing to flush lactic acid.', type: 'mobility_recovery', percentage: null, sets: '1', reps: '15', rest: '0s', unit: 'sec' }
         ],
-        Sunday: [],
+        Sunday: [
+          { title: 'RAMP: Glute & Hamstring Activation', details: 'Banded glute bridges, single-leg hinges, and dynamic cobras. Activates posterior chain muscles for sprinting.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '12', rest: '0s', unit: 'reps' },
+          { title: 'Barbell Back Squat', details: 'Full back squats to develop maximum leg strength and power.', type: 'strength_double_leg', percentage: 70, sets: '3', reps: '5', distance: null, rest: '3m', unit: 'reps' },
+          { title: 'Lying Banded Psoas March', details: 'Lying on back with resistance band around feet, pull one knee to chest while holding the other leg straight and stable. Highly specific hip flexor activation.', type: 'strength_single_leg', percentage: 60, sets: '3', reps: '10', distance: null, rest: '60s', unit: 'reps' },
+          { title: 'Hollow Body Isometric Hold', details: 'Banana-like body posture, raising feet and shoulders slightly off ground with lower back glued down.', type: 'core_anti_extension', percentage: 65, sets: '3', reps: '30', distance: null, rest: '45s', unit: 'sec' },
+          { title: 'Thoracic & Lats Decompression Hold', details: 'Child\'s pose with elevated elbows on a box, holding statically to decompress upper back and shoulders.', type: 'mobility_recovery', percentage: null, sets: '2', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Monday: [
+          { title: 'RAMP: Dynamic Hip & Ankle Activation', details: 'Dynamic leg swings (lateral & linear), ankle rocks, and deep squat prys. Prepares joints for high-velocity impacts.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '10', rest: '0s', unit: 'reps' },
+          { title: '3-Point Acceleration Sprints (30m)', details: 'Sprint 30m from a 3-point track stance. Focus on piston-like drive and projection.', type: 'speed_acceleration', percentage: 95, sets: '3', reps: '1', distance: '30', rest: '3m', unit: 'meters' },
           { title: 'Long Jump Takeoff from Box (15cm)', details: 'Low box takeoff. Enhances vertical lift and flight posture (hang or hitch-kick).', type: 'long_jump', percentage: 85, sets: '3', reps: '3', distance: null, rest: '2m', unit: 'contacts' },
-          { title: 'Weighted Step-ups to Box (50cm)', details: 'Step up onto box holding dumbbells. Focuses on explosive glute drive and knee tracking.', type: 'strength_single_leg', percentage: 70, sets: '3', reps: '6', distance: null, rest: '75s', unit: 'reps' }
+          { title: 'Psoas & Hip Flexor Static Release', details: '90-second deep kneeling hip flexor stretch with slight torso rotation, held statically to release tightness.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '90', rest: '0s', unit: 'sec' }
         ],
-        Tuesday: [],
+        Tuesday: [
+          { title: 'RAMP: 3D Torso & Core Mobilization', details: 'Dynamic thoracic spine rotations, walking lunges with torso twists, and lateral lunges. Prepares multi-planar movement.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '8', rest: '0s', unit: 'reps' },
+          { title: 'Power Clean from Floor', details: 'Full power clean pulling from floor. Keep spine neutral throughout.', type: 'power', percentage: 70, sets: '3', reps: '2', rest: '3m', unit: 'reps' },
+          { title: 'Weighted Step-ups to Box (50cm)', details: 'Step up onto box holding dumbbells. Focuses on explosive glute drive and knee tracking.', type: 'strength_single_leg', percentage: 70, sets: '3', reps: '6', distance: null, rest: '75s', unit: 'reps' },
+          { title: 'Cable Woodchops', details: 'High-to-low cable pulls across body. Trains rotational power and core stability.', type: 'core_rotation', percentage: 75, sets: '3', reps: '10', distance: null, rest: '60s', unit: 'reps' },
+          { title: 'Adductor & Hamstring Banded Stretch', details: 'Laying on back using a strap to stretch adductors and hamstrings statically in multiple planes.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Wednesday: [
+          { title: 'RAMP: Neural Potentiation Bounding', details: 'Low-impact pogo jumps, A-skips, and straight-leg bounds. Elevates heart rate and wakes up the central nervous system.', type: 'mobility_warmup', percentage: null, sets: '2', reps: '20', rest: '30s', unit: 'contacts' },
           { title: 'Hitch-Kick Technique on Springboard', details: 'Use a low springboard or trampoline to gain air time. Practice cycling the legs (hitch-kick) in the air.', type: 'long_jump', percentage: 85, sets: '3', reps: '4', distance: null, rest: '3m', unit: 'contacts' },
-          { title: 'Lying Banded Psoas March', details: 'Lying on back with resistance band around feet, pull one knee to chest while holding the other leg straight and stable. Highly specific hip flexor activation.', type: 'strength_single_leg', percentage: 60, sets: '3', reps: '10', distance: null, rest: '60s', unit: 'reps' }
+          { title: '10m Acceleration Sprints', details: 'Focus on low torso angles and dynamic horizontal projection.', type: 'speed_acceleration', percentage: 90, sets: '3', reps: '1', distance: '10', rest: '2m', unit: 'meters' },
+          { title: 'Active Lower-Body Flush Routine', details: '15 minutes of dynamic calf rolls, foam rolling hamstrings/quads, and active deep breathing to flush lactic acid.', type: 'mobility_recovery', percentage: null, sets: '1', reps: '15', rest: '0s', unit: 'sec' }
         ],
-        Thursday: [],
+        Thursday: [
+          { title: 'RAMP: Glute & Hamstring Activation', details: 'Banded glute bridges, single-leg hinges, and dynamic cobras. Activates posterior chain muscles for sprinting.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '12', rest: '0s', unit: 'reps' },
+          { title: 'Trap Bar Deadlift', details: 'Deadlift using hex-bar to reduce spinal shear. Develops maximum posterior chain drive.', type: 'strength_double_leg', percentage: 70, sets: '3', reps: '5', distance: null, rest: '3m', unit: 'reps' },
+          { title: 'Barbell Bench Press', details: 'Develops chest, shoulders, and triceps pressing power.', type: 'strength_upper', percentage: 70, sets: '3', reps: '6', distance: null, rest: '2m', unit: 'reps' },
+          { title: 'Copenhagen Side Plank', details: 'Elevate top leg on bench. Keep bottom leg suspended. Tight adductor brace.', type: 'isometric', percentage: 65, sets: '3', reps: '20', rest: '1m', unit: 'sec' },
+          { title: 'Thoracic & Lats Decompression Hold', details: 'Child\'s pose with elevated elbows on a box, holding statically to decompress upper back and shoulders.', type: 'mobility_recovery', percentage: null, sets: '2', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Friday: []
       }
     }
@@ -662,20 +758,44 @@ export const DEFAULT_TRIPLE_JUMP_PROGRAM = {
       title: 'Week 1 - Phase Coordination & Landing Stiffness',
       drills: {
         Saturday: [
+          { title: 'RAMP: Dynamic Hip & Ankle Activation', details: 'Dynamic leg swings (lateral & linear), ankle rocks, and deep squat prys. Prepares joints for high-velocity impacts.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '10', rest: '0s', unit: 'reps' },
+          { title: 'Continuous Step-Phase Bounding', details: 'Perform consecutive step-phase bounds on the same leg. Promotes knee drive suspension and hip strength.', type: 'triple_jump', percentage: 90, sets: '3', reps: '6', distance: null, rest: '3m', unit: 'contacts' },
           { title: 'Triple Jump - Short Approach (6-8 Strides)', details: 'Short runup focusing on landing phase coordination and Hop-Step-Jump rhythm.', type: 'triple_jump', percentage: 95, sets: '4', reps: '3', distance: null, rest: '4m', unit: 'contacts' },
-          { title: 'Alternate Leg Bounding to Pit (RLRL)', details: 'Maximal horizontal projection bounds focusing on active clawing motion.', type: 'triple_jump', percentage: 90, sets: '3', reps: '10', distance: null, rest: '3m', unit: 'contacts' }
+          { title: 'Active Lower-Body Flush Routine', details: '15 minutes of dynamic calf rolls, foam rolling hamstrings/quads, and active deep breathing to flush lactic acid.', type: 'mobility_recovery', percentage: null, sets: '1', reps: '15', rest: '0s', unit: 'sec' }
         ],
-        Sunday: [],
+        Sunday: [
+          { title: 'RAMP: Glute & Hamstring Activation', details: 'Banded glute bridges, single-leg hinges, and dynamic cobras. Activates posterior chain muscles for sprinting.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '12', rest: '0s', unit: 'reps' },
+          { title: 'Barbell Hip Thrust (Heavy)', details: 'Maximum barbell hip thrust. Load glutes and hamstrings at short muscle lengths to build horizontal sprinting power.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '6', distance: null, rest: '2m', unit: 'reps' },
+          { title: 'Standing Cable Hip Flexion', details: 'Ankle strap attached to low cable. Explode knee upward to hip height, then lower under control to build sprinting drive power.', type: 'strength_single_leg', percentage: 75, sets: '3', reps: '8', distance: null, rest: '75s', unit: 'reps' },
+          { title: 'Hollow Body Isometric Hold', details: 'Banana-like body posture, raising feet and shoulders slightly off ground with lower back glued down.', type: 'core_anti_extension', percentage: 65, sets: '3', reps: '30', distance: null, rest: '45s', unit: 'sec' },
+          { title: 'Thoracic & Lats Decompression Hold', details: 'Child\'s pose with elevated elbows on a box, holding statically to decompress upper back and shoulders.', type: 'mobility_recovery', percentage: null, sets: '2', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Monday: [
-          { title: 'Depth Drop to Triple Jump Takeoff', details: 'Step off a 30cm box, land, and immediately perform a triple jump Hop phase.', type: 'triple_jump', percentage: 95, sets: '3', reps: '4', distance: null, rest: '3m', unit: 'contacts' },
-          { title: 'Barbell Hip Thrust (Heavy)', details: 'Maximum barbell hip thrust. Load glutes and hamstrings at short muscle lengths to build horizontal sprinting power.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '6', distance: null, rest: '2m', unit: 'reps' }
-        ],
-        Tuesday: [],
-        Wednesday: [
+          { title: 'RAMP: Dynamic Hip & Ankle Activation', details: 'Dynamic leg swings (lateral & linear), ankle rocks, and deep squat prys. Prepares joints for high-velocity impacts.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '10', rest: '0s', unit: 'reps' },
+          { title: 'Alternate Leg Bounding to Pit (RLRL)', details: 'Maximal horizontal projection bounds focusing on active clawing motion.', type: 'triple_jump', percentage: 90, sets: '3', reps: '10', distance: null, rest: '3m', unit: 'contacts' },
           { title: 'Hop-to-Step Phase transition', details: 'Focus on jumping from landing leg and driving opposite knee up for the Step phase.', type: 'triple_jump', percentage: 90, sets: '4', reps: '4', distance: null, rest: '3m', unit: 'contacts' },
-          { title: 'Ankle Pogo Hops', details: 'Keep knees stiff, react solely through the ankle joint.', type: 'plyometrics', percentage: 85, sets: '3', reps: '15', rest: '1m', unit: 'contacts' }
+          { title: 'Psoas & Hip Flexor Static Release', details: '90-second deep kneeling hip flexor stretch with slight torso rotation, held statically to release tightness.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '90', rest: '0s', unit: 'sec' }
         ],
-        Thursday: [],
+        Tuesday: [
+          { title: 'RAMP: 3D Torso & Core Mobilization', details: 'Dynamic thoracic spine rotations, walking lunges with torso twists, and lateral lunges. Prepares multi-planar movement.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '8', rest: '0s', unit: 'reps' },
+          { title: 'Trap Bar Deadlift', details: 'Deadlift using hex-bar to reduce spinal shear. Develops maximum posterior chain drive.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '5', distance: null, rest: '3m', unit: 'reps' },
+          { title: 'Single-Leg Hip Thrust (Weighted)', details: 'Unilateral hip extension. Shoulders on bench, elevate one leg, drive hips upward against a dumbbell/plate for glute power.', type: 'strength_single_leg', percentage: 75, sets: '3', reps: '8', distance: null, rest: '90s', unit: 'reps' },
+          { title: 'Cable Woodchops', details: 'High-to-low cable pulls across body. Trains rotational power and core stability.', type: 'core_rotation', percentage: 75, sets: '3', reps: '10', distance: null, rest: '60s', unit: 'reps' },
+          { title: 'Adductor & Hamstring Banded Stretch', details: 'Laying on back using a strap to stretch adductors and hamstrings statically in multiple planes.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '60', rest: '0s', unit: 'sec' }
+        ],
+        Wednesday: [
+          { title: 'RAMP: Neural Potentiation Bounding', details: 'Low-impact pogo jumps, A-skips, and straight-leg bounds. Elevates heart rate and wakes up the central nervous system.', type: 'mobility_warmup', percentage: null, sets: '2', reps: '20', rest: '30s', unit: 'contacts' },
+          { title: 'Step-Phase Knee Lock Isometric Holds', details: 'Jump-bounds with an exaggerated knee-drive hold (90 degrees) in mid-air during the step phase.', type: 'triple_jump', percentage: 80, sets: '4', reps: '6', distance: null, rest: '2m', unit: 'contacts' },
+          { title: 'Ankle Pogo Hops', details: 'Keep knees stiff, react solely through the ankle joint.', type: 'plyometrics', percentage: 85, sets: '3', reps: '15', rest: '1m', unit: 'contacts' },
+          { title: 'Active Lower-Body Flush Routine', details: '15 minutes of dynamic calf rolls, foam rolling hamstrings/quads, and active deep breathing to flush lactic acid.', type: 'mobility_recovery', percentage: null, sets: '1', reps: '15', rest: '0s', unit: 'sec' }
+        ],
+        Thursday: [
+          { title: 'RAMP: Glute & Hamstring Activation', details: 'Banded glute bridges, single-leg hinges, and dynamic cobras. Activates posterior chain muscles for sprinting.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '12', rest: '0s', unit: 'reps' },
+          { title: 'Barbell Back Squat', details: 'Full back squats to develop maximum leg strength and power.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '5', distance: null, rest: '3m', unit: 'reps' },
+          { title: 'Weighted Pull-ups', details: 'Overhand pull-ups with weight plates attached to dip belt. Develops lat and upper back strength.', type: 'strength_upper', percentage: 75, sets: '3', reps: '6', distance: null, rest: '2m', unit: 'reps' },
+          { title: 'Copenhagen Side Plank', details: 'Elevate top leg on bench. Keep bottom leg suspended. Tight adductor brace.', type: 'isometric', percentage: 65, sets: '3', reps: '20', rest: '1m', unit: 'sec' },
+          { title: 'Thoracic & Lats Decompression Hold', details: 'Child\'s pose with elevated elbows on a box, holding statically to decompress upper back and shoulders.', type: 'mobility_recovery', percentage: null, sets: '2', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Friday: []
       }
     },
@@ -683,20 +803,44 @@ export const DEFAULT_TRIPLE_JUMP_PROGRAM = {
       title: 'Week 2 - Unilateral Power & Shock Absorption',
       drills: {
         Saturday: [
+          { title: 'RAMP: Dynamic Hip & Ankle Activation', details: 'Dynamic leg swings (lateral & linear), ankle rocks, and deep squat prys. Prepares joints for high-velocity impacts.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '10', rest: '0s', unit: 'reps' },
+          { title: 'Continuous Step-Phase Bounding', details: 'Perform consecutive step-phase bounds on the same leg. Promotes knee drive suspension and hip strength.', type: 'triple_jump', percentage: 90, sets: '3', reps: '6', distance: null, rest: '3m', unit: 'contacts' },
           { title: 'Triple Jump - Short Approach (6-8 Strides)', details: 'Short runup focusing on landing phase coordination and Hop-Step-Jump rhythm.', type: 'triple_jump', percentage: 95, sets: '4', reps: '4', distance: null, rest: '4m', unit: 'contacts' },
-          { title: 'Continuous Step-Phase Bounding', details: 'Perform consecutive step-phase bounds on the same leg. Promotes knee drive suspension and hip strength.', type: 'triple_jump', percentage: 90, sets: '3', reps: '6', distance: null, rest: '3m', unit: 'contacts' }
+          { title: 'Active Lower-Body Flush Routine', details: '15 minutes of dynamic calf rolls, foam rolling hamstrings/quads, and active deep breathing to flush lactic acid.', type: 'mobility_recovery', percentage: null, sets: '1', reps: '15', rest: '0s', unit: 'sec' }
         ],
-        Sunday: [],
+        Sunday: [
+          { title: 'RAMP: Glute & Hamstring Activation', details: 'Banded glute bridges, single-leg hinges, and dynamic cobras. Activates posterior chain muscles for sprinting.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '12', rest: '0s', unit: 'reps' },
+          { title: 'Barbell Hip Thrust (Heavy)', details: 'Maximum barbell hip thrust. Load glutes and hamstrings at short muscle lengths to build horizontal sprinting power.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '6', distance: null, rest: '2m', unit: 'reps' },
+          { title: 'Standing Cable Hip Flexion', details: 'Ankle strap attached to low cable. Explode knee upward to hip height, then lower under control to build sprinting drive power.', type: 'strength_single_leg', percentage: 75, sets: '3', reps: '8', distance: null, rest: '75s', unit: 'reps' },
+          { title: 'Hollow Body Isometric Hold', details: 'Banana-like body posture, raising feet and shoulders slightly off ground with lower back glued down.', type: 'core_anti_extension', percentage: 65, sets: '3', reps: '30', distance: null, rest: '45s', unit: 'sec' },
+          { title: 'Thoracic & Lats Decompression Hold', details: 'Child\'s pose with elevated elbows on a box, holding statically to decompress upper back and shoulders.', type: 'mobility_recovery', percentage: null, sets: '2', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Monday: [
-          { title: 'Single-Leg Speed Hops over Foam Obstacles', details: 'Reactively hop on takeoff leg over 5 low hurdles into pit.', type: 'triple_jump', percentage: 85, sets: '3', reps: '5', distance: null, rest: '3m', unit: 'contacts' },
-          { title: 'Trap Bar Deadlift', details: 'Deadlift using hex-bar to reduce spinal shear. Develops maximum posterior chain drive.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '5', distance: null, rest: '3m', unit: 'reps' }
+          { title: 'RAMP: Dynamic Hip & Ankle Activation', details: 'Dynamic leg swings (lateral & linear), ankle rocks, and deep squat prys. Prepares joints for high-velocity impacts.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '10', rest: '0s', unit: 'reps' },
+          { title: 'Alternate Leg Bounding to Pit (RLRL)', details: 'Maximal horizontal projection bounds focusing on active clawing motion.', type: 'triple_jump', percentage: 90, sets: '3', reps: '10', distance: null, rest: '3m', unit: 'contacts' },
+          { title: 'Depth Drop to Triple Jump Takeoff', details: 'Step off a 30cm box, land, and immediately perform a triple jump Hop phase.', type: 'triple_jump', percentage: 95, sets: '3', reps: '4', distance: null, rest: '3m', unit: 'contacts' },
+          { title: 'Psoas & Hip Flexor Static Release', details: '90-second deep kneeling hip flexor stretch with slight torso rotation, held statically to release tightness.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '90', rest: '0s', unit: 'sec' }
         ],
-        Tuesday: [],
+        Tuesday: [
+          { title: 'RAMP: 3D Torso & Core Mobilization', details: 'Dynamic thoracic spine rotations, walking lunges with torso twists, and lateral lunges. Prepares multi-planar movement.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '8', rest: '0s', unit: 'reps' },
+          { title: 'Trap Bar Deadlift', details: 'Deadlift using hex-bar to reduce spinal shear. Develops maximum posterior chain drive.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '5', distance: null, rest: '3m', unit: 'reps' },
+          { title: 'Single-Leg Hip Thrust (Weighted)', details: 'Unilateral hip extension. Shoulders on bench, elevate one leg, drive hips upward against a dumbbell/plate for glute power.', type: 'strength_single_leg', percentage: 75, sets: '3', reps: '8', distance: null, rest: '90s', unit: 'reps' },
+          { title: 'Cable Woodchops', details: 'High-to-low cable pulls across body. Trains rotational power and core stability.', type: 'core_rotation', percentage: 75, sets: '3', reps: '10', distance: null, rest: '60s', unit: 'reps' },
+          { title: 'Adductor & Hamstring Banded Stretch', details: 'Laying on back using a strap to stretch adductors and hamstrings statically in multiple planes.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Wednesday: [
-          { title: 'Step-to-Jump Phase transition', details: 'Elevated step phase bounding into the sand pit. Develops hip strength.', type: 'triple_jump', percentage: 90, sets: '4', reps: '4', distance: null, rest: '3m', unit: 'contacts' },
-          { title: 'Single-Leg Hip Thrust (Weighted)', details: 'Unilateral hip extension. Shoulders on bench, elevate one leg, drive hips upward against a dumbbell/plate for glute power.', type: 'strength_single_leg', percentage: 75, sets: '3', reps: '8', distance: null, rest: '90s', unit: 'reps' }
+          { title: 'RAMP: Neural Potentiation Bounding', details: 'Low-impact pogo jumps, A-skips, and straight-leg bounds. Elevates heart rate and wakes up the central nervous system.', type: 'mobility_warmup', percentage: null, sets: '2', reps: '20', rest: '30s', unit: 'contacts' },
+          { title: 'Single-Leg Speed Hops over Foam Obstacles', details: 'Reactively hop on takeoff leg over 5 low hurdles into pit.', type: 'triple_jump', percentage: 85, sets: '3', reps: '5', distance: null, rest: '3m', unit: 'contacts' },
+          { title: 'Ankle Pogo Hops', details: 'Keep knees stiff, react solely through the ankle joint.', type: 'plyometrics', percentage: 85, sets: '3', reps: '15', rest: '1m', unit: 'contacts' },
+          { title: 'Active Lower-Body Flush Routine', details: '15 minutes of dynamic calf rolls, foam rolling hamstrings/quads, and active deep breathing to flush lactic acid.', type: 'mobility_recovery', percentage: null, sets: '1', reps: '15', rest: '0s', unit: 'sec' }
         ],
-        Thursday: [],
+        Thursday: [
+          { title: 'RAMP: Glute & Hamstring Activation', details: 'Banded glute bridges, single-leg hinges, and dynamic cobras. Activates posterior chain muscles for sprinting.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '12', rest: '0s', unit: 'reps' },
+          { title: 'Barbell Back Squat', details: 'Full back squats to develop maximum leg strength and power.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '5', distance: null, rest: '3m', unit: 'reps' },
+          { title: 'Weighted Pull-ups', details: 'Overhand pull-ups with weight plates attached to dip belt. Develops lat and upper back strength.', type: 'strength_upper', percentage: 75, sets: '3', reps: '6', distance: null, rest: '2m', unit: 'reps' },
+          { title: 'Copenhagen Side Plank', details: 'Elevate top leg on bench. Keep bottom leg suspended. Tight adductor brace.', type: 'isometric', percentage: 65, sets: '3', reps: '20', rest: '1m', unit: 'sec' },
+          { title: 'Thoracic & Lats Decompression Hold', details: 'Child\'s pose with elevated elbows on a box, holding statically to decompress upper back and shoulders.', type: 'mobility_recovery', percentage: null, sets: '2', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Friday: []
       }
     },
@@ -704,20 +848,44 @@ export const DEFAULT_TRIPLE_JUMP_PROGRAM = {
       title: 'Week 3 - Peak Velocity & Runway Integration',
       drills: {
         Saturday: [
+          { title: 'RAMP: Dynamic Hip & Ankle Activation', details: 'Dynamic leg swings (lateral & linear), ankle rocks, and deep squat prys. Prepares joints for high-velocity impacts.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '10', rest: '0s', unit: 'reps' },
+          { title: 'Continuous Step-Phase Bounding', details: 'Perform consecutive step-phase bounds on the same leg. Promotes knee drive suspension and hip strength.', type: 'triple_jump', percentage: 90, sets: '3', reps: '6', distance: null, rest: '3m', unit: 'contacts' },
           { title: 'Full-Approach Triple Jump', details: 'Full runway speed. Focus on even phase distribution (33% Hop, 30% Step, 37% Jump).', type: 'triple_jump', percentage: 100, sets: '3', reps: '2', distance: null, rest: '6m', unit: 'contacts' },
-          { title: 'Speed Bounds with Weighted Belt (2kg)', details: 'Continuous alternative leg bounding on grass with a light weight belt. Focus on flat foot clawing action.', type: 'triple_jump', percentage: 90, sets: '3', reps: '8', distance: null, rest: '2.5m', unit: 'contacts' }
+          { title: 'Active Lower-Body Flush Routine', details: '15 minutes of dynamic calf rolls, foam rolling hamstrings/quads, and active deep breathing to flush lactic acid.', type: 'mobility_recovery', percentage: null, sets: '1', reps: '15', rest: '0s', unit: 'sec' }
         ],
-        Sunday: [],
+        Sunday: [
+          { title: 'RAMP: Glute & Hamstring Activation', details: 'Banded glute bridges, single-leg hinges, and dynamic cobras. Activates posterior chain muscles for sprinting.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '12', rest: '0s', unit: 'reps' },
+          { title: 'Barbell Hip Thrust (Heavy)', details: 'Maximum barbell hip thrust. Load glutes and hamstrings at short muscle lengths to build horizontal sprinting power.', type: 'strength_double_leg', percentage: 90, sets: '3', reps: '4', distance: null, rest: '2.5m', unit: 'reps' },
+          { title: 'Resisted Wall Drill Knee Drives', details: 'Leaning against a wall at 45-degree angle. Loop band around feet and drive knees explosively in a piston motion.', type: 'strength_single_leg', percentage: 70, sets: '4', reps: '10', distance: null, rest: '75s', unit: 'reps' },
+          { title: 'Hollow Body Isometric Hold', details: 'Banana-like body posture, raising feet and shoulders slightly off ground with lower back glued down.', type: 'core_anti_extension', percentage: 65, sets: '3', reps: '30', distance: null, rest: '45s', unit: 'sec' },
+          { title: 'Thoracic & Lats Decompression Hold', details: 'Child\'s pose with elevated elbows on a box, holding statically to decompress upper back and shoulders.', type: 'mobility_recovery', percentage: null, sets: '2', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Monday: [
+          { title: 'RAMP: Dynamic Hip & Ankle Activation', details: 'Dynamic leg swings (lateral & linear), ankle rocks, and deep squat prys. Prepares joints for high-velocity impacts.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '10', rest: '0s', unit: 'reps' },
+          { title: 'Speed Bounds with Weighted Belt (2kg)', details: 'Continuous alternative leg bounding on grass with a light weight belt. Focus on flat foot clawing action.', type: 'triple_jump', percentage: 90, sets: '3', reps: '8', distance: null, rest: '2.5m', unit: 'contacts' },
           { title: 'Depth Drop to Triple Jump Takeoff', details: 'Step off a 30cm box, land, and immediately perform a triple jump Hop phase.', type: 'triple_jump', percentage: 95, sets: '4', reps: '3', distance: null, rest: '3m', unit: 'contacts' },
-          { title: 'Barbell Hip Thrust (Heavy)', details: 'Maximum barbell hip thrust. Load glutes and hamstrings at short muscle lengths to build horizontal sprinting power.', type: 'strength_double_leg', percentage: 90, sets: '3', reps: '4', distance: null, rest: '2.5m', unit: 'reps' }
+          { title: 'Psoas & Hip Flexor Static Release', details: '90-second deep kneeling hip flexor stretch with slight torso rotation, held statically to release tightness.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '90', rest: '0s', unit: 'sec' }
         ],
-        Tuesday: [],
+        Tuesday: [
+          { title: 'RAMP: 3D Torso & Core Mobilization', details: 'Dynamic thoracic spine rotations, walking lunges with torso twists, and lateral lunges. Prepares multi-planar movement.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '8', rest: '0s', unit: 'reps' },
+          { title: 'Trap Bar Deadlift', details: 'Deadlift using hex-bar to reduce spinal shear. Develops maximum posterior chain drive.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '5', distance: null, rest: '3m', unit: 'reps' },
+          { title: 'Single-Leg Hip Thrust (Weighted)', details: 'Unilateral hip extension. Shoulders on bench, elevate one leg, drive hips upward against a dumbbell/plate for glute power.', type: 'strength_single_leg', percentage: 75, sets: '3', reps: '8', distance: null, rest: '90s', unit: 'reps' },
+          { title: 'Cable Woodchops', details: 'High-to-low cable pulls across body. Trains rotational power and core stability.', type: 'core_rotation', percentage: 75, sets: '3', reps: '10', distance: null, rest: '60s', unit: 'reps' },
+          { title: 'Adductor & Hamstring Banded Stretch', details: 'Laying on back using a strap to stretch adductors and hamstrings statically in multiple planes.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Wednesday: [
+          { title: 'RAMP: Neural Potentiation Bounding', details: 'Low-impact pogo jumps, A-skips, and straight-leg bounds. Elevates heart rate and wakes up the central nervous system.', type: 'mobility_warmup', percentage: null, sets: '2', reps: '20', rest: '30s', unit: 'contacts' },
+          { title: 'Standing Hop-Step-Jump into Pit', details: 'Triple jump from a standing position. Focuses on producing horizontal power from zero velocity.', type: 'triple_jump', percentage: 85, sets: '4', reps: '4', distance: null, rest: '2m', unit: 'contacts' },
           { title: 'Hop-to-Step Phase transition', details: 'Focus on jumping from landing leg and driving opposite knee up for the Step phase.', type: 'triple_jump', percentage: 90, sets: '4', reps: '4', distance: null, rest: '3m', unit: 'contacts' },
-          { title: 'Standing Hop-Step-Jump into Pit', details: 'Triple jump from a standing position. Focuses on producing horizontal power from zero velocity.', type: 'triple_jump', percentage: 85, sets: '4', reps: '4', distance: null, rest: '2m', unit: 'contacts' }
+          { title: 'Active Lower-Body Flush Routine', details: '15 minutes of dynamic calf rolls, foam rolling hamstrings/quads, and active deep breathing to flush lactic acid.', type: 'mobility_recovery', percentage: null, sets: '1', reps: '15', rest: '0s', unit: 'sec' }
         ],
-        Thursday: [],
+        Thursday: [
+          { title: 'RAMP: Glute & Hamstring Activation', details: 'Banded glute bridges, single-leg hinges, and dynamic cobras. Activates posterior chain muscles for sprinting.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '12', rest: '0s', unit: 'reps' },
+          { title: 'Barbell Back Squat', details: 'Full back squats to develop maximum leg strength and power.', type: 'strength_double_leg', percentage: 85, sets: '4', reps: '5', distance: null, rest: '3m', unit: 'reps' },
+          { title: 'Weighted Pull-ups', details: 'Overhand pull-ups with weight plates attached to dip belt. Develops lat and upper back strength.', type: 'strength_upper', percentage: 75, sets: '3', reps: '6', distance: null, rest: '2m', unit: 'reps' },
+          { title: 'Copenhagen Side Plank', details: 'Elevate top leg on bench. Keep bottom leg suspended. Tight adductor brace.', type: 'isometric', percentage: 65, sets: '3', reps: '20', rest: '1m', unit: 'sec' },
+          { title: 'Thoracic & Lats Decompression Hold', details: 'Child\'s pose with elevated elbows on a box, holding statically to decompress upper back and shoulders.', type: 'mobility_recovery', percentage: null, sets: '2', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Friday: []
       }
     },
@@ -725,20 +893,44 @@ export const DEFAULT_TRIPLE_JUMP_PROGRAM = {
       title: 'Week 4 - Technical Taper & Stiffness Tuning',
       drills: {
         Saturday: [
+          { title: 'RAMP: Dynamic Hip & Ankle Activation', details: 'Dynamic leg swings (lateral & linear), ankle rocks, and deep squat prys. Prepares joints for high-velocity impacts.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '10', rest: '0s', unit: 'reps' },
+          { title: 'Continuous Hop Phase Bounds (RRR / LLL)', details: 'Repetitive single-leg hops to develop specific landing stiffness.', type: 'triple_jump', percentage: 80, sets: '3', reps: '4', distance: null, rest: '3m', unit: 'contacts' },
           { title: 'Triple Jump - Short Approach (6-8 Strides)', details: 'Short runup focusing on landing phase coordination and Hop-Step-Jump rhythm.', type: 'triple_jump', percentage: 90, sets: '3', reps: '2', distance: null, rest: '4m', unit: 'contacts' },
-          { title: 'Continuous Hop Phase Bounds (RRR / LLL)', details: 'Repetitive single-leg hops to develop specific landing stiffness.', type: 'triple_jump', percentage: 80, sets: '3', reps: '4', distance: null, rest: '3m', unit: 'contacts' }
+          { title: 'Active Lower-Body Flush Routine', details: '15 minutes of dynamic calf rolls, foam rolling hamstrings/quads, and active deep breathing to flush lactic acid.', type: 'mobility_recovery', percentage: null, sets: '1', reps: '15', rest: '0s', unit: 'sec' }
         ],
-        Sunday: [],
+        Sunday: [
+          { title: 'RAMP: Glute & Hamstring Activation', details: 'Banded glute bridges, single-leg hinges, and dynamic cobras. Activates posterior chain muscles for sprinting.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '12', rest: '0s', unit: 'reps' },
+          { title: 'Barbell Hip Thrust (Heavy)', details: 'Maximum barbell hip thrust. Load glutes and hamstrings at short muscle lengths to build horizontal sprinting power.', type: 'strength_double_leg', percentage: 70, sets: '3', reps: '6', distance: null, rest: '2m', unit: 'reps' },
+          { title: 'Lying Banded Psoas March', details: 'Lying on back with resistance band around feet, pull one knee to chest while holding the other leg straight and stable. Highly specific hip flexor activation.', type: 'strength_single_leg', percentage: 60, sets: '3', reps: '10', distance: null, rest: '60s', unit: 'reps' },
+          { title: 'Hollow Body Isometric Hold', details: 'Banana-like body posture, raising feet and shoulders slightly off ground with lower back glued down.', type: 'core_anti_extension', percentage: 65, sets: '3', reps: '30', distance: null, rest: '45s', unit: 'sec' },
+          { title: 'Thoracic & Lats Decompression Hold', details: 'Child\'s pose with elevated elbows on a box, holding statically to decompress upper back and shoulders.', type: 'mobility_recovery', percentage: null, sets: '2', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Monday: [
-          { title: 'Box-to-Box Step Phase (30cm boxes)', details: 'Take off from a box, land on the same leg on the ground, then drive onto a second box. Teaches shock absorption.', type: 'triple_jump', percentage: 85, sets: '3', reps: '3', distance: null, rest: '3m', unit: 'contacts' },
-          { title: 'Single-Leg Romanian Deadlift (SL RDL)', details: 'Dumbbell single-leg deadlift. Builds powerful hamstrings and glutes while enhancing balance.', type: 'strength_single_leg', percentage: 70, sets: '3', reps: '6', distance: null, rest: '90s', unit: 'reps' }
-        ],
-        Tuesday: [],
-        Wednesday: [
+          { title: 'RAMP: Dynamic Hip & Ankle Activation', details: 'Dynamic leg swings (lateral & linear), ankle rocks, and deep squat prys. Prepares joints for high-velocity impacts.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '10', rest: '0s', unit: 'reps' },
           { title: 'Double-Arm Swing Coordination Bounds', details: 'Bounding drills focusing exclusively on the double-arm punch technique at the takeoff of each phase.', type: 'triple_jump', percentage: 80, sets: '4', reps: '4', distance: null, rest: '2m', unit: 'contacts' },
-          { title: 'Ankle Pogo Hops', details: 'Keep knees stiff, react solely through the ankle joint.', type: 'plyometrics', percentage: 80, sets: '3', reps: '10', rest: '1m', unit: 'contacts' }
+          { title: 'Box-to-Box Step Phase (30cm boxes)', details: 'Take off from a box, land on the same leg on the ground, then drive onto a second box. Teaches shock absorption.', type: 'triple_jump', percentage: 85, sets: '3', reps: '3', distance: null, rest: '3m', unit: 'contacts' },
+          { title: 'Psoas & Hip Flexor Static Release', details: '90-second deep kneeling hip flexor stretch with slight torso rotation, held statically to release tightness.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '90', rest: '0s', unit: 'sec' }
         ],
-        Thursday: [],
+        Tuesday: [
+          { title: 'RAMP: 3D Torso & Core Mobilization', details: 'Dynamic thoracic spine rotations, walking lunges with torso twists, and lateral lunges. Prepares multi-planar movement.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '8', rest: '0s', unit: 'reps' },
+          { title: 'Trap Bar Deadlift', details: 'Deadlift using hex-bar to reduce spinal shear. Develops maximum posterior chain drive.', type: 'strength_double_leg', percentage: 70, sets: '3', reps: '5', distance: null, rest: '3m', unit: 'reps' },
+          { title: 'Weighted Step-ups to Box (50cm)', details: 'Step up onto box holding dumbbells. Focuses on explosive glute drive and knee tracking.', type: 'strength_single_leg', percentage: 70, sets: '3', reps: '6', distance: null, rest: '75s', unit: 'reps' },
+          { title: 'Cable Woodchops', details: 'High-to-low cable pulls across body. Trains rotational power and core stability.', type: 'core_rotation', percentage: 75, sets: '3', reps: '10', distance: null, rest: '60s', unit: 'reps' },
+          { title: 'Adductor & Hamstring Banded Stretch', details: 'Laying on back using a strap to stretch adductors and hamstrings statically in multiple planes.', type: 'mobility_recovery', percentage: null, sets: '3', reps: '60', rest: '0s', unit: 'sec' }
+        ],
+        Wednesday: [
+          { title: 'RAMP: Neural Potentiation Bounding', details: 'Low-impact pogo jumps, A-skips, and straight-leg bounds. Elevates heart rate and wakes up the central nervous system.', type: 'mobility_warmup', percentage: null, sets: '2', reps: '20', rest: '30s', unit: 'contacts' },
+          { title: 'Standing Hop-Step-Jump into Pit', details: 'Triple jump from a standing position. Focuses on producing horizontal power from zero velocity.', type: 'triple_jump', percentage: 80, sets: '4', reps: '4', distance: null, rest: '2m', unit: 'contacts' },
+          { title: 'Ankle Pogo Hops', details: 'Keep knees stiff, react solely through the ankle joint.', type: 'plyometrics', percentage: 80, sets: '3', reps: '10', rest: '1m', unit: 'contacts' },
+          { title: 'Active Lower-Body Flush Routine', details: '15 minutes of dynamic calf rolls, foam rolling hamstrings/quads, and active deep breathing to flush lactic acid.', type: 'mobility_recovery', percentage: null, sets: '1', reps: '15', rest: '0s', unit: 'sec' }
+        ],
+        Thursday: [
+          { title: 'RAMP: Glute & Hamstring Activation', details: 'Banded glute bridges, single-leg hinges, and dynamic cobras. Activates posterior chain muscles for sprinting.', type: 'mobility_warmup', percentage: null, sets: '1', reps: '12', rest: '0s', unit: 'reps' },
+          { title: 'Barbell Back Squat', details: 'Full back squats to develop maximum leg strength and power.', type: 'strength_double_leg', percentage: 70, sets: '3', reps: '5', distance: null, rest: '3m', unit: 'reps' },
+          { title: 'Weighted Pull-ups', details: 'Overhand pull-ups with weight plates attached to dip belt. Develops lat and upper back strength.', type: 'strength_upper', percentage: 70, sets: '3', reps: '6', distance: null, rest: '2m', unit: 'reps' },
+          { title: 'Copenhagen Side Plank', details: 'Elevate top leg on bench. Keep bottom leg suspended. Tight adductor brace.', type: 'isometric', percentage: 65, sets: '3', reps: '20', rest: '1m', unit: 'sec' },
+          { title: 'Thoracic & Lats Decompression Hold', details: 'Child\'s pose with elevated elbows on a box, holding statically to decompress upper back and shoulders.', type: 'mobility_recovery', percentage: null, sets: '2', reps: '60', rest: '0s', unit: 'sec' }
+        ],
         Friday: []
       }
     }
