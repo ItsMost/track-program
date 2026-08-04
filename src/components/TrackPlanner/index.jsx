@@ -55,6 +55,7 @@ const EXERCISE_CATEGORIES = {
   long_jump: 'Long Jump',
   triple_jump: 'Triple Jump',
   endurance: 'Endurance',
+  anaerobic: 'Anaerobic Training',
   plyometrics: 'Plyometrics',
   power: 'Power (Gym)',
   strength: 'Strength (Gym)',
@@ -76,7 +77,14 @@ const SUBCATEGORIES = {
     endurance_400: '400m',
     endurance_800: '800m',
     endurance_easy: 'Easy Run',
-    endurance_vo2max: 'VO2 Max'
+    endurance_vo2max: 'VO2 Max',
+    anaerobic_capacity: 'Anaerobic Capacity',
+    anaerobic_lactic_power: 'Lactic Power'
+  },
+  anaerobic: {
+    all: 'All',
+    anaerobic_capacity: 'Anaerobic Capacity',
+    anaerobic_lactic_power: 'Lactic Power'
   },
   core: {
     all: 'All',
@@ -103,6 +111,7 @@ const getBaseCategory = (type) => {
   const lower = type.toLowerCase();
   if (lower.startsWith('speed')) return 'speed';
   if (lower.startsWith('endurance')) return 'endurance';
+  if (lower.startsWith('anaerobic')) return 'anaerobic';
   if (lower.startsWith('core')) return 'core';
   if (lower.startsWith('strength')) return 'strength';
   if (lower.startsWith('mobility')) return 'mobility';

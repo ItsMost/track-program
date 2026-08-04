@@ -45,6 +45,12 @@ const CATEGORY_META = {
     labelColor: 'text-rose-600 dark:text-rose-400',
     label: 'Endurance'
   },
+  anaerobic: {
+    icon: Activity,
+    color: 'text-red-500 bg-red-50 dark:bg-red-950/30 border-red-500/20',
+    labelColor: 'text-red-600 dark:text-red-400',
+    label: 'Anaerobic'
+  },
   power: {
     icon: Dumbbell,
     color: 'text-sky-500 bg-sky-50 dark:bg-sky-950/30 border-sky-500/20',
@@ -88,6 +94,7 @@ const getBaseCategory = (type) => {
   const lower = type.toLowerCase();
   if (lower.startsWith('speed')) return 'speed';
   if (lower.startsWith('endurance')) return 'endurance';
+  if (lower.startsWith('anaerobic')) return 'anaerobic';
   if (lower.startsWith('core')) return 'core';
   if (lower.startsWith('strength')) return 'strength';
   if (lower.startsWith('mobility')) return 'mobility';
@@ -106,7 +113,13 @@ const SUBCATEGORIES = {
     endurance_400: '400m',
     endurance_800: '800m',
     endurance_easy: 'Easy Run',
-    endurance_vo2max: 'VO2 Max'
+    endurance_vo2max: 'VO2 Max',
+    anaerobic_capacity: 'Anaerobic Capacity',
+    anaerobic_lactic_power: 'Lactic Power'
+  },
+  anaerobic: {
+    anaerobic_capacity: 'Anaerobic Capacity',
+    anaerobic_lactic_power: 'Lactic Power'
   },
   core: {
     core_rotation: 'Rotation',
@@ -162,7 +175,7 @@ const TimelineCard = memo(function TimelineCard({
   const IconComponent = meta.icon;
 
   const calculateTargetPace = () => {
-    if ((baseCategory !== 'speed' && baseCategory !== 'endurance') || !drill.percentage || !drill.distance) return null;
+    if ((baseCategory !== 'speed' && baseCategory !== 'endurance' && baseCategory !== 'anaerobic') || !drill.percentage || !drill.distance) return null;
     const pct = parseFloat(drill.percentage);
     const dist = parseFloat(drill.distance);
     if (isNaN(pct) || isNaN(dist) || dist <= 0 || pct <= 0) return null;
