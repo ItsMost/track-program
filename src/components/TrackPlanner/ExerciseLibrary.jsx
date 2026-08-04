@@ -121,7 +121,10 @@ export default function ExerciseLibrary({
     
     // Category Filter
     if (activeCategoryFilter !== 'all' && baseCategory !== activeCategoryFilter) {
-      return false;
+      const isSubcategoryMatch = SUBCATEGORIES[activeCategoryFilter] && SUBCATEGORIES[activeCategoryFilter][type];
+      if (!isSubcategoryMatch) {
+        return false;
+      }
     }
 
     // Subcategory Filter

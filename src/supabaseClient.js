@@ -19,7 +19,7 @@ class MockSupabaseQuery {
     this.data = localData ? JSON.parse(localData) : [];
 
     // Pre-populate with realistic mock records if database is empty or outdated
-    if (this.data.length === 0 || (table === 'track_library_drills' && this.data.length < 100)) {
+    if (this.data.length === 0 || (table === 'track_library_drills' && this.data.length < INITIAL_LIBRARY.drills.length)) {
       if (table === 'track_athletes' || table === 'agilitylap_athletes') {
         this.data = INITIAL_ATHLETES.map(a => ({
           id: a.id,
