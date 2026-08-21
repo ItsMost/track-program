@@ -21,6 +21,12 @@ const CATEGORY_META = {
     labelColor: 'text-amber-600 dark:text-amber-400',
     label: 'Speed'
   },
+  tempo: {
+    icon: Activity,
+    color: 'text-cyan-500 bg-cyan-50 dark:bg-cyan-950/30 border-cyan-500/20',
+    labelColor: 'text-cyan-600 dark:text-cyan-400',
+    label: 'Tempo'
+  },
   plyometrics: {
     icon: Zap,
     color: 'text-amber-500 bg-amber-50 dark:bg-amber-950/30 border-amber-500/20',
@@ -93,6 +99,7 @@ const getBaseCategory = (type) => {
   if (!type) return 'speed';
   const lower = type.toLowerCase();
   if (lower.startsWith('speed')) return 'speed';
+  if (lower.startsWith('tempo')) return 'tempo';
   if (lower.startsWith('endurance')) return 'endurance';
   if (lower.startsWith('anaerobic')) return 'anaerobic';
   if (lower.startsWith('core')) return 'core';
@@ -107,13 +114,21 @@ const SUBCATEGORIES = {
   speed: {
     speed_acceleration: 'Acceleration',
     speed_max_velocity: 'Max Velocity',
-    speed_endurance: 'Speed Endurance'
+    speed_endurance: 'Speed Endurance',
+    tempo_extensive: 'Extensive Tempo',
+    tempo_intensive: 'Intensive Tempo'
+  },
+  tempo: {
+    tempo_extensive: 'Extensive Tempo',
+    tempo_intensive: 'Intensive Tempo'
   },
   endurance: {
     endurance_400: '400m',
     endurance_800: '800m',
     endurance_easy: 'Easy Run',
     endurance_vo2max: 'VO2 Max',
+    tempo_extensive: 'Extensive Tempo',
+    tempo_intensive: 'Intensive Tempo',
     anaerobic_capacity: 'Anaerobic Capacity',
     anaerobic_lactic_power: 'Lactic Power'
   },
@@ -175,7 +190,7 @@ const TimelineCard = memo(function TimelineCard({
   const IconComponent = meta.icon;
 
   const calculateTargetPace = () => {
-    if ((baseCategory !== 'speed' && baseCategory !== 'endurance' && baseCategory !== 'anaerobic') || !drill.percentage || !drill.distance) return null;
+    if ((baseCategory !== 'speed' && baseCategory !== 'tempo' && baseCategory !== 'endurance' && baseCategory !== 'anaerobic') || !drill.percentage || !drill.distance) return null;
     const pct = parseFloat(drill.percentage);
     const dist = parseFloat(drill.distance);
     if (isNaN(pct) || isNaN(dist) || dist <= 0 || pct <= 0) return null;

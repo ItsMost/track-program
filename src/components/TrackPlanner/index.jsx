@@ -52,6 +52,7 @@ import { supabase, isRealSupabase } from '../../supabaseClient.js';
 // 1. Updated Track & Field Specific Categories
 const EXERCISE_CATEGORIES = {
   speed: 'Speed (Track)',
+  tempo: 'Tempo Running',
   long_jump: 'Long Jump',
   triple_jump: 'Triple Jump',
   endurance: 'Endurance',
@@ -70,7 +71,14 @@ const SUBCATEGORIES = {
     all: 'All',
     speed_acceleration: 'Acceleration',
     speed_max_velocity: 'Max Velocity',
-    speed_endurance: 'Speed Endurance'
+    speed_endurance: 'Speed Endurance',
+    tempo_extensive: 'Extensive Tempo',
+    tempo_intensive: 'Intensive Tempo'
+  },
+  tempo: {
+    all: 'All',
+    tempo_extensive: 'Extensive Tempo (65-75%)',
+    tempo_intensive: 'Intensive Tempo (75-85%)'
   },
   endurance: {
     all: 'All',
@@ -78,6 +86,8 @@ const SUBCATEGORIES = {
     endurance_800: '800m',
     endurance_easy: 'Easy Run',
     endurance_vo2max: 'VO2 Max',
+    tempo_extensive: 'Extensive Tempo',
+    tempo_intensive: 'Intensive Tempo',
     anaerobic_capacity: 'Anaerobic Capacity',
     anaerobic_lactic_power: 'Lactic Power'
   },
@@ -110,6 +120,7 @@ const getBaseCategory = (type) => {
   if (!type) return 'speed';
   const lower = type.toLowerCase();
   if (lower.startsWith('speed')) return 'speed';
+  if (lower.startsWith('tempo')) return 'tempo';
   if (lower.startsWith('endurance')) return 'endurance';
   if (lower.startsWith('anaerobic')) return 'anaerobic';
   if (lower.startsWith('core')) return 'core';
@@ -904,7 +915,7 @@ export default function TrackFieldPlanner() {
 
       let drillLoad = 0;
 
-      const isSpeed = baseType === 'speed' || baseType === 'endurance' || drill.unit === 'meters';
+      const isRunning = baseType === 'speed' || baseType === 'tempo' || baseType === 'endurance' || baseType === 'anaerobic' || drill.unit === 'meters';
       const isPlyo = baseType === 'plyometrics' || baseType === 'plyos' || drill.unit === 'contacts';
 
       // Determine intensity factor (0.0 to 1.0+) and convert to relative % 1RM
@@ -950,8 +961,8 @@ export default function TrackFieldPlanner() {
         }
       }
 
-      // 1. SPEED (TRACK) / ENDURANCE
-      if (isSpeed) {
+      // 1. SPEED (TRACK) / TEMPO / ENDURANCE / ANAEROBIC
+      if (isRunning) {
         if (s > 0 && dist === 0) dist = 10; 
         if (dist > 0 && s === 0) s = 1;
         // Sprint Volume includes sets * reps * distance (e.g. 2x3x300m = 1800m)
@@ -962,32 +973,63 @@ export default function TrackFieldPlanner() {
           sumIntensity += actualPct;
         }
 
-        // Determine multiplier based on endurance subcategory
+        // Determine multiplier calibrated for physiological zones
         let speedMultiplier = 2.0;
-        if (baseType === 'endurance') {
+        if (baseType === 'tempo' || type.startsWith('tempo')) {
+          if (type === 'tempo_extensive') {
+            speedMultiplier = 0.18; // Extensive tempo (65-75%): low CNS, aerobic flush, high volume
+          } else if (type === 'tempo_intensive') {
+            speedMultiplier = 0.40; // Intensive tempo (75-85%): moderate lactic load
+          } else {
+            speedMultiplier = 0.25; // General tempo default
+          }
+        } else if (baseType === 'anaerobic' || type.startsWith('anaerobic')) {
+          if (type === 'anaerobic_capacity') {
+            speedMultiplier = 0.30; // Anaerobic capacity (65-75%)
+          } else if (type === 'anaerobic_lactic_power') {
+            speedMultiplier = 0.60; // Anaerobic lactic power (75-85%)
+          } else {
+            speedMultiplier = 0.45;
+          }
+        } else if (baseType === 'endurance' || type.startsWith('endurance')) {
           if (type === 'endurance_easy') {
-            speedMultiplier = 0.1;
+            speedMultiplier = 0.10;
           } else if (type === 'endurance_800') {
             speedMultiplier = 0.25;
           } else if (type === 'endurance_vo2max') {
-            speedMultiplier = 0.4;
+            speedMultiplier = 0.40;
           } else if (type === 'endurance_400') {
-            speedMultiplier = 0.5;
+            speedMultiplier = 0.50;
           } else {
-            speedMultiplier = 0.3; // Default endurance
+            speedMultiplier = 0.30; // Default endurance
+          }
+        } else if (baseType === 'speed' || type.startsWith('speed')) {
+          if (type === 'speed_endurance') {
+            speedMultiplier = 1.0; // Speed endurance (longer sprints with high recovery)
+          } else {
+            speedMultiplier = 2.0; // Max velocity & acceleration (high CNS)
           }
         }
 
         // Load = (Volume * (intensity / 100)^2) * speedMultiplier
         drillLoad = (sprintVolume * Math.pow(intensityFactor, 2)) * speedMultiplier;
         
-        // Dynamically split fatigue load based on intensity
-        if (actualPct > 75) {
-          cnsLoad += drillLoad * 0.8; // 80% CNS
-          structuralLoad += drillLoad * 0.2; // 20% Structural
+        // Dynamically split fatigue load based on category & intensity
+        if (baseType === 'tempo' || type === 'tempo_extensive') {
+          cnsLoad += drillLoad * 0.10; // 10% CNS
+          structuralLoad += drillLoad * 0.90; // 90% Structural
+        } else if (type === 'tempo_intensive') {
+          cnsLoad += drillLoad * 0.35; // 35% CNS
+          structuralLoad += drillLoad * 0.65; // 65% Structural
+        } else if (actualPct > 85) {
+          cnsLoad += drillLoad * 0.85; // 85% CNS
+          structuralLoad += drillLoad * 0.15; // 15% Structural
+        } else if (actualPct > 75) {
+          cnsLoad += drillLoad * 0.60; // 60% CNS
+          structuralLoad += drillLoad * 0.40; // 40% Structural
         } else {
-          cnsLoad += drillLoad * 0.1; // 10% CNS
-          structuralLoad += drillLoad * 0.9; // 90% Structural
+          cnsLoad += drillLoad * 0.15; // 15% CNS
+          structuralLoad += drillLoad * 0.85; // 85% Structural
         }
       }
       // 2. PLYOMETRICS

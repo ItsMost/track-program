@@ -15,6 +15,7 @@ import {
 
 const CATEGORY_TAGS = {
   speed: 'Speed',
+  tempo: 'Tempo',
   long_jump: 'Long Jump',
   triple_jump: 'Triple Jump',
   endurance: 'Endurance',
@@ -33,7 +34,14 @@ const SUBCATEGORIES = {
     all: 'All',
     speed_acceleration: 'Acceleration',
     speed_max_velocity: 'Max Velocity',
-    speed_endurance: 'Speed Endurance'
+    speed_endurance: 'Speed Endurance',
+    tempo_extensive: 'Extensive Tempo',
+    tempo_intensive: 'Intensive Tempo'
+  },
+  tempo: {
+    all: 'All',
+    tempo_extensive: 'Extensive Tempo',
+    tempo_intensive: 'Intensive Tempo'
   },
   endurance: {
     all: 'All',
@@ -41,6 +49,8 @@ const SUBCATEGORIES = {
     endurance_800: '800m',
     endurance_easy: 'Easy Run',
     endurance_vo2max: 'VO2 Max',
+    tempo_extensive: 'Extensive Tempo',
+    tempo_intensive: 'Intensive Tempo',
     anaerobic_capacity: 'Anaerobic Capacity',
     anaerobic_lactic_power: 'Lactic Power'
   },
@@ -73,6 +83,7 @@ const getBaseCategory = (type) => {
   if (!type) return 'speed';
   const lower = type.toLowerCase();
   if (lower.startsWith('speed')) return 'speed';
+  if (lower.startsWith('tempo')) return 'tempo';
   if (lower.startsWith('endurance')) return 'endurance';
   if (lower.startsWith('anaerobic')) return 'anaerobic';
   if (lower.startsWith('core')) return 'core';
