@@ -59,6 +59,13 @@ const SUBCATEGORIES = {
     anaerobic_capacity: 'Anaerobic Capacity',
     anaerobic_lactic_power: 'Lactic Power'
   },
+  power: {
+    all: 'All',
+    power_speed_strength: 'Speed-Strength (1.0 - 1.3 m/s)',
+    power_strength_speed: 'Strength-Speed (0.75 - 1.0 m/s)',
+    power_starting_strength: 'Starting Strength (> 1.3 m/s)',
+    power_olympic: 'Olympic Lifts'
+  },
   core: {
     all: 'All',
     core_rotation: 'Rotation',
@@ -68,6 +75,8 @@ const SUBCATEGORIES = {
   },
   strength: {
     all: 'All',
+    strength_accelerative: 'Accelerative Strength (0.5 - 0.75 m/s)',
+    strength_maximal: 'Maximal Strength (< 0.5 m/s)',
     strength_single_leg: 'Single Leg',
     strength_double_leg: 'Double Leg',
     strength_upper: 'Upper Body'
@@ -86,8 +95,9 @@ const getBaseCategory = (type) => {
   if (lower.startsWith('tempo')) return 'tempo';
   if (lower.startsWith('endurance')) return 'endurance';
   if (lower.startsWith('anaerobic')) return 'anaerobic';
-  if (lower.startsWith('core')) return 'core';
+  if (lower.startsWith('power')) return 'power';
   if (lower.startsWith('strength')) return 'strength';
+  if (lower.startsWith('core')) return 'core';
   if (lower.startsWith('mobility')) return 'mobility';
   if (lower.startsWith('long_jump')) return 'long_jump';
   if (lower.startsWith('triple_jump')) return 'triple_jump';

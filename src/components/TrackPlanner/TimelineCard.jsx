@@ -102,8 +102,9 @@ const getBaseCategory = (type) => {
   if (lower.startsWith('tempo')) return 'tempo';
   if (lower.startsWith('endurance')) return 'endurance';
   if (lower.startsWith('anaerobic')) return 'anaerobic';
-  if (lower.startsWith('core')) return 'core';
+  if (lower.startsWith('power')) return 'power';
   if (lower.startsWith('strength')) return 'strength';
+  if (lower.startsWith('core')) return 'core';
   if (lower.startsWith('mobility')) return 'mobility';
   if (lower.startsWith('long_jump')) return 'long_jump';
   if (lower.startsWith('triple_jump')) return 'triple_jump';
@@ -136,6 +137,12 @@ const SUBCATEGORIES = {
     anaerobic_capacity: 'Anaerobic Capacity',
     anaerobic_lactic_power: 'Lactic Power'
   },
+  power: {
+    power_speed_strength: 'Speed-Strength (1.0-1.3 m/s)',
+    power_strength_speed: 'Strength-Speed (0.75-1.0 m/s)',
+    power_starting_strength: 'Starting Strength (>1.3 m/s)',
+    power_olympic: 'Olympic Lifts'
+  },
   core: {
     core_rotation: 'Rotation',
     core_anti_rotation: 'Anti-Rotation',
@@ -143,6 +150,8 @@ const SUBCATEGORIES = {
     core_anti_extension: 'Anti-Extension'
   },
   strength: {
+    strength_accelerative: 'Accelerative Strength (0.5-0.75 m/s)',
+    strength_maximal: 'Maximal Strength (<0.5 m/s)',
     strength_single_leg: 'Single Leg',
     strength_double_leg: 'Double Leg',
     strength_upper: 'Upper Body'
@@ -324,6 +333,67 @@ const TimelineCard = memo(function TimelineCard({
 
     const targetWeight = maxVal * (pct / 100);
     return { name: liftName, weight: targetWeight.toFixed(1) };
+  };
+
+  const calculateTargetVBT = () => {
+    const isStrengthOrPower = baseCategory === 'strength' || baseCategory === 'power';
+    if (!isStrengthOrPower) return null;
+
+    // Check if drill has explicit custom VBT attributes
+    if (drill.targetVelocity || drill.peakVelocity || drill.velocityLoss) {
+      return {
+        mean: drill.targetVelocity ? `${drill.targetVelocity} m/s` : null,
+        peak: drill.peakVelocity ? `${drill.peakVelocity} m/s` : null,
+        loss: drill.velocityLoss ? `${drill.velocityLoss}` : null,
+        zone: drill.vbtZone || null,
+        isCustom: true
+      };
+    }
+
+    // Auto-calculate estimation from % 1RM
+    const pct = parseFloat(drill.percentage);
+    if (isNaN(pct) || pct <= 0) return null;
+
+    const titleLower = (drill.title || '').toLowerCase();
+    let meanVel = null;
+    let peakVel = null;
+    let zone = '';
+    let lossCutoff = '10%'; // Default 10% cutoff for sprint/explosive athletes
+
+    if (titleLower.includes('clean') || titleLower.includes('snatch') || titleLower.includes('high pull') || titleLower.includes('jerk')) {
+      // Olympic Lift VBT Formulas
+      meanVel = Math.max(0.70, (1.65 - (0.007 * pct))).toFixed(2);
+      peakVel = Math.max(1.10, (2.30 - (0.010 * pct))).toFixed(2);
+      lossCutoff = '10%';
+    } else if (titleLower.includes('squat') || titleLower.includes('leg press') || titleLower.includes('deadlift')) {
+      // Squat / Lower Body VBT Formulas
+      meanVel = Math.max(0.30, (1.40 - (0.011 * pct))).toFixed(2);
+      peakVel = (parseFloat(meanVel) * 1.55).toFixed(2);
+      lossCutoff = pct >= 80 ? '15%' : '10%';
+    } else if (titleLower.includes('bench') || titleLower.includes('press') || titleLower.includes('row')) {
+      // Upper Body Pressing VBT Formulas
+      meanVel = Math.max(0.25, (1.35 - (0.0115 * pct))).toFixed(2);
+      peakVel = (parseFloat(meanVel) * 1.45).toFixed(2);
+      lossCutoff = pct >= 80 ? '15%' : '10%';
+    } else {
+      return null;
+    }
+
+    // Determine Zone
+    const v = parseFloat(meanVel);
+    if (v >= 1.30) zone = 'Speed';
+    else if (v >= 1.00) zone = 'Speed-Strength';
+    else if (v >= 0.75) zone = 'Strength-Speed';
+    else if (v >= 0.50) zone = 'Accelerative';
+    else zone = 'Max Strength';
+
+    return {
+      mean: `${meanVel} m/s`,
+      peak: `${peakVel} m/s`,
+      loss: lossCutoff,
+      zone,
+      isCustom: false
+    };
   };
 
   const handleEditClick = (e) => {
@@ -532,6 +602,22 @@ const TimelineCard = memo(function TimelineCard({
             return (
               <span className="text-sky-600 dark:text-sky-400 bg-sky-500/10 px-1 py-0.2 rounded text-[8px] font-black border border-sky-500/20" title={titleStr}>
                 🏋️ {load.name}: {load.weight}kg {load.pct1RM ? `(${load.pct1RM}% 1RM)` : ''}
+              </span>
+            );
+          })()}
+
+          {/* VBT Barbell Velocity & Loss Cutoff Badge */}
+          {(() => {
+            const vbt = calculateTargetVBT();
+            if (!vbt) return null;
+            return (
+              <span 
+                className="text-violet-600 dark:text-violet-400 bg-violet-500/10 px-1 py-0.2 rounded text-[8px] font-black border border-violet-500/20 flex items-center gap-1"
+                title={`VBT Target: Mean ${vbt.mean || '--'}, Peak ${vbt.peak || '--'}${vbt.zone ? ` (${vbt.zone})` : ''}. Stop set at ${vbt.loss} velocity loss.`}
+              >
+                <span>⚡ {vbt.mean ? `Mean: ${vbt.mean}` : ''}</span>
+                {vbt.peak && <span className="opacity-80 font-normal">| 🚀 Peak: {vbt.peak}</span>}
+                {vbt.loss && <span className="text-rose-500 font-bold">| 🛑 {vbt.loss} Cutoff</span>}
               </span>
             );
           })()}

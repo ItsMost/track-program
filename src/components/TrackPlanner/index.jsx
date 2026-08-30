@@ -96,6 +96,13 @@ const SUBCATEGORIES = {
     anaerobic_capacity: 'Anaerobic Capacity',
     anaerobic_lactic_power: 'Lactic Power'
   },
+  power: {
+    all: 'All',
+    power_speed_strength: 'Speed-Strength (1.0 - 1.3 m/s)',
+    power_strength_speed: 'Strength-Speed (0.75 - 1.0 m/s)',
+    power_starting_strength: 'Starting Strength (> 1.3 m/s)',
+    power_olympic: 'Olympic Lifts'
+  },
   core: {
     all: 'All',
     core_rotation: 'Rotation',
@@ -105,6 +112,8 @@ const SUBCATEGORIES = {
   },
   strength: {
     all: 'All',
+    strength_accelerative: 'Accelerative Strength (0.5 - 0.75 m/s)',
+    strength_maximal: 'Maximal Strength (< 0.5 m/s)',
     strength_single_leg: 'Single Leg',
     strength_double_leg: 'Double Leg',
     strength_upper: 'Upper Body'
@@ -123,8 +132,9 @@ const getBaseCategory = (type) => {
   if (lower.startsWith('tempo')) return 'tempo';
   if (lower.startsWith('endurance')) return 'endurance';
   if (lower.startsWith('anaerobic')) return 'anaerobic';
-  if (lower.startsWith('core')) return 'core';
+  if (lower.startsWith('power')) return 'power';
   if (lower.startsWith('strength')) return 'strength';
+  if (lower.startsWith('core')) return 'core';
   if (lower.startsWith('mobility')) return 'mobility';
   if (lower.startsWith('long_jump')) return 'long_jump';
   if (lower.startsWith('triple_jump')) return 'triple_jump';
@@ -224,7 +234,7 @@ export default function TrackFieldPlanner() {
     weeksChain: [''],
   });
 
-  // Add Exercise state updated with 'distance'
+  // Add Exercise state updated with 'distance' and VBT metrics
   const [addExerciseModal, setAddExerciseModal] = useState({
     isOpen: false,
     id: null,
@@ -237,6 +247,9 @@ export default function TrackFieldPlanner() {
     distance: '',
     rest: '',
     unit: 'meters',
+    targetVelocity: '',
+    peakVelocity: '',
+    velocityLoss: '10%',
   });
   const [dayDrillModal, setDayDrillModal] = useState({
     isOpen: false,
@@ -2006,6 +2019,9 @@ export default function TrackFieldPlanner() {
       distance: drill.distance || '',
       rest: drill.rest || '',
       unit: drill.unit || 'meters',
+      targetVelocity: drill.targetVelocity || '',
+      peakVelocity: drill.peakVelocity || '',
+      velocityLoss: drill.velocityLoss || '10%',
     });
   };
   const handleDeleteLibraryTemplate = async (id) => {
@@ -2038,6 +2054,9 @@ export default function TrackFieldPlanner() {
       distance: addExerciseModal.distance || '',
       rest: addExerciseModal.rest || '',
       unit: addExerciseModal.unit || 'meters',
+      targetVelocity: addExerciseModal.targetVelocity || null,
+      peakVelocity: addExerciseModal.peakVelocity || null,
+      velocityLoss: addExerciseModal.velocityLoss || null,
     };
     if (addExerciseModal.id) {
       const { data, error } = await supabase
@@ -2064,6 +2083,9 @@ export default function TrackFieldPlanner() {
           distance: '',
           rest: '',
           unit: 'meters',
+          targetVelocity: '',
+          peakVelocity: '',
+          velocityLoss: '10%',
         });
         handleToast('Exercise updated');
       } else if (error) {
@@ -2093,6 +2115,9 @@ export default function TrackFieldPlanner() {
           distance: '',
           rest: '',
           unit: 'meters',
+          targetVelocity: '',
+          peakVelocity: '',
+          velocityLoss: '10%',
         });
         handleToast('Exercise added');
       } else if (error) {
@@ -3314,6 +3339,63 @@ export default function TrackFieldPlanner() {
                 </div>
               )}
 
+              {/* VBT (Velocity Based Training) Section for Power & Strength */}
+              {(getBaseCategory(dayDrillModal.drill.type) === 'power' || getBaseCategory(dayDrillModal.drill.type) === 'strength') && (
+                <div className="border border-violet-200 dark:border-violet-800/60 bg-violet-50/50 dark:bg-violet-950/20 rounded-2xl p-3.5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
+                      ⚡ VBT Bar Velocity Target (OVR Velocity)
+                    </span>
+                    <span className="text-[10px] text-violet-500 font-bold">Force-Velocity Curve</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Target Mean (m/s)</label>
+                      <input
+                        type="text"
+                        value={dayDrillModal.drill.targetVelocity || ''}
+                        onChange={(e) => setDayDrillModal({
+                          ...dayDrillModal,
+                          drill: { ...dayDrillModal.drill, targetVelocity: e.target.value }
+                        })}
+                        placeholder="e.g. 0.85"
+                        className="w-full px-3 py-2 rounded-xl border border-violet-200 dark:border-violet-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white font-bold text-xs outline-none focus:ring-2 focus:ring-violet-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Peak Velocity (m/s)</label>
+                      <input
+                        type="text"
+                        value={dayDrillModal.drill.peakVelocity || ''}
+                        onChange={(e) => setDayDrillModal({
+                          ...dayDrillModal,
+                          drill: { ...dayDrillModal.drill, peakVelocity: e.target.value }
+                        })}
+                        placeholder="e.g. 1.45"
+                        className="w-full px-3 py-2 rounded-xl border border-violet-200 dark:border-violet-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white font-bold text-xs outline-none focus:ring-2 focus:ring-violet-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Velocity Loss Cutoff</label>
+                      <select
+                        value={dayDrillModal.drill.velocityLoss || '10%'}
+                        onChange={(e) => setDayDrillModal({
+                          ...dayDrillModal,
+                          drill: { ...dayDrillModal.drill, velocityLoss: e.target.value }
+                        })}
+                        className="w-full px-2.5 py-2 rounded-xl border border-violet-200 dark:border-violet-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white font-bold text-xs outline-none focus:ring-2 focus:ring-violet-500"
+                      >
+                        <option value="10%">10% (Sprints/Power)</option>
+                        <option value="15%">15% (Strength-Speed)</option>
+                        <option value="20%">20% (Hypertrophy/Base)</option>
+                        <option value="5%">5% (Neural Peaking)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
                   Exercise Name
@@ -3988,6 +4070,63 @@ export default function TrackFieldPlanner() {
                   </select>
                 </div>
               </div>
+
+              {/* VBT (Velocity Based Training) Section for Power & Strength */}
+              {(getBaseCategory(addExerciseModal.type) === 'power' || getBaseCategory(addExerciseModal.type) === 'strength') && (
+                <div className="border border-violet-200 dark:border-violet-800/60 bg-violet-50/50 dark:bg-violet-950/20 rounded-2xl p-3.5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
+                      ⚡ VBT Bar Velocity Target (OVR Velocity)
+                    </span>
+                    <span className="text-[10px] text-violet-500 font-bold">Force-Velocity Curve</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Target Mean (m/s)</label>
+                      <input
+                        type="text"
+                        value={addExerciseModal.targetVelocity || ''}
+                        onChange={(e) => setAddExerciseModal({
+                          ...addExerciseModal,
+                          targetVelocity: e.target.value
+                        })}
+                        placeholder="e.g. 0.85"
+                        className="w-full px-3 py-2 rounded-xl border border-violet-200 dark:border-violet-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white font-bold text-xs outline-none focus:ring-2 focus:ring-violet-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Peak Velocity (m/s)</label>
+                      <input
+                        type="text"
+                        value={addExerciseModal.peakVelocity || ''}
+                        onChange={(e) => setAddExerciseModal({
+                          ...addExerciseModal,
+                          peakVelocity: e.target.value
+                        })}
+                        placeholder="e.g. 1.45"
+                        className="w-full px-3 py-2 rounded-xl border border-violet-200 dark:border-violet-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white font-bold text-xs outline-none focus:ring-2 focus:ring-violet-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Velocity Loss Cutoff</label>
+                      <select
+                        value={addExerciseModal.velocityLoss || '10%'}
+                        onChange={(e) => setAddExerciseModal({
+                          ...addExerciseModal,
+                          velocityLoss: e.target.value
+                        })}
+                        className="w-full px-2.5 py-2 rounded-xl border border-violet-200 dark:border-violet-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white font-bold text-xs outline-none focus:ring-2 focus:ring-violet-500"
+                      >
+                        <option value="10%">10% (Sprints/Power)</option>
+                        <option value="15%">15% (Strength-Speed)</option>
+                        <option value="20%">20% (Hypertrophy/Base)</option>
+                        <option value="5%">5% (Neural Peaking)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end items-center gap-3 p-5 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/20">
