@@ -13,6 +13,7 @@ import {
   Target,
   Activity
 } from 'lucide-react';
+import { calculateRunningLoad, PACE_SEGMENTS, SEGMENT_STRUCTURE } from '../../data/loadModel.js';
 
 const CATEGORY_META = {
   speed: {
@@ -198,13 +199,10 @@ const TimelineCard = memo(function TimelineCard({
   const meta = CATEGORY_META[baseCategory] || CATEGORY_META.speed;
   const IconComponent = meta.icon;
 
-  const calculateTargetPace = () => {
-    if ((baseCategory !== 'speed' && baseCategory !== 'tempo' && baseCategory !== 'endurance' && baseCategory !== 'anaerobic') || !drill.percentage || !drill.distance) return null;
-    const pct = parseFloat(drill.percentage);
-    const dist = parseFloat(drill.distance);
-    if (isNaN(pct) || isNaN(dist) || dist <= 0 || pct <= 0) return null;
+  const calculateSinglePace = (dist, pct) => {
+    if (!dist || !pct || dist <= 0 || pct <= 0) return null;
 
-    // Collect speed tests
+    // Collect speed tests from athlete profile
     const speedTests = [];
     if (athlete?.m100) speedTests.push({ dist: 100, time: parseFloat(athlete.m100) });
     if (athlete?.m150) speedTests.push({ dist: 150, time: parseFloat(athlete.m150) });
@@ -235,17 +233,14 @@ const TimelineCard = memo(function TimelineCard({
       }
 
       if (lower && higher) {
-        // Interpolate velocity
         const vLower = lower.dist / lower.time;
         const vHigher = higher.dist / higher.time;
         const vDist = vLower + (vHigher - vLower) * ((dist - lower.dist) / (higher.dist - lower.dist));
         time100 = dist / vDist;
       } else if (lower) {
-        // Extrapolate using closest lower velocity
         const vLower = lower.dist / lower.time;
         time100 = dist / vLower;
       } else if (higher) {
-        // Extrapolate using closest higher velocity
         const vHigher = higher.dist / higher.time;
         time100 = dist / vHigher;
       }
@@ -259,24 +254,47 @@ const TimelineCard = memo(function TimelineCard({
       if (dist <= 10) {
         scaleFactor = 0.55;
       } else if (dist <= 20) {
-        scaleFactor = 0.55 + ((dist - 10) / 10) * 0.15; // 0.55 to 0.70
+        scaleFactor = 0.55 + ((dist - 10) / 10) * 0.15;
       } else if (dist <= 30) {
-        scaleFactor = 0.70 + ((dist - 20) / 10) * 0.10; // 0.70 to 0.80
+        scaleFactor = 0.70 + ((dist - 20) / 10) * 0.10;
       } else if (dist <= 60) {
-        scaleFactor = 0.80 + ((dist - 30) / 30) * 0.13; // 0.80 to 0.93
+        scaleFactor = 0.80 + ((dist - 30) / 30) * 0.13;
       } else {
-        scaleFactor = 0.93 + ((dist - 60) / 40) * 0.07; // 0.93 to 1.00
+        scaleFactor = 0.93 + ((dist - 60) / 40) * 0.07;
       }
       adjustedTime = time100 / scaleFactor;
     }
 
     let targetTime = adjustedTime / (pct / 100);
-    // Apply hand-timing / manual stopwatch reaction adjustment (reduce by 0.24 seconds)
-    // to match real-world track practice clocking:
     if (targetTime > 0.24) {
       targetTime = targetTime - 0.24;
     }
     return { time: targetTime.toFixed(2), exact: !!exact };
+  };
+
+  const calculateTargetPace = () => {
+    if ((baseCategory !== 'speed' && baseCategory !== 'tempo' && baseCategory !== 'endurance' && baseCategory !== 'anaerobic') || !drill.percentage) return null;
+
+    // Check if this drill has multi-segment distances (Pyramid, Ladder, Double Wave, Combo)
+    const segments = PACE_SEGMENTS[drill.title];
+    if (segments && segments.length > 0) {
+      const results = segments.map((seg) => {
+        const p = calculateSinglePace(seg.dist, seg.pct);
+        return {
+          dist: seg.dist,
+          pct: seg.pct,
+          time: p?.time || null,
+          error: p?.error || null,
+        };
+      });
+      return { segments: results };
+    }
+
+    if (!drill.distance) return null;
+    const pct = parseFloat(drill.percentage);
+    const dist = parseFloat(drill.distance);
+    if (isNaN(pct) || isNaN(dist) || dist <= 0 || pct <= 0) return null;
+    return calculateSinglePace(dist, pct);
   };
 
   const calculateTargetLoad = () => {
@@ -412,8 +430,11 @@ const TimelineCard = memo(function TimelineCard({
   };
 
   const renderParameters = () => {
+    if (SEGMENT_STRUCTURE[drill.title]) {
+      return SEGMENT_STRUCTURE[drill.title];
+    }
     const params = [];
-    if (baseCategory === 'speed' || baseCategory === 'endurance') {
+    if (baseCategory === 'speed' || baseCategory === 'endurance' || baseCategory === 'tempo' || baseCategory === 'anaerobic') {
       const parts = [];
       if (drill.sets) parts.push(drill.sets);
       
@@ -456,6 +477,8 @@ const TimelineCard = memo(function TimelineCard({
       {/* Dynamic Left Colored Indicator Stripe */}
       <div className="flex shrink-0 w-1 relative rounded-full overflow-hidden my-0.5">
         <div className={`w-full h-full rounded-full ${
+          drill.type === 'tempo_intensive' ? 'bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]' :
+          baseCategory === 'tempo' ? 'bg-cyan-500' :
           baseCategory === 'speed' || baseCategory === 'plyometrics' ? 'bg-amber-500' :
           baseCategory === 'endurance' ? 'bg-rose-500' :
           baseCategory === 'long_jump' ? 'bg-emerald-500' :
@@ -479,13 +502,20 @@ const TimelineCard = memo(function TimelineCard({
         <div className="flex items-start gap-1">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className={`text-[8px] font-black uppercase tracking-wider flex items-center gap-0.5 ${meta.labelColor || 'text-slate-500'}`}>
-                <IconComponent className="w-2.5 h-2.5 shrink-0" />
-                {getCategoryDisplayName(drill.type)}
-              </span>
+              {drill.type === 'tempo_intensive' ? (
+                <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider flex items-center gap-1 bg-cyan-400/20 dark:bg-cyan-400/25 text-cyan-600 dark:text-cyan-300 border border-cyan-400/50 shadow-[0_0_8px_rgba(6,182,212,0.35)]">
+                  <Activity className="w-2.5 h-2.5 shrink-0 text-cyan-500 dark:text-cyan-300 animate-pulse" />
+                  TEMPO (INTENSIVE TEMPO)
+                </span>
+              ) : (
+                <span className={`text-[8px] font-black uppercase tracking-wider flex items-center gap-0.5 ${meta.labelColor || 'text-slate-500'}`}>
+                  <IconComponent className="w-2.5 h-2.5 shrink-0" />
+                  {getCategoryDisplayName(drill.type)}
+                </span>
+              )}
               {drill.percentage ? (
                 <span className="px-1 py-0.2 rounded text-[8px] font-black bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-100/50 dark:border-rose-950/30">
-                  {drill.percentage}{(drill.intensityUnit === 'x BW' || drill.unit === 'x BW') ? 'x BW' : '%'} {(baseCategory === 'speed' || baseCategory === 'endurance') ? 'Vmax' : '1RM'}
+                  {drill.percentage}{(drill.intensityUnit === 'x BW' || drill.unit === 'x BW') ? 'x BW' : '%'} {(baseCategory === 'speed' || baseCategory === 'endurance' || baseCategory === 'tempo' || baseCategory === 'anaerobic') ? 'Vmax' : '1RM'}
                 </span>
               ) : null}
             </div>
@@ -566,7 +596,36 @@ const TimelineCard = memo(function TimelineCard({
             </span>
           ) : null}
 
-          {/* Speed Calculator Badge */}
+          {/* Running Volume & Estimated Load Badge */}
+          {(() => {
+            const isRun = baseCategory === 'speed' || baseCategory === 'tempo' || baseCategory === 'endurance' || baseCategory === 'anaerobic';
+            if (!isRun) return null;
+            let s = parseFloat(String(drill.sets).replace(/[^\d.]/g, '')) || 0;
+            let r = parseFloat(String(drill.reps).replace(/[^\d.]/g, '')) || 0;
+            let dist = parseFloat(String(drill.distance).replace(/[^\d.]/g, '')) || 0;
+            if (dist <= 0) return null;
+            const setsMult = s > 0 ? s : 1;
+            const repsMult = r > 0 ? r : 1;
+            const totalM = setsMult * repsMult * dist;
+            const estLoad = Math.round(calculateRunningLoad(drill.type, totalM, drill.percentage));
+            
+            const isIntensive = drill.type === 'tempo_intensive';
+            return (
+              <span 
+                className={`px-1.5 py-0.2 rounded text-[8px] font-black border flex items-center gap-1 ${
+                  isIntensive 
+                    ? 'text-cyan-600 dark:text-cyan-300 bg-cyan-500/15 border-cyan-400/40 shadow-[0_0_6px_rgba(6,182,212,0.2)]' 
+                    : 'text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                }`}
+                title={`Total Volume: ${totalM}m | Estimated Workload: ~${estLoad} AU`}
+              >
+                <span>📏 {totalM}m</span>
+                {estLoad > 0 && <span className="opacity-80">| ⚡ ~{estLoad} Load</span>}
+              </span>
+            );
+          })()}
+
+          {/* Speed / Tempo Target Pace Calculator Badge */}
           {(() => {
             const pace = calculateTargetPace();
             if (!pace) return null;
@@ -577,8 +636,31 @@ const TimelineCard = memo(function TimelineCard({
                 </span>
               );
             }
+            if (pace.segments) {
+              const isIntensive = drill.type === 'tempo_intensive';
+              return (
+                <span 
+                  className={`px-1.5 py-0.2 rounded text-[8px] font-black border flex items-center gap-1 ${
+                    isIntensive 
+                      ? 'text-cyan-600 dark:text-cyan-300 bg-cyan-500/10 border-cyan-400/30' 
+                      : 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20'
+                  }`}
+                  title="Target times calculated per segment from athlete profile PBs"
+                >
+                  🎯 Targets: {pace.segments.map(s => `${s.dist}m: ${s.time ? s.time + 's' : '--'}`).join(' | ')}
+                </span>
+              );
+            }
+            const isIntensive = drill.type === 'tempo_intensive';
             return (
-              <span className="text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1 py-0.2 rounded text-[8px] font-black border border-amber-500/20" title={`Calculated target pace for ${drill.distance}m at ${drill.percentage}% intensity.`}>
+              <span 
+                className={`px-1.5 py-0.2 rounded text-[8px] font-black border ${
+                  isIntensive 
+                    ? 'text-cyan-600 dark:text-cyan-300 bg-cyan-500/10 border-cyan-400/30' 
+                    : 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20'
+                }`}
+                title={`Calculated target pace for ${drill.distance}m at ${drill.percentage}% intensity.`}
+              >
                 🎯 Target: {pace.time}s
               </span>
             );

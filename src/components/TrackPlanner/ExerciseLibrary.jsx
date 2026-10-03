@@ -353,9 +353,16 @@ export default function ExerciseLibrary({
                       <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
                         {drill.title}
                       </h4>
-                      <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">
-                        {getCategoryDisplayName(drill.type)}
-                      </span>
+                      {drill.type === 'tempo_intensive' ? (
+                        <span className="text-[9px] font-black text-cyan-600 dark:text-cyan-400 uppercase tracking-wider flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(6,182,212,0.8)] inline-block" />
+                          TEMPO (INTENSIVE TEMPO)
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">
+                          {getCategoryDisplayName(drill.type)}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
