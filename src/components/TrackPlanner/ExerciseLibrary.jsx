@@ -12,6 +12,7 @@ import {
   Filter,
   Plus
 } from 'lucide-react';
+import { isCoreOrAccessory } from '../../data/loadModel.js';
 
 const CATEGORY_TAGS = {
   speed: 'Speed',
@@ -395,23 +396,31 @@ export default function ExerciseLibrary({
                             {getCategoryDisplayName(drill.type)}
                           </span>
                         )}
-                        {drill.cnsDemand && (
-                          <span className={`text-[8px] font-black px-1 rounded ${
-                            drill.cnsDemand === 'High' ? 'text-rose-500 bg-rose-500/10' :
-                            drill.cnsDemand === 'Medium' ? 'text-amber-500 bg-amber-500/10' : 'text-emerald-500 bg-emerald-500/10'
-                          }`}>
-                            CNS: {drill.cnsDemand}
+                        {isCoreOrAccessory(drill) ? (
+                          <span className="text-[8px] font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-1 rounded">
+                            🛡️ BW / Core (0 CNS Tax)
                           </span>
-                        )}
-                        {drill.forceVector && (
-                          <span className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1 rounded">
-                            {drill.forceVector}
-                          </span>
-                        )}
-                        {drill.vbtZone && (
-                          <span className="text-[8px] font-bold text-violet-600 dark:text-violet-400 bg-violet-500/10 px-1 rounded">
-                            {drill.vbtZone.split('(')[0].trim()}
-                          </span>
+                        ) : (
+                          <>
+                            {drill.cnsDemand && (
+                              <span className={`text-[8px] font-black px-1 rounded ${
+                                drill.cnsDemand === 'High' ? 'text-rose-500 bg-rose-500/10' :
+                                drill.cnsDemand === 'Medium' ? 'text-amber-500 bg-amber-500/10' : 'text-emerald-500 bg-emerald-500/10'
+                              }`}>
+                                CNS: {drill.cnsDemand}
+                              </span>
+                            )}
+                            {drill.forceVector && (
+                              <span className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1 rounded">
+                                {drill.forceVector}
+                              </span>
+                            )}
+                            {drill.vbtZone && (
+                              <span className="text-[8px] font-bold text-violet-600 dark:text-violet-400 bg-violet-500/10 px-1 rounded">
+                                {drill.vbtZone.split('(')[0].trim()}
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>

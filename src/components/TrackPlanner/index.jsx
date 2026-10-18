@@ -48,7 +48,7 @@ import ExerciseLibrary from './ExerciseLibrary.jsx';
 import AthleteProfileModal from './AthleteProfileModal.jsx';
 import { INITIAL_ATHLETES, INITIAL_LIBRARY, DEFAULT_800M_PROGRAM, DEFAULT_6WEEK_800M_PROGRAM, DEFAULT_LONG_JUMP_PROGRAM, DEFAULT_TRIPLE_JUMP_PROGRAM } from '../../data/constants.js';
 import { supabase, isRealSupabase } from '../../supabaseClient.js';
-import { getRunningLoadProfile, calculateSessionBiometrics, checkHighLowCNSPattern } from '../../data/loadModel.js';
+import { getRunningLoadProfile, calculateSessionBiometrics, checkHighLowCNSPattern, isCoreOrAccessory } from '../../data/loadModel.js';
 
 // 1. Updated Track & Field Specific Categories
 const EXERCISE_CATEGORIES = {
@@ -946,6 +946,7 @@ export default function TrackFieldPlanner() {
     let validIntensityCount = 0;
     let sumIntensity = 0;
     (dayDrills || []).forEach((drill) => {
+      if (isCoreOrAccessory(drill) || drill.intensityUnit === 'BW' || drill.unit === 'BW') return;
       const pct = parseFloat(drill.percentage) || 0;
       if (pct > 0) {
         validIntensityCount++;
@@ -2900,16 +2901,23 @@ export default function TrackFieldPlanner() {
                       else if (newBaseType === 'strength') newType = 'strength_single_leg';
                       
                       let newUnit = dayDrillModal.drill.unit;
+                      let newIntensityUnit = dayDrillModal.drill.intensityUnit;
                       if (newBaseType === 'speed' || newBaseType === 'endurance') newUnit = 'meters';
                       else if (newBaseType === 'plyometrics' || newBaseType === 'long_jump' || newBaseType === 'triple_jump') newUnit = 'contacts';
                       else if (newBaseType === 'isometric' || newBaseType === 'mobility') newUnit = 'sec';
                       else newUnit = 'reps';
+
+                      if (newBaseType === 'core' || newBaseType === 'mobility') {
+                        newIntensityUnit = 'BW';
+                      }
+
                       setDayDrillModal({
                         ...dayDrillModal,
                         drill: {
                           ...dayDrillModal.drill,
                           type: newType,
-                          unit: newUnit
+                          unit: newUnit,
+                          intensityUnit: newIntensityUnit
                         },
                       });
                     }}
@@ -2987,7 +2995,9 @@ export default function TrackFieldPlanner() {
                     </div>
                     <div className="flex items-center rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 focus-within:ring-2 focus-within:ring-blue-500 overflow-hidden w-full h-[42px] transition-all">
                       <div className="pl-3 pr-1 text-slate-400 dark:text-slate-500 flex items-center shrink-0 select-none">
-                        {dayDrillModal.drill.intensityUnit === 'x BW' || dayDrillModal.drill.unit === 'x BW' ? (
+                        {dayDrillModal.drill.intensityUnit === 'BW' || dayDrillModal.drill.unit === 'BW' || isCoreOrAccessory(dayDrillModal.drill) ? (
+                          <span className="text-[10px] font-black tracking-wider text-purple-500 dark:text-purple-400">BW</span>
+                        ) : dayDrillModal.drill.intensityUnit === 'x BW' || dayDrillModal.drill.unit === 'x BW' ? (
                           <span className="text-[10px] font-black tracking-wider text-slate-400 dark:text-slate-500">xBW</span>
                         ) : (
                           <Percent className="w-3.5 h-3.5" />
@@ -3007,7 +3017,7 @@ export default function TrackFieldPlanner() {
                           })
                         }
                         className="flex-grow w-full text-sm py-2 px-1.5 bg-transparent border-none outline-none text-slate-800 dark:text-white font-medium focus:ring-0 focus:ring-offset-0"
-                        placeholder="0"
+                        placeholder={isCoreOrAccessory(dayDrillModal.drill) ? 'BW' : '0'}
                       />
                     </div>
                   </div>
@@ -3017,7 +3027,7 @@ export default function TrackFieldPlanner() {
                         Unit
                       </label>
                       <select
-                        value={dayDrillModal.drill.intensityUnit || (dayDrillModal.drill.unit === 'x BW' ? 'x BW' : '%')}
+                        value={dayDrillModal.drill.intensityUnit || (dayDrillModal.drill.unit === 'x BW' ? 'x BW' : (isCoreOrAccessory(dayDrillModal.drill) ? 'BW' : '%'))}
                         onChange={(e) => {
                           const val = e.target.value;
                           setDayDrillModal({
@@ -3025,13 +3035,14 @@ export default function TrackFieldPlanner() {
                             drill: {
                               ...dayDrillModal.drill,
                               intensityUnit: val,
-                              unit: val === 'x BW' ? 'x BW' : 'reps'
+                              unit: val === 'x BW' ? 'x BW' : (val === 'BW' ? 'BW' : 'reps')
                             },
                           });
                         }}
                         className="w-full text-sm py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="%">%</option>
+                        <option value="BW">BW</option>
                         <option value="x BW">x BW</option>
                       </select>
                     </div>
@@ -3225,7 +3236,7 @@ export default function TrackFieldPlanner() {
               )}
 
               {/* VBT (Velocity Based Training) Section for Power & Strength */}
-              {(getBaseCategory(dayDrillModal.drill.type) === 'power' || getBaseCategory(dayDrillModal.drill.type) === 'strength') && (
+              {(getBaseCategory(dayDrillModal.drill.type) === 'power' || getBaseCategory(dayDrillModal.drill.type) === 'strength') && !isCoreOrAccessory(dayDrillModal.drill) && (
                 <div className="border border-violet-200 dark:border-violet-800/60 bg-violet-50/50 dark:bg-violet-950/20 rounded-2xl p-3.5 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-black uppercase text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
@@ -3725,14 +3736,21 @@ export default function TrackFieldPlanner() {
                     else if (newBaseType === 'strength') newType = 'strength_single_leg';
 
                     let defaultUnit = addExerciseModal.unit;
+                    let defaultIntensityUnit = addExerciseModal.intensityUnit;
                     if (newBaseType === 'speed' || newBaseType === 'endurance') defaultUnit = 'meters';
                     else if (newBaseType === 'plyometrics' || newBaseType === 'long_jump' || newBaseType === 'triple_jump') defaultUnit = 'contacts';
                     else if (newBaseType === 'isometric' || newBaseType === 'mobility') defaultUnit = 'sec';
                     else defaultUnit = 'reps';
+
+                    if (newBaseType === 'core' || newBaseType === 'mobility') {
+                      defaultIntensityUnit = 'BW';
+                    }
+
                     setAddExerciseModal({ 
                       ...addExerciseModal, 
                       type: newType,
-                      unit: defaultUnit
+                      unit: defaultUnit,
+                      intensityUnit: defaultIntensityUnit
                     });
                   }}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
@@ -3848,7 +3866,9 @@ export default function TrackFieldPlanner() {
                     </div>
                     <div className="flex items-center rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus-within:ring-2 focus-within:ring-orange-500 overflow-hidden w-full h-[42px] transition-all">
                       <div className="pl-3 pr-1 text-slate-400 dark:text-slate-500 flex items-center shrink-0 select-none">
-                        {addExerciseModal.intensityUnit === 'x BW' || addExerciseModal.unit === 'x BW' ? (
+                        {addExerciseModal.intensityUnit === 'BW' || addExerciseModal.unit === 'BW' || isCoreOrAccessory(addExerciseModal) ? (
+                          <span className="text-[10px] font-black tracking-wider text-purple-500 dark:text-purple-400">BW</span>
+                        ) : addExerciseModal.intensityUnit === 'x BW' || addExerciseModal.unit === 'x BW' ? (
                           <span className="text-[10px] font-black tracking-wider text-slate-400 dark:text-slate-500">xBW</span>
                         ) : (
                           <Percent className="w-3.5 h-3.5" />
@@ -3858,7 +3878,7 @@ export default function TrackFieldPlanner() {
                         type="text"
                         value={addExerciseModal.percentage || ''}
                         onChange={(e) => setAddExerciseModal({ ...addExerciseModal, percentage: e.target.value })}
-                        placeholder="e.g. 95"
+                        placeholder={isCoreOrAccessory(addExerciseModal) ? 'BW' : 'e.g. 95'}
                         className="flex-grow w-full text-sm py-2 px-1.5 bg-transparent border-none outline-none text-slate-800 dark:text-white font-medium focus:ring-0 focus:ring-offset-0"
                       />
                     </div>
@@ -3867,18 +3887,19 @@ export default function TrackFieldPlanner() {
                     <div className="w-20">
                       <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Unit</label>
                       <select
-                        value={addExerciseModal.intensityUnit || (addExerciseModal.unit === 'x BW' ? 'x BW' : '%')}
+                        value={addExerciseModal.intensityUnit || (addExerciseModal.unit === 'x BW' ? 'x BW' : (isCoreOrAccessory(addExerciseModal) ? 'BW' : '%'))}
                         onChange={(e) => {
                           const val = e.target.value;
                           setAddExerciseModal({
                             ...addExerciseModal,
                             intensityUnit: val,
-                            unit: val === 'x BW' ? 'x BW' : 'reps'
+                            unit: val === 'x BW' ? 'x BW' : (val === 'BW' ? 'BW' : 'reps')
                           });
                         }}
                         className="w-full text-sm py-2.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 transition-all"
                       >
                         <option value="%">%</option>
+                        <option value="BW">BW</option>
                         <option value="x BW">x BW</option>
                       </select>
                     </div>
@@ -3957,7 +3978,7 @@ export default function TrackFieldPlanner() {
               </div>
 
               {/* VBT (Velocity Based Training) Section for Power & Strength */}
-              {(getBaseCategory(addExerciseModal.type) === 'power' || getBaseCategory(addExerciseModal.type) === 'strength') && (
+              {(getBaseCategory(addExerciseModal.type) === 'power' || getBaseCategory(addExerciseModal.type) === 'strength') && !isCoreOrAccessory(addExerciseModal) && (
                 <div className="border border-violet-200 dark:border-violet-800/60 bg-violet-50/50 dark:bg-violet-950/20 rounded-2xl p-3.5 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-black uppercase text-violet-700 dark:text-violet-300 flex items-center gap-1.5">

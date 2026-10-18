@@ -13,7 +13,7 @@ import {
   Target,
   Activity
 } from 'lucide-react';
-import { calculateRunningLoad, PACE_SEGMENTS, SEGMENT_STRUCTURE } from '../../data/loadModel.js';
+import { calculateRunningLoad, PACE_SEGMENTS, SEGMENT_STRUCTURE, isCoreOrAccessory } from '../../data/loadModel.js';
 
 const CATEGORY_META = {
   speed: {
@@ -209,8 +209,9 @@ const TimelineCard = memo(function TimelineCard({
 }) {
   const [showNotes, setShowNotes] = useState(false);
 
+  const isCore = isCoreOrAccessory(drill);
   const type = (drill.type || 'speed').toLowerCase();
-  const baseCategory = getBaseCategory(type);
+  const baseCategory = isCore ? 'core' : getBaseCategory(type);
   const meta = CATEGORY_META[baseCategory] || CATEGORY_META.speed;
   const IconComponent = meta.icon;
 
@@ -288,6 +289,7 @@ const TimelineCard = memo(function TimelineCard({
   };
 
   const calculateTargetPace = () => {
+    if (isCore) return null;
     if ((baseCategory !== 'speed' && baseCategory !== 'tempo' && baseCategory !== 'endurance' && baseCategory !== 'anaerobic') || !drill.percentage) return null;
 
     // Check if this drill has multi-segment distances (Pyramid, Ladder, Double Wave, Combo)
@@ -313,6 +315,7 @@ const TimelineCard = memo(function TimelineCard({
   };
 
   const calculateTargetLoad = () => {
+    if (isCore) return null;
     const isStrengthOrPower = baseCategory === 'strength' || baseCategory === 'power';
     if (!isStrengthOrPower || !drill.percentage) return null;
     const pct = parseFloat(drill.percentage);
@@ -377,6 +380,7 @@ const TimelineCard = memo(function TimelineCard({
   };
 
   const calculateTargetVBT = () => {
+    if (isCore) return null;
     const isStrengthOrPower = baseCategory === 'strength' || baseCategory === 'power';
     if (!isStrengthOrPower) return null;
 
@@ -536,9 +540,18 @@ const TimelineCard = memo(function TimelineCard({
                   {getCategoryDisplayName(drill.type)}
                 </span>
               )}
-              {drill.percentage ? (
+              {isCore ? (
+                <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-purple-500/10 dark:bg-purple-950/30 text-purple-600 dark:text-purple-300 border border-purple-500/20 flex items-center gap-1 shadow-sm" title="Bodyweight Core & Stability (0 CNS fatigue, low systemic tax)">
+                  <span>🛡️ BW / Core</span>
+                  <span className="opacity-75 font-normal">• Stability (No CNS Tax)</span>
+                </span>
+              ) : drill.percentage ? (
                 <span className="px-1 py-0.2 rounded text-[8px] font-black bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-100/50 dark:border-rose-950/30">
                   {drill.percentage}{(drill.intensityUnit === 'x BW' || drill.unit === 'x BW') ? 'x BW' : '%'} {(baseCategory === 'speed' || baseCategory === 'endurance' || baseCategory === 'tempo' || baseCategory === 'anaerobic') ? 'Vmax' : '1RM'}
+                </span>
+              ) : (drill.intensityUnit === 'BW' || drill.unit === 'BW') ? (
+                <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-purple-500/10 dark:bg-purple-950/30 text-purple-600 dark:text-purple-300 border border-purple-500/20 flex items-center gap-1 shadow-sm">
+                  <span>🛡️ BW</span>
                 </span>
               ) : null}
             </div>
@@ -621,7 +634,7 @@ const TimelineCard = memo(function TimelineCard({
 
           {/* Running Volume & Estimated Load Badge */}
           {(() => {
-            const isRun = baseCategory === 'speed' || baseCategory === 'tempo' || baseCategory === 'endurance' || baseCategory === 'anaerobic';
+            const isRun = !isCore && (baseCategory === 'speed' || baseCategory === 'tempo' || baseCategory === 'endurance' || baseCategory === 'anaerobic');
             if (!isRun) return null;
             let s = parseFloat(String(drill.sets).replace(/[^\d.]/g, '')) || 0;
             let r = parseFloat(String(drill.reps).replace(/[^\d.]/g, '')) || 0;
@@ -738,7 +751,7 @@ const TimelineCard = memo(function TimelineCard({
               ⚡ {drill.sscType}
             </span>
           )}
-          {drill.cnsDemand && (
+          {drill.cnsDemand && !isCore && (
             <span className={`px-1 py-0.2 rounded text-[8px] font-black border ${
               drill.cnsDemand === 'High' 
                 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30' 

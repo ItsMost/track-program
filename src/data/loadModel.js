@@ -48,6 +48,76 @@ export const isRunningCategory = (baseCategory) =>
   ['speed', 'tempo', 'endurance', 'anaerobic'].includes(baseCategory);
 
 // ============================================================================
+// Core & Low-Impact Accessory Detection Engine
+// Identifies Core, Trunk, Pillar, Anti-Rotation/Extension, and Mobility exercises.
+// Scientifically, these exercises have ZERO systemic CNS fatigue and minimal mechanical strain.
+// ============================================================================
+export const isCoreOrAccessory = (exercise) => {
+  if (!exercise) return false;
+
+  const type = String(exercise.type || '').toLowerCase();
+  const category = String(exercise.category || '').toLowerCase();
+  const subCategory = String(exercise.subCategory || '').toLowerCase();
+  const title = String(exercise.title || exercise.name || '').toLowerCase();
+
+  // Category & Type keywords
+  const categoryKeywords = [
+    'core',
+    'trunk',
+    'abs',
+    'abdominal',
+    'pillar',
+    'anti-rotation',
+    'anti_rotation',
+    'anti-extension',
+    'anti_extension',
+    'mobility',
+    'warmup',
+    'warm-up',
+    'activation',
+    'recovery'
+  ];
+
+  for (const kw of categoryKeywords) {
+    if (type.includes(kw) || category.includes(kw) || subCategory.includes(kw)) {
+      return true;
+    }
+  }
+
+  // Name / Title keywords
+  const nameKeywords = [
+    'plank',
+    'deadbug',
+    'dead bug',
+    'pallof',
+    'bird dog',
+    'birddog',
+    'crunch',
+    'sit-up',
+    'sit up',
+    'russian twist',
+    'leg raise',
+    'knee raise',
+    'hollow',
+    'copenhagen',
+    'back extension hold',
+    'ab wheel',
+    'rollout',
+    'carry',
+    'suitcase',
+    'core'
+  ];
+
+  for (const kw of nameKeywords) {
+    if (title.includes(kw)) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+// ============================================================================
 // Sprint Distance Categorization & Session Volume Tracking
 // - Acceleration: 10m - 30m (Optimal Session Cap: 300m)
 // - Max Velocity / Flys: 31m - 60m (Optimal Session Cap: 250m)
@@ -55,6 +125,8 @@ export const isRunningCategory = (baseCategory) =>
 // - Tempo: Extensive & Intensive
 // ============================================================================
 export const classifySprintDistance = (drill) => {
+  if (isCoreOrAccessory(drill)) return 'other';
+
   const dist = parseFloat(drill?.distance) || 0;
   const type = (drill?.type || '').toLowerCase();
   const title = (drill?.title || '').toLowerCase();
@@ -86,6 +158,14 @@ export const classifySprintDistance = (drill) => {
 // - Slow SSC (>250ms): Box Jumps, Countermovement Jumps, Broad Jumps, Tuck Jumps
 // ============================================================================
 export const classifyPlyoContacts = (drill) => {
+  if (isCoreOrAccessory(drill)) {
+    return {
+      contacts: 0,
+      isFastSSC: false,
+      category: 'Core / Stability (No Impact)'
+    };
+  }
+
   const type = (drill?.type || '').toLowerCase();
   const title = (drill?.title || '').toLowerCase();
   const details = (drill?.details || '').toLowerCase();
@@ -143,8 +223,20 @@ export const calculateSessionBiometrics = (drills = [], athlete = null) => {
   let mechanicalLoadSum = 0;
   let metabolicLoadSum = 0;
   let totalVolumeScore = 0;
+  let coreSessionLoad = 0;
 
   drills.forEach((drill) => {
+    // 0. Core & Low-Impact Accessories:
+    // Zero CNS neural load (multiplier = 0), zero sprint distance, zero plyo contacts.
+    // Capped at max 2.5 AU total per session so high reps/holds never spike load graphs.
+    if (isCoreOrAccessory(drill)) {
+      const s = parseFloat(String(drill.sets || '').replace(/[^\d.]/g, '')) || 1;
+      const r = parseFloat(String(drill.reps || '').replace(/[^\d.]/g, '')) || 1;
+      const microLoad = Math.min(0.5, (s * r) * 0.01);
+      coreSessionLoad = Math.min(2.5, coreSessionLoad + microLoad);
+      return;
+    }
+
     const type = (drill.type || 'speed').toLowerCase();
     const title = (drill.title || '').toLowerCase();
     const intensity = parseFloat(drill.percentage) || 75;
@@ -228,15 +320,19 @@ export const calculateSessionBiometrics = (drills = [], athlete = null) => {
       mechanicalLoadSum += strengthLoad * 0.85;
       metabolicLoadSum += strengthLoad * 0.40;
     }
-    // 5. Core & Mobility
+    // 5. Other Miscellaneous Accessories
     else {
       const repsTotal = s * r;
-      const load = repsTotal * 0.8 * (intensity / 100) * 5;
+      const load = repsTotal * 0.4 * (intensity / 100) * 2;
       totalVolumeScore += load;
-      mechanicalLoadSum += load * 0.5;
-      metabolicLoadSum += load * 0.5;
+      mechanicalLoadSum += load * 0.2;
+      metabolicLoadSum += load * 0.8;
     }
   });
+
+  // Add capped Core session load (max 2.5 AU per session total)
+  totalVolumeScore += coreSessionLoad;
+  metabolicLoadSum += coreSessionLoad;
 
   // Calculate normalized CNS Score (0-100)
   // 100 represents max Olympic/sprint neural capacity
