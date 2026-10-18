@@ -7,26 +7,37 @@ import {
   Dumbbell,
   TrendingUp,
   Save,
-  Trash2
+  Trash2,
+  Gauge,
+  ShieldCheck,
+  Sparkles
 } from 'lucide-react';
+import { calculateNeuroMechanicalProfile } from '../../data/loadModel.js';
 
 export default function AthleteProfileModal({ athlete, onClose, onSave, onDelete }) {
   const [formData, setFormData] = useState({
     id: athlete.id,
     name: athlete.name || '',
-    birthYear: athlete.birthYear || '',
+    birthYear: athlete.birthYear || athlete.birth_year || '',
     weight: athlete.weight || '',
     height: athlete.height || '',
-    bodyFat: athlete.bodyFat || '',
-    verticalJump: athlete.verticalJump || '',
-    standingLongJump: athlete.standingLongJump || '',
-    squatJump: athlete.squatJump || '',
+    bodyFat: athlete.bodyFat || athlete.body_fat || '',
+    verticalJump: athlete.verticalJump || athlete.vertical_jump || '',
+    standingLongJump: athlete.standingLongJump || athlete.standing_long_jump || '',
+    squatJump: athlete.squatJump || athlete.squat_jump || '',
+    cmj: athlete.cmj || athlete.verticalJump || athlete.vertical_jump || '',
+    rsi: athlete.rsi || '',
+    broadJump: athlete.broadJump || athlete.broad_jump || athlete.standingLongJump || '',
     clean: athlete.clean || '',
-    halfSquat: athlete.halfSquat || '',
-    quarterSquat: athlete.quarterSquat || '',
-    fullSquat: athlete.fullSquat || '',
+    halfSquat: athlete.halfSquat || athlete.half_squat || '',
+    quarterSquat: athlete.quarterSquat || athlete.quarter_squat || '',
+    fullSquat: athlete.fullSquat || athlete.full_squat || '',
     bench: athlete.bench || '',
     deadlift: athlete.deadlift || '',
+    trapBarDeadlift: athlete.trapBarDeadlift || athlete.trap_bar_deadlift || '',
+    accel10m: athlete.accel10m || athlete.accel_10m || '',
+    fly30m: athlete.fly30m || athlete.fly_30m || '',
+    maxVelocity: athlete.maxVelocity || athlete.max_velocity || '',
     m100: athlete.m100 || '',
     m150: athlete.m150 || '',
     m200: athlete.m200 || '',
@@ -52,6 +63,8 @@ export default function AthleteProfileModal({ athlete, onClose, onSave, onDelete
         .toUpperCase()
         .slice(0, 2)
     : '?';
+
+  const neuroProfile = calculateNeuroMechanicalProfile(formData);
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4 print:hidden animate-[fadeIn_0.2s_ease-out]">
@@ -79,9 +92,57 @@ export default function AthleteProfileModal({ athlete, onClose, onSave, onDelete
           </button>
         </div>
 
+        {/* Dynamic Neuro-Mechanical Profile Badge */}
+        {neuroProfile && (
+          <div className="mx-6 mt-4 p-4 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 text-white border border-slate-700/80 shadow-lg">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">
+                  Neuro-Mechanical Profile:
+                </h4>
+                <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider ${
+                  neuroProfile.badgeColor === 'rose'
+                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                    : neuroProfile.badgeColor === 'amber'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                    : neuroProfile.badgeColor === 'sky'
+                    ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
+                    : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                }`}>
+                  {neuroProfile.title}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 sm:gap-3 text-[10px] font-bold flex-wrap">
+                {neuroProfile.eur && (
+                  <span className="text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded-lg border border-slate-700" title="Eccentric Utilization Ratio = CMJ / Squat Jump. Normal: 1.10 - 1.20">
+                    EUR: <span className="text-cyan-400 font-extrabold">{neuroProfile.eur}</span>
+                  </span>
+                )}
+                {neuroProfile.relativeStrength && (
+                  <span className="text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded-lg border border-slate-700" title="Relative Strength = Full Squat / Body Weight. Elite Sprinters target > 2.0x">
+                    Rel. Strength: <span className="text-emerald-400 font-extrabold">{neuroProfile.relativeStrength}x BW</span>
+                  </span>
+                )}
+                {neuroProfile.rsi && (
+                  <span className="text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded-lg border border-slate-700" title="Reactive Strength Index (RSI). Elite Track Sprinters target > 2.5 - 3.0">
+                    RSI: <span className="text-amber-400 font-extrabold">{neuroProfile.rsi}</span>
+                  </span>
+                )}
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-300 leading-relaxed mb-1.5">
+              <span className="text-slate-400 font-semibold">Diagnosis: </span>{neuroProfile.diagnosis}
+            </p>
+            <p className="text-[10px] text-amber-300/90 leading-relaxed font-medium">
+              <span className="text-amber-400 font-bold">🎯 Prescription: </span>{neuroProfile.prescription}
+            </p>
+          </div>
+        )}
+
         {/* Form Body - Responsive 2 Columns */}
         <form onSubmit={handleSubmit}>
-          <div className="p-6 max-h-[70vh] overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="p-6 max-h-[60vh] overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* LEFT COLUMN: IDENTITY & JUMPS */}
             <div className="space-y-5">
@@ -186,7 +247,7 @@ export default function AthleteProfileModal({ athlete, onClose, onSave, onDelete
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">
-                      Vertical Jump (cm)
+                      CMJ / Vertical Jump (cm)
                     </label>
                     <input
                       type="number"
@@ -212,19 +273,35 @@ export default function AthleteProfileModal({ athlete, onClose, onSave, onDelete
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">
-                    Standing Long Jump (meters)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="standingLongJump"
-                    value={formData.standingLongJump}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-semibold text-xs outline-none focus:ring-2 focus:ring-orange-500"
-                    placeholder="e.g. 3.45"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">
+                      Reactive Strength (RSI)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="rsi"
+                      value={formData.rsi}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-semibold text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="e.g. 2.85"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">
+                      Broad Jump (meters)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="broadJump"
+                      value={formData.broadJump}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-semibold text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="e.g. 3.45"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -284,6 +361,22 @@ export default function AthleteProfileModal({ athlete, onClose, onSave, onDelete
                   </div>
                   <div>
                     <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">
+                      Trap Bar Deadlift (kg)
+                    </label>
+                    <input
+                      type="number"
+                      name="trapBarDeadlift"
+                      value={formData.trapBarDeadlift}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-semibold text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="e.g. 260"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">
                       Full Squat (kg)
                     </label>
                     <input
@@ -295,9 +388,6 @@ export default function AthleteProfileModal({ athlete, onClose, onSave, onDelete
                       placeholder="e.g. 180"
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">
                       Half Squat (kg)
@@ -313,7 +403,7 @@ export default function AthleteProfileModal({ athlete, onClose, onSave, onDelete
                   </div>
                   <div>
                     <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">
-                      Quarter Squat (kg)
+                      1/4 Squat (kg)
                     </label>
                     <input
                       type="number"
@@ -332,6 +422,51 @@ export default function AthleteProfileModal({ athlete, onClose, onSave, onDelete
                 <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5 mb-1">
                   <Activity className="w-3.5 h-3.5 text-orange-500" /> Track Speed Personal Bests (s)
                 </h4>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">
+                      10m Accel (s)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="accel10m"
+                      value={formData.accel10m}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-semibold text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="e.g. 1.74"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">
+                      30m Fly (s)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="fly30m"
+                      value={formData.fly30m}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-semibold text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="e.g. 2.82"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">
+                      Max Vel (m/s)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="maxVelocity"
+                      value={formData.maxVelocity}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-semibold text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="e.g. 11.45"
+                    />
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>

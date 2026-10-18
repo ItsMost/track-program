@@ -7,19 +7,26 @@ export const INITIAL_ATHLETES = [
     height: 195,
     bodyFat: 7.5,
     verticalJump: 102,
+    cmj: 102,
     standingLongJump: 3.45,
+    broadJump: 3.45,
     squatJump: 68,
+    rsi: 3.45,
     clean: 145,
     halfSquat: 220,
     quarterSquat: 280,
     fullSquat: 180,
     bench: 130,
     deadlift: 240,
+    trapBarDeadlift: 260,
     m100: 9.58,
     m150: 14.35,
     m200: 19.19,
     m300: 30.97,
     m400: 45.28,
+    accel10m: 1.64,
+    fly30m: 2.58,
+    maxVelocity: 12.35,
   },
   {
     id: 'coleman-id-456',
@@ -29,19 +36,26 @@ export const INITIAL_ATHLETES = [
     height: 175,
     bodyFat: 6.2,
     verticalJump: 114,
+    cmj: 114,
     standingLongJump: 3.61,
+    broadJump: 3.61,
     squatJump: 78,
+    rsi: 3.65,
     clean: 155,
     halfSquat: 240,
     quarterSquat: 300,
     fullSquat: 200,
     bench: 140,
     deadlift: 260,
+    trapBarDeadlift: 280,
     m100: 9.76,
     m150: 14.65,
     m200: 19.85,
     m300: 32.12,
     m400: 47.95,
+    accel10m: 1.58,
+    fly30m: 2.62,
+    maxVelocity: 11.95,
   },
   {
     id: 'lyles-id-789',
@@ -51,19 +65,26 @@ export const INITIAL_ATHLETES = [
     height: 180,
     bodyFat: 6.5,
     verticalJump: 108,
+    cmj: 108,
     standingLongJump: 3.52,
+    broadJump: 3.52,
     squatJump: 72,
+    rsi: 3.30,
     clean: 150,
     halfSquat: 230,
     quarterSquat: 290,
     fullSquat: 190,
     bench: 135,
     deadlift: 250,
+    trapBarDeadlift: 265,
     m100: 9.83,
     m150: 14.48,
     m200: 19.31,
     m300: 31.85,
     m400: 47.24,
+    accel10m: 1.66,
+    fly30m: 2.56,
+    maxVelocity: 12.10,
   }
 ];
 
@@ -440,8 +461,48 @@ export const INITIAL_LIBRARY = {
     { id: 'vbt14', title: 'Heavy Trap Bar Deadlift (High Force)', details: 'Trap bar deadlift @ 80% 1RM. Target Mean: 0.55-0.65 m/s. 15% cutoff. Overloads posterior chain extension.', type: 'strength_accelerative', percentage: 80, sets: '4', reps: '3', rest: '3m', unit: 'reps', targetVelocity: '0.60', peakVelocity: '0.90', velocityLoss: '15%' },
 
     // 5. Maximal / Absolute Strength (< 0.50 m/s)
-    { id: 'vbt15', title: 'Maximal Strength Squat (Heavy Grind)', details: 'Full squat @ 90% 1RM. Target Mean: 0.38-0.42 m/s. 20% velocity loss cutoff to maintain motor unit synchronization.', type: 'strength_maximal', percentage: 90, sets: '3', reps: '2', rest: '4m', unit: 'reps', targetVelocity: '0.40', peakVelocity: '0.65', velocityLoss: '20%' },
-    { id: 'vbt16', title: 'Maximal Strength Bench Press (Heavy Grind)', details: 'Bench press @ 90% 1RM. Target Mean: 0.32-0.36 m/s. 20% velocity loss cutoff.', type: 'strength_maximal', percentage: 90, sets: '3', reps: '2', rest: '3.5m', unit: 'reps', targetVelocity: '0.34', peakVelocity: '0.55', velocityLoss: '20%' }
+    { id: 'vbt15', title: 'Maximal Strength Squat (Heavy Grind)', details: 'Full squat @ 90% 1RM. Target Mean: 0.38-0.42 m/s. 20% velocity loss cutoff to maintain motor unit synchronization.', type: 'strength_maximal', percentage: 90, sets: '3', reps: '2', rest: '4m', unit: 'reps', targetVelocity: '0.40', peakVelocity: '0.65', velocityLoss: '20%', forceVector: 'Vertical', sscType: 'Non-SSC / Concentric', cnsDemand: 'High', vbtZone: 'Absolute Strength (<0.50 m/s)', velocityLossCutoff: '20%' },
+    { id: 'vbt16', title: 'Maximal Strength Bench Press (Heavy Grind)', details: 'Bench press @ 90% 1RM. Target Mean: 0.32-0.36 m/s. 20% velocity loss cutoff.', type: 'strength_maximal', percentage: 90, sets: '3', reps: '2', rest: '3.5m', unit: 'reps', targetVelocity: '0.34', peakVelocity: '0.55', velocityLoss: '20%', forceVector: 'Horizontal', sscType: 'Non-SSC / Concentric', cnsDemand: 'High', vbtZone: 'Absolute Strength (<0.50 m/s)', velocityLossCutoff: '20%' },
+
+    // === ELITE TRACK-SPECIFIC ISOMETRICS (10 DRILLS) ===
+    // Yielding Isometrics (Tendon Hypertrophy & Positional Stiffness)
+    { id: 'iso_y1', title: 'Iso Ankle Hold - Bent Knee (Soleus Stiffness)', details: 'Seated or bent-knee wall iso hold. Isolates soleus tendon stiffness essential for stance phase ground force absorption. 3 sets of 30-45s.', type: 'isometric_yielding', percentage: 70, sets: '3', reps: '30', rest: '60s', unit: 'sec', forceVector: 'Vertical', sscType: 'Isometric', cnsDemand: 'Low' },
+    { id: 'iso_y2', title: 'Iso Ankle Hold - Straight Knee (Gastrocnemius)', details: 'Standing straight-leg single-leg ball of foot iso hold. Maximizes Achilles tendon spring stiffness and reactive energy storage. 3 sets of 30-40s.', type: 'isometric_yielding', percentage: 70, sets: '3', reps: '30', rest: '60s', unit: 'sec', forceVector: 'Vertical', sscType: 'Isometric', cnsDemand: 'Low' },
+    { id: 'iso_y3', title: 'Iso Split Squat Hold (Sprint Angle / 90-90)', details: 'Deep or shallow sprint-specific split squat hold. Overloads patellar tendon and hip flexor/extensor co-contraction. 3 sets of 20-30s.', type: 'isometric_yielding', percentage: 75, sets: '3', reps: '25', rest: '90s', unit: 'sec', forceVector: 'Vertical', sscType: 'Isometric', cnsDemand: 'Medium' },
+    { id: 'iso_y4', title: 'Single-Leg Long-Lever Hamstring Bridge Iso', details: 'Heel on 30cm box with knee at 150-160° extension. Maximizes distal biceps femoris recruitment at long muscle lengths. 3 sets of 25s.', type: 'isometric_yielding', percentage: 75, sets: '3', reps: '25', rest: '90s', unit: 'sec', forceVector: 'Horizontal', sscType: 'Isometric', cnsDemand: 'Medium' },
+
+    // Overcoming Isometrics (Maximal Rate of Force Development / Peak Neural Drive)
+    { id: 'iso_o1', title: 'Isometric Mid-Thigh Pull (IMTP - Max RFD)', details: 'Barbell fixed against immovable pins at 125-135° knee angle. Pull with 100% maximal instantaneous intent. 4 sets of 5s max effort.', type: 'isometric_overcoming', percentage: 100, sets: '4', reps: '5', rest: '2.5m', unit: 'sec', forceVector: 'Vertical', sscType: 'Isometric', cnsDemand: 'High' },
+    { id: 'iso_o2', title: 'Sprint-Angle Hip Extension Overcoming Iso', details: 'Barbell against pins positioned at 45° sprint acceleration drive angle. Push violently into pins for 4s. 3 sets of 4s.', type: 'isometric_overcoming', percentage: 100, sets: '3', reps: '4', rest: '2m', unit: 'sec', forceVector: 'Horizontal', sscType: 'Isometric', cnsDemand: 'High' },
+    { id: 'iso_o3', title: 'Ankle Wall Push Overcoming Iso (Max RFD)', details: 'Ball of foot braced against wall or block. Maximum plantarflexion impulse against immovable resistance. 3 sets of 5s.', type: 'isometric_overcoming', percentage: 100, sets: '3', reps: '5', rest: '90s', unit: 'sec', forceVector: 'Horizontal', sscType: 'Isometric', cnsDemand: 'High' },
+
+    // Quasi-Isometrics & Rapid Switches (Neuromuscular Switching & Relaxation Rate)
+    { id: 'iso_s1', title: 'Tall-to-Short Rapid Iso Switches', details: 'Explosive drop from tall toe-balance into low sprint stance with instantaneous braking lock. Trains fast motor unit synchronization. 4 sets of 6 reps.', type: 'isometric_switch', percentage: 85, sets: '4', reps: '6', rest: '90s', unit: 'reps', forceVector: 'Vertical', sscType: 'Fast-SSC (<250ms)', cnsDemand: 'High' },
+    { id: 'iso_s2', title: 'Rapid Hip Flexor Psoas Snap Iso Switches', details: 'Single-leg hanging or standing band snap into high knee flexion with instant freeze. Enhances front-side recovery speed. 3 sets of 8 reps.', type: 'isometric_switch', percentage: 85, sets: '3', reps: '8', rest: '90s', unit: 'reps', forceVector: 'Vertical', sscType: 'Fast-SSC (<250ms)', cnsDemand: 'High' },
+    { id: 'iso_s3', title: 'Ankle Rocker Dorsiflexion Rapid Iso', details: 'Quick eccentric heel drop to violent dorsiflexion pre-activation. Prepares pre-activation stiffness prior to touchdown. 3 sets of 10 reps.', type: 'isometric_switch', percentage: 80, sets: '3', reps: '10', rest: '60s', unit: 'reps', forceVector: 'Vertical', sscType: 'Fast-SSC (<250ms)', cnsDemand: 'Medium' },
+
+    // === HIGH-SPEED & LENGTHENED-STATE HAMSTRING MECHANICS (7 DRILLS) ===
+    // Hip-Dominant (Lengthened State Sprint Resilience)
+    { id: 'ham_h1', title: 'Single-Leg Dumbbell Romanian Deadlift (RDL)', details: 'Unilateral RDL with neutral spine and hinge at hip. Overloads proximal hamstrings in lengthened stance position. 3 sets of 6 reps.', type: 'strength_hamstrings_hip', percentage: 75, sets: '3', reps: '6', rest: '2m', unit: 'reps', forceVector: 'Horizontal', sscType: 'Non-SSC / Concentric', cnsDemand: 'Medium' },
+    { id: 'ham_h2', title: '45° Back Extension Heavy Isometric Hold', details: 'Weighted hold at neutral extension. Heavy mechanical tension at prolonged hip hinge position. 3 sets of 20s.', type: 'strength_hamstrings_hip', percentage: 80, sets: '3', reps: '20', rest: '2m', unit: 'sec', forceVector: 'Horizontal', sscType: 'Isometric', cnsDemand: 'Medium' },
+    { id: 'ham_h3', title: 'Barbell Romanian Deadlift (3s Eccentric Tempo)', details: 'Barbell RDL @ 75% 1RM with strict 3-second eccentric lowering phase to induce sarcomerogenesis. 4 sets of 5 reps.', type: 'strength_hamstrings_hip', percentage: 75, sets: '4', reps: '5', rest: '2.5m', unit: 'reps', forceVector: 'Horizontal', sscType: 'Non-SSC / Concentric', cnsDemand: 'Medium' },
+
+    // Knee-Dominant / Late-Swing Phase (High-Speed Eccentric Knee Flexion)
+    { id: 'ham_k1', title: 'Nordic Hamstring Curl (Controlled Eccentric Drop)', details: 'Controlled slow lowering to floor using knee flexion. Gold standard for distal biceps femoris fascicle lengthening. 3 sets of 5 reps.', type: 'strength_hamstrings_knee', percentage: 85, sets: '3', reps: '5', rest: '2.5m', unit: 'reps', forceVector: 'Horizontal', sscType: 'Non-SSC / Concentric', cnsDemand: 'High' },
+    { id: 'ham_k2', title: 'Glute-Ham Developer (GHD) Razor Curl', details: 'Hips locked at 45° with aggressive knee flexion pull. Bridges knee-flexion and hip-extension synergy. 3 sets of 6 reps.', type: 'strength_hamstrings_knee', percentage: 80, sets: '3', reps: '6', rest: '2m', unit: 'reps', forceVector: 'Horizontal', sscType: 'Non-SSC / Concentric', cnsDemand: 'High' },
+    { id: 'ham_k3', title: 'Prone Tantrum Kicks (Max Velocity Alternating)', details: 'Prone on bench, alternating rapid knee flexion kicks against light elastic resistance at maximum frequency. 4 sets of 10s.', type: 'strength_hamstrings_knee', percentage: 90, sets: '4', reps: '10', rest: '90s', unit: 'sec', forceVector: 'Horizontal', sscType: 'Fast-SSC (<250ms)', cnsDemand: 'High' },
+    { id: 'ham_k4', title: 'Band-Assisted Rapid Eccentric Hamstring Catches', details: 'Partner or band accelerates leg into extension; athlete must catch and decelerate violently before full stretch. 3 sets of 8 reps.', type: 'strength_hamstrings_knee', percentage: 85, sets: '3', reps: '8', rest: '2m', unit: 'reps', forceVector: 'Horizontal', sscType: 'Fast-SSC (<250ms)', cnsDemand: 'High' },
+
+    // === RESISTED & ASSISTED SPRINT PROTOCOLS (6 DRILLS) ===
+    // Resisted Sled Sprints (% Velocity Decrement - Cross & Morin Protocol)
+    { id: 'res_s1', title: 'Light Resisted Sled Sprint (10% Vdec - High Velocity)', details: 'Sled load calibrated to produce exactly 10% velocity decrement. Optimizes transition phase kinematics and stride frequency. 4x30m.', type: 'speed_resisted', percentage: 95, sets: '4', reps: '1', distance: '30', rest: '3.5m', unit: 'meters', forceVector: 'Horizontal', sscType: 'Fast-SSC (<250ms)', cnsDemand: 'High' },
+    { id: 'res_s2', title: 'Moderate Resisted Sled Sprint (25% Vdec - Power Phase)', details: 'Sled load calibrated to produce 25% velocity decrement. Maximizes horizontal power output (Pmax) during the drive phase. 4x20m.', type: 'speed_resisted', percentage: 95, sets: '4', reps: '1', distance: '20', rest: '3m', unit: 'meters', forceVector: 'Horizontal', sscType: 'Fast-SSC (<250ms)', cnsDemand: 'High' },
+    { id: 'res_s3', title: 'Heavy Resisted Sled Sprint (50% Vdec - Max Force F0)', details: 'Very heavy sled load producing 50% velocity drop. Targets pure horizontal force production (F0) and initial 0-10m acceleration. 4x15m.', type: 'speed_resisted', percentage: 100, sets: '4', reps: '1', distance: '15', rest: '3.5m', unit: 'meters', forceVector: 'Horizontal', sscType: 'Fast-SSC (<250ms)', cnsDemand: 'High' },
+    { id: 'res_s4', title: 'Exergenie Continuous Constant Tension Sprint', details: 'Constant resistance cable spool sprint. Eliminates deceleration artifacts and overloads horizontal propulsion through entire 25m. 3x25m.', type: 'speed_resisted', percentage: 100, sets: '3', reps: '1', distance: '25', rest: '4m', unit: 'meters', forceVector: 'Horizontal', sscType: 'Fast-SSC (<250ms)', cnsDemand: 'High' },
+
+    // Assisted & Wicket Runs (Front-Side Mechanics & Maximum Frequency)
+    { id: 'res_s5', title: 'Wicket Mini-Hurdle Runs (Front-Side Mechanics & Max Frequency)', details: 'Run over 18 mini-hurdles spaced progressively from 1.6m to 2.1m. Forces tall upright posture, zero backside lag, and maximal step frequency. 5x60m.', type: 'speed_assisted', percentage: 98, sets: '5', reps: '1', distance: '60', rest: '3m', unit: 'meters', forceVector: 'Horizontal', sscType: 'Fast-SSC (<250ms)', cnsDemand: 'High' },
+    { id: 'res_s6', title: 'Curved Wicket Runs (Turn Mechanics & Speed Endurance)', details: 'Mini-hurdles aligned on track curve entering the home straight. Develops centrifugal force handling and upright mechanics under fatigue. 4x80m.', type: 'speed_assisted', percentage: 95, sets: '4', reps: '1', distance: '80', rest: '4m', unit: 'meters', forceVector: 'Multi-planar', sscType: 'Fast-SSC (<250ms)', cnsDemand: 'High' }
   ],
   templates: [
     {

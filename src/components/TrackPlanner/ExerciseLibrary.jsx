@@ -32,8 +32,10 @@ const CATEGORY_TAGS = {
 const SUBCATEGORIES = {
   speed: {
     all: 'All',
-    speed_acceleration: 'Acceleration',
-    speed_max_velocity: 'Max Velocity',
+    speed_acceleration: 'Acceleration (10-30m)',
+    speed_max_velocity: 'Max Velocity / Flys',
+    speed_resisted: 'Resisted Sleds (%Vdec)',
+    speed_assisted: 'Assisted / Wickets',
     speed_endurance: 'Speed Endurance',
     tempo_extensive: 'Extensive Tempo',
     tempo_intensive: 'Intensive Tempo'
@@ -59,6 +61,25 @@ const SUBCATEGORIES = {
     anaerobic_capacity: 'Anaerobic Capacity',
     anaerobic_lactic_power: 'Lactic Power'
   },
+  long_jump: {
+    all: 'All',
+    long_jump_approach: 'Full Approach & Steering',
+    long_jump_takeoff: 'Penultimate & Takeoff',
+    long_jump_flight: 'Flight (Hang / Hitch-kick)',
+    long_jump_landing: 'Active Landing & Shoot-out'
+  },
+  triple_jump: {
+    all: 'All',
+    triple_jump_hop: 'Hop Phase (Active Pawing)',
+    triple_jump_step: 'Step Phase (Bound & Swing)',
+    triple_jump_jump: 'Jump Phase & Sand Landing',
+    triple_jump_approach: 'Approach Rhythm & Board'
+  },
+  plyometrics: {
+    all: 'All',
+    plyo_fast_ssc: 'Fast-SSC (<250ms Hurdles/Depth)',
+    plyo_slow_ssc: 'Slow-SSC (>250ms Box/Bounds)'
+  },
   power: {
     all: 'All',
     power_speed_strength: 'Speed-Strength (1.0 - 1.3 m/s)',
@@ -66,20 +87,28 @@ const SUBCATEGORIES = {
     power_starting_strength: 'Starting Strength (> 1.3 m/s)',
     power_olympic: 'Olympic Lifts'
   },
+  strength: {
+    all: 'All',
+    strength_accelerative: 'Accelerative Strength (0.5 - 0.75 m/s)',
+    strength_maximal: 'Maximal Strength (< 0.5 m/s)',
+    strength_hamstrings_hip: 'Hamstrings (Hip-Ext / RDL)',
+    strength_hamstrings_knee: 'Hamstrings (Knee-Flex / Nordic)',
+    strength_single_leg: 'Single Leg',
+    strength_double_leg: 'Double Leg',
+    strength_upper: 'Upper Body'
+  },
+  isometric: {
+    all: 'All',
+    isometric_yielding: 'Yielding / Eccentric Quasi-Iso',
+    isometric_overcoming: 'Overcoming / Maximum Voluntary Iso',
+    isometric_switch: 'Quasi-Isometric Sprint Switches'
+  },
   core: {
     all: 'All',
     core_rotation: 'Rotation',
     core_anti_rotation: 'Anti-Rotation',
     core_extension: 'Extension',
     core_anti_extension: 'Anti-Extension'
-  },
-  strength: {
-    all: 'All',
-    strength_accelerative: 'Accelerative Strength (0.5 - 0.75 m/s)',
-    strength_maximal: 'Maximal Strength (< 0.5 m/s)',
-    strength_single_leg: 'Single Leg',
-    strength_double_leg: 'Double Leg',
-    strength_upper: 'Upper Body'
   },
   mobility: {
     all: 'All',
@@ -97,6 +126,8 @@ const getBaseCategory = (type) => {
   if (lower.startsWith('anaerobic')) return 'anaerobic';
   if (lower.startsWith('power')) return 'power';
   if (lower.startsWith('strength')) return 'strength';
+  if (lower.startsWith('isometric')) return 'isometric';
+  if (lower.startsWith('plyo')) return 'plyometrics';
   if (lower.startsWith('core')) return 'core';
   if (lower.startsWith('mobility')) return 'mobility';
   if (lower.startsWith('long_jump')) return 'long_jump';
@@ -353,16 +384,36 @@ export default function ExerciseLibrary({
                       <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
                         {drill.title}
                       </h4>
-                      {drill.type === 'tempo_intensive' ? (
-                        <span className="text-[9px] font-black text-cyan-600 dark:text-cyan-400 uppercase tracking-wider flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(6,182,212,0.8)] inline-block" />
-                          TEMPO (INTENSIVE TEMPO)
-                        </span>
-                      ) : (
-                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">
-                          {getCategoryDisplayName(drill.type)}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                        {drill.type === 'tempo_intensive' ? (
+                          <span className="text-[9px] font-black text-cyan-600 dark:text-cyan-400 uppercase tracking-wider flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(6,182,212,0.8)] inline-block" />
+                            TEMPO (INTENSIVE)
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">
+                            {getCategoryDisplayName(drill.type)}
+                          </span>
+                        )}
+                        {drill.cnsDemand && (
+                          <span className={`text-[8px] font-black px-1 rounded ${
+                            drill.cnsDemand === 'High' ? 'text-rose-500 bg-rose-500/10' :
+                            drill.cnsDemand === 'Medium' ? 'text-amber-500 bg-amber-500/10' : 'text-emerald-500 bg-emerald-500/10'
+                          }`}>
+                            CNS: {drill.cnsDemand}
+                          </span>
+                        )}
+                        {drill.forceVector && (
+                          <span className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1 rounded">
+                            {drill.forceVector}
+                          </span>
+                        )}
+                        {drill.vbtZone && (
+                          <span className="text-[8px] font-bold text-violet-600 dark:text-violet-400 bg-violet-500/10 px-1 rounded">
+                            {drill.vbtZone.split('(')[0].trim()}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

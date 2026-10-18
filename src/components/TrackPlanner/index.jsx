@@ -48,7 +48,7 @@ import ExerciseLibrary from './ExerciseLibrary.jsx';
 import AthleteProfileModal from './AthleteProfileModal.jsx';
 import { INITIAL_ATHLETES, INITIAL_LIBRARY, DEFAULT_800M_PROGRAM, DEFAULT_6WEEK_800M_PROGRAM, DEFAULT_LONG_JUMP_PROGRAM, DEFAULT_TRIPLE_JUMP_PROGRAM } from '../../data/constants.js';
 import { supabase, isRealSupabase } from '../../supabaseClient.js';
-import { getRunningLoadProfile } from '../../data/loadModel.js';
+import { getRunningLoadProfile, calculateSessionBiometrics, checkHighLowCNSPattern } from '../../data/loadModel.js';
 
 // 1. Updated Track & Field Specific Categories
 const EXERCISE_CATEGORIES = {
@@ -70,8 +70,10 @@ const EXERCISE_CATEGORIES = {
 const SUBCATEGORIES = {
   speed: {
     all: 'All',
-    speed_acceleration: 'Acceleration',
-    speed_max_velocity: 'Max Velocity',
+    speed_acceleration: 'Acceleration (10-30m)',
+    speed_max_velocity: 'Max Velocity / Flys',
+    speed_resisted: 'Resisted Sleds (%Vdec)',
+    speed_assisted: 'Assisted / Wickets',
     speed_endurance: 'Speed Endurance',
     tempo_extensive: 'Extensive Tempo',
     tempo_intensive: 'Intensive Tempo'
@@ -97,6 +99,25 @@ const SUBCATEGORIES = {
     anaerobic_capacity: 'Anaerobic Capacity',
     anaerobic_lactic_power: 'Lactic Power'
   },
+  long_jump: {
+    all: 'All',
+    long_jump_approach: 'Full Approach & Steering',
+    long_jump_takeoff: 'Penultimate & Takeoff',
+    long_jump_flight: 'Flight (Hang / Hitch-kick)',
+    long_jump_landing: 'Active Landing & Shoot-out'
+  },
+  triple_jump: {
+    all: 'All',
+    triple_jump_hop: 'Hop Phase (Active Pawing)',
+    triple_jump_step: 'Step Phase (Bound & Swing)',
+    triple_jump_jump: 'Jump Phase & Sand Landing',
+    triple_jump_approach: 'Approach Rhythm & Board'
+  },
+  plyometrics: {
+    all: 'All',
+    plyo_fast_ssc: 'Fast-SSC (<250ms Hurdles/Depth)',
+    plyo_slow_ssc: 'Slow-SSC (>250ms Box/Bounds)'
+  },
   power: {
     all: 'All',
     power_speed_strength: 'Speed-Strength (1.0 - 1.3 m/s)',
@@ -104,20 +125,28 @@ const SUBCATEGORIES = {
     power_starting_strength: 'Starting Strength (> 1.3 m/s)',
     power_olympic: 'Olympic Lifts'
   },
+  strength: {
+    all: 'All',
+    strength_accelerative: 'Accelerative Strength (0.5 - 0.75 m/s)',
+    strength_maximal: 'Maximal Strength (< 0.5 m/s)',
+    strength_hamstrings_hip: 'Hamstrings (Hip-Ext / RDL)',
+    strength_hamstrings_knee: 'Hamstrings (Knee-Flex / Nordic)',
+    strength_single_leg: 'Single Leg',
+    strength_double_leg: 'Double Leg',
+    strength_upper: 'Upper Body'
+  },
+  isometric: {
+    all: 'All',
+    isometric_yielding: 'Yielding / Eccentric Quasi-Iso',
+    isometric_overcoming: 'Overcoming / Maximum Voluntary Iso',
+    isometric_switch: 'Quasi-Isometric Sprint Switches'
+  },
   core: {
     all: 'All',
     core_rotation: 'Rotation',
     core_anti_rotation: 'Anti-Rotation',
     core_extension: 'Extension',
     core_anti_extension: 'Anti-Extension'
-  },
-  strength: {
-    all: 'All',
-    strength_accelerative: 'Accelerative Strength (0.5 - 0.75 m/s)',
-    strength_maximal: 'Maximal Strength (< 0.5 m/s)',
-    strength_single_leg: 'Single Leg',
-    strength_double_leg: 'Double Leg',
-    strength_upper: 'Upper Body'
   },
   mobility: {
     all: 'All',
@@ -135,6 +164,8 @@ const getBaseCategory = (type) => {
   if (lower.startsWith('anaerobic')) return 'anaerobic';
   if (lower.startsWith('power')) return 'power';
   if (lower.startsWith('strength')) return 'strength';
+  if (lower.startsWith('isometric')) return 'isometric';
+  if (lower.startsWith('plyo')) return 'plyometrics';
   if (lower.startsWith('core')) return 'core';
   if (lower.startsWith('mobility')) return 'mobility';
   if (lower.startsWith('long_jump')) return 'long_jump';
@@ -388,6 +419,13 @@ export default function TrackFieldPlanner() {
             quarterSquat: a.quarter_squat,
             fullSquat: a.full_squat,
             deadlift: a.deadlift,
+            accel10m: a.accel_10m,
+            fly30m: a.fly_30m,
+            maxVelocity: a.max_velocity,
+            cmj: a.cmj ?? a.vertical_jump,
+            rsi: a.rsi,
+            broadJump: a.broad_jump ?? a.standing_long_jump,
+            trapBarDeadlift: a.trap_bar_deadlift,
           }));
           setAthletes(formattedData);
           const savedId = localStorage.getItem('lastSelectedAthlete');
@@ -555,13 +593,18 @@ export default function TrackFieldPlanner() {
       }
     }
 
-    const formattedTemplates = (templatesData || []).map((t) => ({
-      id: t.id,
-      title: t.template_name,
-      type: t.template_type,
-      drills: t.drills,
+    const formattedDrills = (drillsData || []).map((d) => ({
+      ...d,
+      forceVector: d.force_vector ?? d.forceVector,
+      sscType: d.ssc_type ?? d.sscType,
+      cnsDemand: d.cns_demand ?? d.cnsDemand,
+      vbtZone: d.vbt_zone ?? d.vbtZone,
+      velocityLossCutoff: d.velocity_loss_cutoff ?? d.velocityLossCutoff,
+      targetVelocity: d.target_velocity ?? d.targetVelocity,
+      peakVelocity: d.peak_velocity ?? d.peakVelocity,
+      velocityLoss: d.velocity_loss ?? d.velocityLoss,
     }));
-    setLibrary({ drills: drillsData || [], templates: formattedTemplates });
+    setLibrary({ drills: formattedDrills, templates: formattedTemplates });
     const { data: progData, error: progError } = await supabase
       .from('track_macro_programs')
       .select('*')
@@ -900,171 +943,40 @@ export default function TrackFieldPlanner() {
   // 🧠 TRACK & FIELD WORKLOAD ENGINE: CNS vs STRUCTURAL + DISTANCE/CONTACTS
   // ============================================================================
   const calculateDayVolume = useCallback((dayDrills) => {
-    let totalExercises = dayDrills.length;
-    let totalVolumeScore = 0;
-    let cnsLoad = 0;
-    let structuralLoad = 0;
     let validIntensityCount = 0;
     let sumIntensity = 0;
-    let totalMeters = 0;
-    let totalContacts = 0;
-
-    dayDrills.forEach((drill) => {
-      const type = (drill.type || '').toLowerCase();
-      const baseType = getBaseCategory(type);
-      if (baseType === 'isometric' || baseType === 'core' || baseType === 'mobility') {
-        return; // Exclude completely from day and week load metrics
+    (dayDrills || []).forEach((drill) => {
+      const pct = parseFloat(drill.percentage) || 0;
+      if (pct > 0) {
+        validIntensityCount++;
+        sumIntensity += pct;
       }
-      const intensity = parseFloat(drill.percentage) || 0;
-      const intensityUnit = drill.intensityUnit || (drill.unit === 'x BW' ? 'x BW' : '%');
-
-      let s = parseFloat(String(drill.sets).replace(/[^\d.]/g, '')) || 0;
-      let r = parseFloat(String(drill.reps).replace(/[^\d.]/g, '')) || 0;
-      let dist = parseFloat(String(drill.distance).replace(/[^\d.]/g, '')) || 0;
-
-      if (s > 0 && r === 0 && baseType !== 'speed' && baseType !== 'endurance') r = 1;
-      if (r > 0 && s === 0 && baseType !== 'speed' && baseType !== 'endurance') s = 1;
-      if (s > 0 && dist === 0 && (baseType === 'speed' || baseType === 'endurance')) dist = 10; 
-      if (dist > 0 && s === 0 && (baseType === 'speed' || baseType === 'endurance')) s = 1;
-
-      let drillLoad = 0;
-
-      const isRunning = baseType === 'speed' || baseType === 'tempo' || baseType === 'endurance' || baseType === 'anaerobic' || drill.unit === 'meters';
-      const isPlyo = baseType === 'plyometrics' || baseType === 'plyos' || drill.unit === 'contacts';
-
-      // Determine intensity factor (0.0 to 1.0+) and convert to relative % 1RM
-      let intensityFactor = 1;
-      let actualPct = intensity;
-      
-      if (intensity > 0) {
-        if (intensityUnit === 'x BW' && selectedAthlete && selectedAthlete.weight) {
-          const athWeight = parseFloat(selectedAthlete.weight) || 70;
-          const targetWeight = intensity * athWeight;
-          
-          // Find matching lift 1RM
-          const titleLower = (drill.title || '').toLowerCase();
-          let liftMax = 0;
-          
-          if (titleLower.includes('bench')) {
-            liftMax = parseFloat(selectedAthlete.bench) || 0;
-          } else if (titleLower.includes('clean')) {
-            liftMax = parseFloat(selectedAthlete.clean) || 0;
-          } else if (titleLower.includes('deadlift')) {
-            liftMax = parseFloat(selectedAthlete.deadlift) || 0;
-          } else if (titleLower.includes('squat')) {
-            if (titleLower.includes('half')) {
-              liftMax = parseFloat(selectedAthlete.halfSquat) || 0;
-            } else if (titleLower.includes('quarter')) {
-              liftMax = parseFloat(selectedAthlete.quarterSquat) || 0;
-            } else {
-              liftMax = parseFloat(selectedAthlete.fullSquat) || 0;
-            }
-          }
-          
-          if (liftMax > 0) {
-            intensityFactor = targetWeight / liftMax;
-          } else {
-            // Fallback: estimate 1RM as 2.0x bodyweight for squats/lifts, or bench 1.2x etc.
-            let bwMultiplier = 2.0;
-            if (titleLower.includes('bench') || titleLower.includes('clean')) bwMultiplier = 1.2;
-            intensityFactor = targetWeight / (athWeight * bwMultiplier);
-          }
-          actualPct = Math.round(intensityFactor * 100);
-        } else {
-          intensityFactor = intensity / 100;
-        }
-      }
-
-      // 1. SPEED (TRACK) / TEMPO / ENDURANCE / ANAEROBIC
-      if (isRunning) {
-        if (s > 0 && dist === 0) dist = 10; 
-        if (dist > 0 && s === 0) s = 1;
-        // Sprint Volume includes sets * reps * distance (e.g. 2x3x300m = 1800m)
-        const sprintVolume = s * (r > 0 ? r : 1) * dist;
-        totalMeters += sprintVolume;
-        if (intensity > 0) {
-          validIntensityCount++;
-          sumIntensity += actualPct;
-        }
-
-        // Multiplier + CNS split come from the shared load model (src/data/loadModel.js)
-        const { multiplier: speedMultiplier, cnsShare } = getRunningLoadProfile(type, actualPct);
-
-        // Load = (Volume * (intensity / 100)^2) * speedMultiplier
-        drillLoad = (sprintVolume * Math.pow(intensityFactor, 2)) * speedMultiplier;
-
-        cnsLoad += drillLoad * cnsShare;
-        structuralLoad += drillLoad * (1 - cnsShare);
-      }
-      // 2. PLYOMETRICS
-      else if (isPlyo) {
-        if (s > 0 && r === 0) r = 1;
-        if (r > 0 && s === 0) s = 1;
-        const plyoVolume = s * r;
-        totalContacts += plyoVolume;
-        if (intensity > 0) {
-          validIntensityCount++;
-          sumIntensity += actualPct;
-        }
-        // Load = Volume * (intensity / 100) * 4.0
-        drillLoad = plyoVolume * intensityFactor * 4.0;
-        cnsLoad += drillLoad * 0.5; // 50% CNS
-        structuralLoad += drillLoad * 0.5; // 50% Structural
-      }
-      // 2.5 JUMPS (LONG & TRIPLE JUMP) - Elite CNS & Reactive Landing Forces
-      else if (baseType === 'long_jump' || baseType === 'triple_jump') {
-        if (s > 0 && r === 0) r = 1;
-        if (r > 0 && s === 0) s = 1;
-        const jumpsVolume = s * r;
-        totalContacts += jumpsVolume;
-        if (intensity > 0) {
-          validIntensityCount++;
-          sumIntensity += actualPct;
-        }
-        // Load = Volume * (intensity / 100) * 5.0 (Extreme landing forces / impact multiplier)
-        drillLoad = jumpsVolume * intensityFactor * 5.0;
-        cnsLoad += drillLoad * 0.7; // 70% CNS (High velocity approach + explosive takeoff)
-        structuralLoad += drillLoad * 0.3; // 30% Structural (Extreme landing deceleration impact)
-      }
-      // 3. POWER (GYM)
-      else if (baseType === 'power') {
-        if (s > 0 && r === 0) r = 1;
-        if (r > 0 && s === 0) s = 1;
-        if (intensity > 0) {
-          validIntensityCount++;
-          sumIntensity += actualPct;
-        }
-        // Load = (sets * reps * 2.0 * intensityFactor) * 10
-        drillLoad = (s * r * 2.0 * intensityFactor) * 10;
-        cnsLoad += drillLoad; // 100% CNS
-      }
-      // 4. STRENGTH (GYM)
-      else if (baseType === 'strength') {
-        if (s > 0 && r === 0) r = 1;
-        if (r > 0 && s === 0) s = 1;
-        if (intensity > 0) {
-          validIntensityCount++;
-          sumIntensity += actualPct;
-        }
-        // Load = (sets * reps * 1.5 * intensityFactor) * 10
-        drillLoad = (s * r * 1.5 * intensityFactor) * 10;
-        structuralLoad += drillLoad; // 100% Structural
-      }
-
-      totalVolumeScore += drillLoad;
     });
+    const avgIntensity = validIntensityCount > 0 ? Math.round(sumIntensity / validIntensityCount) : 0;
+    const bio = calculateSessionBiometrics(dayDrills, selectedAthlete);
 
     return {
-      totalExercises,
-      totalVolumeScore: Math.round(totalVolumeScore),
-      avgIntensity:
-        validIntensityCount > 0
-          ? Math.round(sumIntensity / validIntensityCount)
-          : 0,
-      totalMeters,
-      totalContacts,
-      cnsLoad: Math.round(cnsLoad),
-      structuralLoad: Math.round(structuralLoad),
+      totalExercises: (dayDrills || []).length,
+      totalVolumeScore: bio.totalVolumeScore,
+      avgIntensity,
+      totalMeters: (bio.totalSprintMeters || 0) + (bio.tempoMeters || 0),
+      totalSprintMeters: bio.totalSprintMeters || 0,
+      accelMeters: bio.accelMeters || 0,
+      maxVelMeters: bio.maxVelMeters || 0,
+      speedEnduranceMeters: bio.speedEnduranceMeters || 0,
+      tempoMeters: bio.tempoMeters || 0,
+      accelAlert: bio.accelAlert || false,
+      maxVelAlert: bio.maxVelAlert || false,
+      totalContacts: bio.totalContacts || 0,
+      fastSscContacts: bio.fastSscContacts || 0,
+      slowSscContacts: bio.slowSscContacts || 0,
+      plyoAlert: bio.plyoAlert || false,
+      cnsLoad: bio.cnsLoad,
+      cnsScore: bio.cnsScore,
+      cnsLevel: bio.cnsLevel,
+      structuralLoad: bio.mechanicalLoad,
+      mechanicalLoad: bio.mechanicalLoad,
+      metabolicLoad: bio.metabolicLoad,
     };
   }, [selectedAthlete]);
 
@@ -1119,6 +1031,8 @@ export default function TrackFieldPlanner() {
       loadColor = 'text-orange-600 bg-orange-50 border-orange-200';
     }
 
+    const highLowCheck = checkHighLowCNSPattern(schedule, selectedAthlete);
+
     return {
       load: totalLoad,
       intensity: avgIntensity,
@@ -1129,8 +1043,10 @@ export default function TrackFieldPlanner() {
       weekContacts,
       cnsPercentage,
       structuralPercentage,
+      highLowWarning: highLowCheck.hasWarning ? highLowCheck.warningMessage : null,
+      consecutiveHighDays: highLowCheck.consecutiveHighDays || [],
     };
-  }, [schedule]);
+  }, [schedule, calculateDayVolume, selectedAthlete]);
 
   const dayStatsMap = useMemo(() => {
     const map = {};
@@ -1917,10 +1833,28 @@ export default function TrackFieldPlanner() {
       m300: updatedProfile.m300 ? parseFloat(updatedProfile.m300) : null,
       m400: updatedProfile.m400 ? parseFloat(updatedProfile.m400) : null,
     };
-    const { error } = await supabase
+    const scientificPayload = {
+      ...speedPayload,
+      accel_10m: updatedProfile.accel10m ? parseFloat(updatedProfile.accel10m) : null,
+      fly_30m: updatedProfile.fly30m ? parseFloat(updatedProfile.fly30m) : null,
+      max_velocity: updatedProfile.maxVelocity ? parseFloat(updatedProfile.maxVelocity) : null,
+      cmj: updatedProfile.cmj ? parseFloat(updatedProfile.cmj) : (updatedProfile.verticalJump ? parseFloat(updatedProfile.verticalJump) : null),
+      rsi: updatedProfile.rsi ? parseFloat(updatedProfile.rsi) : null,
+      broad_jump: updatedProfile.broadJump ? parseFloat(updatedProfile.broadJump) : (updatedProfile.standingLongJump ? parseFloat(updatedProfile.standingLongJump) : null),
+      trap_bar_deadlift: updatedProfile.trapBarDeadlift ? parseFloat(updatedProfile.trapBarDeadlift) : null,
+    };
+    let { error } = await supabase
       .from('track_athletes')
-      .update(speedPayload)
+      .update(scientificPayload)
       .eq('id', updatedProfile.id);
+    if (error) {
+      console.warn("Supabase update athlete error with scientific columns, retrying with speedPayload:", error);
+      const res = await supabase
+        .from('track_athletes')
+        .update(speedPayload)
+        .eq('id', updatedProfile.id);
+      error = res.error;
+    }
     if (error) {
       console.warn("Supabase update athlete error with speed columns, retrying without speed columns:", error);
       const { error: fallbackError } = await supabase
@@ -1935,7 +1869,7 @@ export default function TrackFieldPlanner() {
           (prev || []).map((a) => (a.id === updatedProfile.id ? updatedProfile : a))
         );
         setShowProfileModal(false);
-        handleToast('Profile updated (excluding speed metrics)');
+        handleToast('Profile updated (excluding speed/scientific metrics)');
       }
     } else {
       setAthletes((prev) =>
@@ -4358,6 +4292,69 @@ export default function TrackFieldPlanner() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Research-Grade Day Biometrics Pill Bar */}
+                  {dayDrills.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 mb-2.5 px-1.5 py-1 bg-slate-50/80 dark:bg-slate-900/60 rounded-xl border border-slate-200/50 dark:border-slate-800/60 text-[9px] print:hidden">
+                      {/* CNS Score & Level Pill */}
+                      <span
+                        className={`px-1.5 py-0.5 rounded-lg font-black uppercase tracking-wider flex items-center gap-1 border ${
+                          dayStats.cnsLevel === 'High'
+                            ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 shadow-[0_0_8px_rgba(239,68,68,0.2)]'
+                            : dayStats.cnsLevel === 'Med'
+                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                            : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                        }`}
+                        title={`CNS Neural Load: ${dayStats.cnsScore || 0}/100. High-CNS sessions require 48h neural recovery.`}
+                      >
+                        🧠 CNS: {dayStats.cnsLevel || 'Low'} ({dayStats.cnsScore || 0})
+                      </span>
+
+                      {/* Sprint Volume Pill */}
+                      {(dayStats.totalMeters || 0) > 0 && (
+                        <span
+                          className={`px-1.5 py-0.5 rounded-lg font-black flex items-center gap-1 border ${
+                            dayStats.accelAlert || dayStats.maxVelAlert
+                              ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                              : 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30'
+                          }`}
+                          title={`Sprint Volume: ${dayStats.totalMeters}m (Accel: ${dayStats.accelMeters || 0}m, MaxVel: ${dayStats.maxVelMeters || 0}m, SpeedEnd: ${dayStats.speedEnduranceMeters || 0}m, Tempo: ${dayStats.tempoMeters || 0}m)${dayStats.accelAlert ? ' | ⚠️ Accel >300m cap exceeded!' : ''}${dayStats.maxVelAlert ? ' | ⚠️ MaxVel >250m cap exceeded!' : ''}`}
+                        >
+                          🏃 {dayStats.totalMeters}m
+                          {(dayStats.accelAlert || dayStats.maxVelAlert) && (
+                            <span className="text-[8px] text-rose-500 font-extrabold animate-pulse">⚠️ CAP</span>
+                          )}
+                        </span>
+                      )}
+
+                      {/* Plyo Ground Contacts Pill */}
+                      {(dayStats.totalContacts || 0) > 0 && (
+                        <span
+                          className={`px-1.5 py-0.5 rounded-lg font-black flex items-center gap-1 border ${
+                            dayStats.plyoAlert
+                              ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                              : 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30'
+                          }`}
+                          title={`Ground Contacts: ${dayStats.totalContacts} (Fast SSC: ${dayStats.fastSscContacts || 0}, Slow SSC: ${dayStats.slowSscContacts || 0})${dayStats.plyoAlert ? ' | ⚠️ Safe session limit (>80 Fast or >100 Total)!' : ''}`}
+                        >
+                          ⚡ {dayStats.totalContacts}ct
+                          {dayStats.plyoAlert && (
+                            <span className="text-[8px] text-rose-500 font-extrabold animate-pulse">⚠️ CAP</span>
+                          )}
+                        </span>
+                      )}
+
+                      {/* Consecutive High-CNS Day Warning */}
+                      {weeklyStats.consecutiveHighDays?.flat()?.includes(day) && (
+                        <span
+                          className="px-1.5 py-0.5 rounded-lg font-black uppercase text-amber-500 bg-amber-500/15 border border-amber-500/40 animate-pulse flex items-center gap-0.5"
+                          title="High/Low Warning: Back-to-back High-CNS training days violate the Charlie Francis High/Low model and risk neural fatigue."
+                        >
+                          ⚠️ B2B High CNS
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   <div
                     className={`flex-1 px-1 md:px-2 pb-20 ${

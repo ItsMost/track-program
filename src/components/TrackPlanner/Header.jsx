@@ -198,6 +198,38 @@ export default function Header({
               </span>
             </div>
           </div>
+
+          {/* Sprint Distance & Plyo Ground Contacts Totals */}
+          {((weeklyStats.weekMeters || 0) > 0 || (weeklyStats.weekContacts || 0) > 0) && (
+            <>
+              <div className="w-px h-4 bg-slate-200 dark:bg-slate-800"></div>
+              <div className="flex items-center gap-1.5 select-none">
+                {(weeklyStats.weekMeters || 0) > 0 && (
+                  <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-lg border border-cyan-500/20" title="Total Running Volume This Week">
+                    🏃 {weeklyStats.weekMeters}m
+                  </span>
+                )}
+                {(weeklyStats.weekContacts || 0) > 0 && (
+                  <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-lg border border-purple-500/20" title="Total Ground Foot Contacts This Week">
+                    ⚡ {weeklyStats.weekContacts}ct
+                  </span>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Charlie Francis Consecutive High-CNS Warning Badge */}
+          {weeklyStats.highLowWarning && (
+            <>
+              <div className="w-px h-4 bg-slate-200 dark:bg-slate-800"></div>
+              <span
+                className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-500/15 border border-rose-500/40 animate-pulse flex items-center gap-1"
+                title={weeklyStats.highLowWarning}
+              >
+                ⚠️ High-CNS Overload
+              </span>
+            </>
+          )}
         </div>
       )}
 

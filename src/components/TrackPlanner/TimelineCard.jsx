@@ -105,6 +105,8 @@ const getBaseCategory = (type) => {
   if (lower.startsWith('anaerobic')) return 'anaerobic';
   if (lower.startsWith('power')) return 'power';
   if (lower.startsWith('strength')) return 'strength';
+  if (lower.startsWith('isometric')) return 'isometric';
+  if (lower.startsWith('plyo')) return 'plyometrics';
   if (lower.startsWith('core')) return 'core';
   if (lower.startsWith('mobility')) return 'mobility';
   if (lower.startsWith('long_jump')) return 'long_jump';
@@ -114,8 +116,10 @@ const getBaseCategory = (type) => {
 
 const SUBCATEGORIES = {
   speed: {
-    speed_acceleration: 'Acceleration',
-    speed_max_velocity: 'Max Velocity',
+    speed_acceleration: 'Acceleration (10-30m)',
+    speed_max_velocity: 'Max Velocity / Flys',
+    speed_resisted: 'Resisted Sleds (%Vdec)',
+    speed_assisted: 'Assisted / Wickets',
     speed_endurance: 'Speed Endurance',
     tempo_extensive: 'Extensive Tempo',
     tempo_intensive: 'Intensive Tempo'
@@ -144,6 +148,15 @@ const SUBCATEGORIES = {
     power_starting_strength: 'Starting Strength (>1.3 m/s)',
     power_olympic: 'Olympic Lifts'
   },
+  isometric: {
+    isometric_yielding: 'Yielding Isometrics',
+    isometric_overcoming: 'Overcoming Isometrics (IMTP)',
+    isometric_switch: 'Quasi-Iso / Rapid Switches'
+  },
+  plyometrics: {
+    plyo_fast_ssc: 'Fast-SSC (<250ms)',
+    plyo_slow_ssc: 'Slow-SSC (>250ms)'
+  },
   core: {
     core_rotation: 'Rotation',
     core_anti_rotation: 'Anti-Rotation',
@@ -153,6 +166,8 @@ const SUBCATEGORIES = {
   strength: {
     strength_accelerative: 'Accelerative Strength (0.5-0.75 m/s)',
     strength_maximal: 'Maximal Strength (<0.5 m/s)',
+    strength_hamstrings_hip: 'Hamstrings (Hip-Dominant / RDL)',
+    strength_hamstrings_knee: 'Hamstrings (Knee-Flexion / Nordic)',
     strength_single_leg: 'Single Leg',
     strength_double_leg: 'Double Leg',
     strength_upper: 'Upper Body'
@@ -315,8 +330,16 @@ const TimelineCard = memo(function TimelineCard({
       liftMax = athlete?.clean;
       liftName = 'Clean';
     } else if (titleLower.includes('deadlift')) {
-      liftMax = athlete?.deadlift;
-      liftName = 'Deadlift';
+      if (titleLower.includes('trap')) {
+        liftMax = athlete?.trapBarDeadlift || athlete?.trap_bar_deadlift || athlete?.deadlift;
+        liftName = 'Trap Bar DL';
+      } else {
+        liftMax = athlete?.deadlift;
+        liftName = 'Deadlift';
+      }
+    } else if (titleLower.includes('trap bar') || titleLower.includes('hex bar')) {
+      liftMax = athlete?.trapBarDeadlift || athlete?.trap_bar_deadlift || athlete?.deadlift;
+      liftName = 'Trap Bar DL';
     } else if (titleLower.includes('squat')) {
       if (titleLower.includes('half')) {
         liftMax = athlete?.halfSquat;
@@ -358,11 +381,11 @@ const TimelineCard = memo(function TimelineCard({
     if (!isStrengthOrPower) return null;
 
     // Check if drill has explicit custom VBT attributes
-    if (drill.targetVelocity || drill.peakVelocity || drill.velocityLoss) {
+    if (drill.targetVelocity || drill.peakVelocity || drill.velocityLoss || drill.velocityLossCutoff || drill.vbtZone) {
       return {
         mean: drill.targetVelocity ? `${drill.targetVelocity} m/s` : null,
         peak: drill.peakVelocity ? `${drill.peakVelocity} m/s` : null,
-        loss: drill.velocityLoss ? `${drill.velocityLoss}` : null,
+        loss: drill.velocityLossCutoff ? `${drill.velocityLossCutoff} Cutoff` : (drill.velocityLoss ? `${drill.velocityLoss} Cutoff` : null),
         zone: drill.vbtZone || null,
         isCustom: true
       };
@@ -399,16 +422,16 @@ const TimelineCard = memo(function TimelineCard({
 
     // Determine Zone
     const v = parseFloat(meanVel);
-    if (v >= 1.30) zone = 'Speed';
-    else if (v >= 1.00) zone = 'Speed-Strength';
-    else if (v >= 0.75) zone = 'Strength-Speed';
-    else if (v >= 0.50) zone = 'Accelerative';
-    else zone = 'Max Strength';
+    if (v >= 1.30) zone = 'Speed (>1.3 m/s)';
+    else if (v >= 1.00) zone = 'Speed-Strength (1.0-1.3 m/s)';
+    else if (v >= 0.75) zone = 'Strength-Speed (0.75-1.0 m/s)';
+    else if (v >= 0.50) zone = 'Accelerative (0.50-0.75 m/s)';
+    else zone = 'Absolute Strength (<0.50 m/s)';
 
     return {
       mean: `${meanVel} m/s`,
       peak: `${peakVel} m/s`,
-      loss: lossCutoff,
+      loss: `${lossCutoff} Cutoff`,
       zone,
       isCustom: false
     };
@@ -695,14 +718,37 @@ const TimelineCard = memo(function TimelineCard({
             return (
               <span 
                 className="text-violet-600 dark:text-violet-400 bg-violet-500/10 px-1 py-0.2 rounded text-[8px] font-black border border-violet-500/20 flex items-center gap-1"
-                title={`VBT Target: Mean ${vbt.mean || '--'}, Peak ${vbt.peak || '--'}${vbt.zone ? ` (${vbt.zone})` : ''}. Stop set at ${vbt.loss} velocity loss.`}
+                title={`VBT Target: Mean ${vbt.mean || '--'}, Peak ${vbt.peak || '--'}${vbt.zone ? ` (${vbt.zone})` : ''}. Stop set at ${vbt.loss || '10% Cutoff'}.`}
               >
                 <span>⚡ {vbt.mean ? `Mean: ${vbt.mean}` : ''}</span>
                 {vbt.peak && <span className="opacity-80 font-normal">| 🚀 Peak: {vbt.peak}</span>}
-                {vbt.loss && <span className="text-rose-500 font-bold">| 🛑 {vbt.loss} Cutoff</span>}
+                {vbt.loss && <span className="text-rose-500 font-bold">| 🛑 {vbt.loss}</span>}
               </span>
             );
           })()}
+
+          {/* Research-Grade Scientific Tags */}
+          {drill.forceVector && (
+            <span className="px-1 py-0.2 rounded text-[8px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" title={`Force Vector: ${drill.forceVector}`}>
+              ↔️ {drill.forceVector}
+            </span>
+          )}
+          {drill.sscType && (
+            <span className="px-1 py-0.2 rounded text-[8px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20" title={`SSC Type: ${drill.sscType}`}>
+              ⚡ {drill.sscType}
+            </span>
+          )}
+          {drill.cnsDemand && (
+            <span className={`px-1 py-0.2 rounded text-[8px] font-black border ${
+              drill.cnsDemand === 'High' 
+                ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30' 
+                : drill.cnsDemand === 'Medium'
+                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+            }`} title={`CNS Demand: ${drill.cnsDemand}`}>
+              🧠 CNS: {drill.cnsDemand}
+            </span>
+          )}
 
           {drill.details && (
             <button
