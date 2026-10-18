@@ -13,6 +13,7 @@ import {
   Plus
 } from 'lucide-react';
 import { isCoreOrAccessory } from '../../data/loadModel.js';
+import { INITIAL_LIBRARY } from '../../data/constants.js';
 
 const CATEGORY_TAGS = {
   speed: 'Speed',
@@ -167,8 +168,12 @@ export default function ExerciseLibrary({
   const [activeCategoryFilter, setActiveCategoryFilter] = useState('all');
   const [activeSubcategoryFilter, setActiveSubcategoryFilter] = useState('all');
 
-  // Handle Search & Category Filtering
-  const filteredDrills = (library.drills || []).filter((d) => {
+  // Handle Search & Category Filtering with safe fallback
+  const rawDrills = (library?.drills && library.drills.length > 0)
+    ? library.drills
+    : (INITIAL_LIBRARY?.drills || []);
+
+  const filteredDrills = rawDrills.filter((d) => {
     const type = (d.type || '').toLowerCase();
     const baseCategory = getBaseCategory(type);
     
@@ -197,7 +202,11 @@ export default function ExerciseLibrary({
     return title.includes(query) || details.includes(query) || type.includes(query);
   });
 
-  const filteredTemplates = (library.templates || []).filter((t) => {
+  const rawTemplates = (library?.templates && library.templates.length > 0)
+    ? library.templates
+    : (INITIAL_LIBRARY?.templates || []);
+
+  const filteredTemplates = rawTemplates.filter((t) => {
     const title = (t.title || '').toLowerCase();
     return title.includes(searchQuery.toLowerCase());
   });

@@ -222,7 +222,10 @@ export default function TrackFieldPlanner() {
   });
 
   const [dayTitles, setDayTitles] = useState({});
-  const [library, setLibrary] = useState({ drills: [], templates: [] });
+  const [library, setLibrary] = useState({
+    drills: INITIAL_LIBRARY?.drills || [],
+    templates: INITIAL_LIBRARY?.templates || [],
+  });
   const [programs, setPrograms] = useState([]);
   const [monthWorkouts, setMonthWorkouts] = useState({});
 
@@ -530,108 +533,124 @@ export default function TrackFieldPlanner() {
   }, [selectedAthleteId]);
 
   const fetchLibraryData = async () => {
-    let { data: drillsData, error: drillsError } = await supabase
-      .from('track_library_drills')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (drillsError) {
-      console.error("Supabase drills fetch error:", drillsError);
-      handleToast(`Drills Error: ${drillsError.message}`);
-    }
-    
-    // Auto-seed drills if database is empty or outdated (less than 100 drills)
-    if (!drillsError && (!drillsData || drillsData.length < 100)) {
-      const initialDrillsFormatted = INITIAL_LIBRARY.drills.map(d => ({
-        id: d.id,
-        title: d.title,
-        details: d.details,
-        type: d.type,
-        percentage: d.percentage,
-        sets: d.sets,
-        reps: d.reps,
-        distance: d.distance,
-        rest: d.rest,
-        unit: d.unit
-      }));
-      const { data: seeded, error: seedError } = await supabase
+    try {
+      let { data: drillsData, error: drillsError } = await supabase
         .from('track_library_drills')
-        .upsert(initialDrillsFormatted, { onConflict: 'id' })
-        .select();
-      if (seedError) {
-        console.error("Supabase drills seeding error:", seedError);
-        handleToast(`Seeding Error: ${seedError.message}`);
-      } else if (seeded) {
-        drillsData = seeded;
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (drillsError) {
+        console.warn("Supabase drills fetch error, falling back to local library:", drillsError);
       }
-    }
+      
+      // Auto-seed drills if database is empty or outdated (less than 100 drills)
+      if (!drillsError && (!drillsData || drillsData.length < 100)) {
+        const initialDrillsFormatted = INITIAL_LIBRARY.drills.map(d => ({
+          id: d.id,
+          title: d.title,
+          details: d.details,
+          type: d.type,
+          percentage: d.percentage,
+          sets: d.sets,
+          reps: d.reps,
+          distance: d.distance,
+          rest: d.rest,
+          unit: d.unit
+        }));
+        const { data: seeded, error: seedError } = await supabase
+          .from('track_library_drills')
+          .upsert(initialDrillsFormatted, { onConflict: 'id' })
+          .select();
+        if (seedError) {
+          console.warn("Supabase drills seeding error:", seedError);
+        } else if (seeded) {
+          drillsData = seeded;
+        }
+      }
 
-    let { data: templatesData, error: templatesError } = await supabase
-      .from('track_week_templates')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (templatesError) {
-      console.error("Supabase templates fetch error:", templatesError);
-    }
-
-    // Auto-seed templates if database is empty
-    if (!templatesError && (!templatesData || templatesData.length === 0)) {
-      const initialTemplatesFormatted = INITIAL_LIBRARY.templates.map(t => ({
-        template_name: t.title,
-        template_type: t.type,
-        drills: t.drills
-      }));
-      const { data: seededTpl, error: seedTplError } = await supabase
+      let { data: templatesData, error: templatesError } = await supabase
         .from('track_week_templates')
-        .insert(initialTemplatesFormatted)
-        .select();
-      if (seedTplError) {
-        console.error("Supabase templates seeding error:", seedTplError);
-      } else if (seededTpl) {
-        templatesData = seededTpl;
-      }
-    }
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    const formattedDrills = (drillsData || []).map((d) => ({
-      ...d,
-      forceVector: d.force_vector ?? d.forceVector,
-      sscType: d.ssc_type ?? d.sscType,
-      cnsDemand: d.cns_demand ?? d.cnsDemand,
-      vbtZone: d.vbt_zone ?? d.vbtZone,
-      velocityLossCutoff: d.velocity_loss_cutoff ?? d.velocityLossCutoff,
-      targetVelocity: d.target_velocity ?? d.targetVelocity,
-      peakVelocity: d.peak_velocity ?? d.peakVelocity,
-      velocityLoss: d.velocity_loss ?? d.velocityLoss,
-    }));
-    setLibrary({ drills: formattedDrills, templates: formattedTemplates });
-    const { data: progData, error: progError } = await supabase
-      .from('track_macro_programs')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (progError) {
-      console.error("Supabase programs fetch error:", progError);
+      if (templatesError) {
+        console.warn("Supabase templates fetch error:", templatesError);
+      }
+
+      // Auto-seed templates if database is empty
+      if (!templatesError && (!templatesData || templatesData.length === 0)) {
+        const initialTemplatesFormatted = INITIAL_LIBRARY.templates.map(t => ({
+          template_name: t.title,
+          template_type: t.type,
+          drills: t.drills
+        }));
+        const { data: seededTpl, error: seedTplError } = await supabase
+          .from('track_week_templates')
+          .insert(initialTemplatesFormatted)
+          .select();
+        if (seedTplError) {
+          console.warn("Supabase templates seeding error:", seedTplError);
+        } else if (seededTpl) {
+          templatesData = seededTpl;
+        }
+      }
+
+      const rawTemplates = (templatesData && templatesData.length > 0) ? templatesData : (INITIAL_LIBRARY?.templates || []);
+      const formattedTemplates = rawTemplates.map((t) => ({
+        id: t.id,
+        title: t.template_name || t.title,
+        type: t.template_type || t.type,
+        drills: t.drills,
+      }));
+
+      const rawDrills = (drillsData && drillsData.length > 0) ? drillsData : (INITIAL_LIBRARY?.drills || []);
+      const formattedDrills = rawDrills.map((d) => ({
+        ...d,
+        forceVector: d.force_vector ?? d.forceVector,
+        sscType: d.ssc_type ?? d.sscType,
+        cnsDemand: d.cns_demand ?? d.cnsDemand,
+        vbtZone: d.vbt_zone ?? d.vbtZone,
+        velocityLossCutoff: d.velocity_loss_cutoff ?? d.velocityLossCutoff,
+        targetVelocity: d.target_velocity ?? d.targetVelocity,
+        peakVelocity: d.peak_velocity ?? d.peakVelocity,
+        velocityLoss: d.velocity_loss ?? d.velocityLoss,
+      }));
+      setLibrary({ drills: formattedDrills, templates: formattedTemplates });
+
+      const { data: progData, error: progError } = await supabase
+        .from('track_macro_programs')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (progError) {
+        console.warn("Supabase programs fetch error:", progError);
+      }
+      const fetchedPrograms = progData || [];
+      let merged = [...fetchedPrograms];
+      const hasDefault1 = merged.some(p => p.program_name === DEFAULT_800M_PROGRAM.program_name);
+      if (!hasDefault1) {
+        merged = [DEFAULT_800M_PROGRAM, ...merged];
+      }
+      const hasDefault2 = merged.some(p => p.program_name === DEFAULT_6WEEK_800M_PROGRAM.program_name);
+      if (!hasDefault2) {
+        merged = [DEFAULT_6WEEK_800M_PROGRAM, ...merged];
+      }
+      const hasDefault3 = merged.some(p => p.program_name === DEFAULT_LONG_JUMP_PROGRAM.program_name);
+      if (!hasDefault3) {
+        merged = [DEFAULT_LONG_JUMP_PROGRAM, ...merged];
+      }
+      const hasDefault4 = merged.some(p => p.program_name === DEFAULT_TRIPLE_JUMP_PROGRAM.program_name);
+      if (!hasDefault4) {
+        merged = [DEFAULT_TRIPLE_JUMP_PROGRAM, ...merged];
+      }
+      setPrograms(merged);
+    } catch (err) {
+      console.warn("Unexpected error in fetchLibraryData, keeping default library:", err);
+      setLibrary({
+        drills: INITIAL_LIBRARY?.drills || [],
+        templates: INITIAL_LIBRARY?.templates || [],
+      });
     }
-    const fetchedPrograms = progData || [];
-    let merged = [...fetchedPrograms];
-    const hasDefault1 = merged.some(p => p.program_name === DEFAULT_800M_PROGRAM.program_name);
-    if (!hasDefault1) {
-      merged = [DEFAULT_800M_PROGRAM, ...merged];
-    }
-    const hasDefault2 = merged.some(p => p.program_name === DEFAULT_6WEEK_800M_PROGRAM.program_name);
-    if (!hasDefault2) {
-      merged = [DEFAULT_6WEEK_800M_PROGRAM, ...merged];
-    }
-    const hasDefault3 = merged.some(p => p.program_name === DEFAULT_LONG_JUMP_PROGRAM.program_name);
-    if (!hasDefault3) {
-      merged = [DEFAULT_LONG_JUMP_PROGRAM, ...merged];
-    }
-    const hasDefault4 = merged.some(p => p.program_name === DEFAULT_TRIPLE_JUMP_PROGRAM.program_name);
-    if (!hasDefault4) {
-      merged = [DEFAULT_TRIPLE_JUMP_PROGRAM, ...merged];
-    }
-    setPrograms(merged);
   };
   useEffect(() => {
     fetchLibraryData();
@@ -1928,7 +1947,7 @@ export default function TrackFieldPlanner() {
 
   const handleSaveLibraryExercise = async () => {
     if (!addExerciseModal.title.trim()) return;
-    const drillData = {
+    const baseDrillData = {
       title: addExerciseModal.title || '',
       details: addExerciseModal.details || '',
       type: addExerciseModal.type || 'speed',
@@ -1940,21 +1959,49 @@ export default function TrackFieldPlanner() {
       distance: addExerciseModal.distance || '',
       rest: addExerciseModal.rest || '',
       unit: addExerciseModal.unit || 'meters',
-      targetVelocity: addExerciseModal.targetVelocity || null,
-      peakVelocity: addExerciseModal.peakVelocity || null,
-      velocityLoss: addExerciseModal.velocityLoss || null,
     };
+    const drillDataWithVBT = {
+      ...baseDrillData,
+      target_velocity: addExerciseModal.targetVelocity || null,
+      peak_velocity: addExerciseModal.peakVelocity || null,
+      velocity_loss: addExerciseModal.velocityLoss || null,
+    };
+
+    const formatSavedDrill = (d) => ({
+      ...d,
+      targetVelocity: d.target_velocity ?? d.targetVelocity,
+      peakVelocity: d.peak_velocity ?? d.peakVelocity,
+      velocityLoss: d.velocity_loss ?? d.velocityLoss,
+      forceVector: d.force_vector ?? d.forceVector,
+      sscType: d.ssc_type ?? d.sscType,
+      cnsDemand: d.cns_demand ?? d.cnsDemand,
+      vbtZone: d.vbt_zone ?? d.vbtZone,
+    });
+
     if (addExerciseModal.id) {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('track_library_drills')
-        .update(drillData)
+        .update(drillDataWithVBT)
         .eq('id', addExerciseModal.id)
         .select();
+
+      if (error) {
+        console.warn("Retrying drill update without VBT columns:", error);
+        const retry = await supabase
+          .from('track_library_drills')
+          .update(baseDrillData)
+          .eq('id', addExerciseModal.id)
+          .select();
+        data = retry.data;
+        error = retry.error;
+      }
+
       if (!error && data) {
+        const savedDrill = formatSavedDrill(data[0]);
         setLibrary((prev) => ({
           ...prev,
           drills: (prev?.drills || []).map((d) =>
-            d.id === addExerciseModal.id ? data[0] : d
+            d.id === addExerciseModal.id ? savedDrill : d
           ),
         }));
         setAddExerciseModal({
@@ -1980,15 +2027,31 @@ export default function TrackFieldPlanner() {
       }
     } else {
       const drillWithId = {
-        ...drillData,
+        ...drillDataWithVBT,
         id: `drill-${Date.now()}-${Math.floor(Math.random() * 10000)}`
       };
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('track_library_drills')
         .insert([drillWithId])
         .select();
+
+      if (error) {
+        console.warn("Retrying drill insert without VBT columns:", error);
+        const fallbackDrill = {
+          ...baseDrillData,
+          id: drillWithId.id
+        };
+        const retry = await supabase
+          .from('track_library_drills')
+          .insert([fallbackDrill])
+          .select();
+        data = retry.data;
+        error = retry.error;
+      }
+
       if (!error && data) {
-        setLibrary((prev) => ({ ...prev, drills: [data[0], ...(prev?.drills || [])] }));
+        const savedDrill = formatSavedDrill(data[0]);
+        setLibrary((prev) => ({ ...prev, drills: [savedDrill, ...(prev?.drills || [])] }));
         setAddExerciseModal({
           isOpen: false,
           id: null,
