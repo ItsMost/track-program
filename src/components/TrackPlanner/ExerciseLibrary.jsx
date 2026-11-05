@@ -256,7 +256,7 @@ export default function ExerciseLibrary({
                   setActiveCategoryFilter('all');
                   setActiveSubcategoryFilter('all');
                 }}
-                className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border shrink-0 ${
+                className={`px-2 py-0.5 rounded-lg text-[12px] font-semibold transition-all border shrink-0 ${
                   activeCategoryFilter === 'all'
                     ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
                     : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400'
@@ -271,7 +271,7 @@ export default function ExerciseLibrary({
                     setActiveCategoryFilter(key);
                     setActiveSubcategoryFilter('all');
                   }}
-                  className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border shrink-0 ${
+                  className={`px-2 py-0.5 rounded-lg text-[12px] font-semibold transition-all border shrink-0 ${
                     activeCategoryFilter === key
                       ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
                       : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400'
@@ -289,7 +289,7 @@ export default function ExerciseLibrary({
                   <button
                     key={`subcategory-pill-${key}`}
                     onClick={() => setActiveSubcategoryFilter(key)}
-                    className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all border shrink-0 ${
+                    className={`px-2 py-0.5 rounded-lg text-[11.5px] font-semibold transition-all border shrink-0 ${
                       activeSubcategoryFilter === key
                         ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
                         : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400'
@@ -312,7 +312,7 @@ export default function ExerciseLibrary({
             setSearchQuery('');
             setActiveCategoryFilter('all');
           }}
-          className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+          className={`flex-1 py-1.5 rounded-lg text-[13px] font-semibold transition-all ${
             activeTab === 'drills'
               ? 'bg-white dark:bg-slate-700 text-orange-500 shadow-sm border border-slate-200/50'
               : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700/50'
@@ -325,7 +325,7 @@ export default function ExerciseLibrary({
             setActiveTab('templates');
             setSearchQuery('');
           }}
-          className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+          className={`flex-1 py-1.5 rounded-lg text-[13px] font-semibold transition-all ${
             activeTab === 'templates'
               ? 'bg-white dark:bg-slate-700 text-orange-500 shadow-sm border border-slate-200/50'
               : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700/50'
@@ -338,7 +338,7 @@ export default function ExerciseLibrary({
             setActiveTab('programs');
             setSearchQuery('');
           }}
-          className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+          className={`flex-1 py-1.5 rounded-lg text-[13px] font-semibold transition-all ${
             activeTab === 'programs'
               ? 'bg-white dark:bg-slate-700 text-orange-500 shadow-sm border border-slate-200/50'
               : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700/50'
@@ -356,9 +356,9 @@ export default function ExerciseLibrary({
             {/* Create New Exercise Button */}
             <button
               onClick={onAddDrill}
-              className="w-full mb-3 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-bold text-[10px] uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md shadow-orange-500/10 transition-all hover:scale-[1.01]"
+              className="w-full mb-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-[13.5px] flex items-center justify-center gap-1.5 transition-colors"
             >
-              <Plus className="w-3.5 h-3.5" /> Create New Exercise
+              <Plus className="w-4 h-4" /> New exercise
             </button>
 
             {/* Premium Dashed Dropzone for Drag-and-Drop back to Library */}
@@ -368,11 +368,11 @@ export default function ExerciseLibrary({
               className="mb-4 p-4 bg-orange-500/5 dark:bg-orange-500/10 border-2 border-dashed border-orange-500/20 dark:border-orange-500/30 rounded-2xl flex flex-col items-center justify-center gap-1.5 hover:bg-orange-500/10 dark:hover:bg-orange-500/20 hover:border-orange-500/40 transition-all cursor-pointer group"
             >
               <Plus className="w-4.5 h-4.5 text-orange-500 group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider text-center">
-                Drag Workout Here to Save
+              <span className="text-[12.5px] font-semibold text-slate-700 dark:text-slate-300 text-center">
+                Save an exercise to the library
               </span>
-              <span className="text-[8px] font-medium text-slate-400 text-center leading-normal">
-                Drag any workout drill from calendar and drop here to archive in your library
+              <span className="text-[11.5px] text-slate-500 text-center leading-normal">
+                Drag an exercise from the week and drop it here to save it to the library
               </span>
             </div>
 
@@ -396,23 +396,23 @@ export default function ExerciseLibrary({
                       </h4>
                       <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                         {drill.type === 'tempo_intensive' ? (
-                          <span className="text-[9px] font-black text-cyan-600 dark:text-cyan-400 uppercase tracking-wider flex items-center gap-1">
+                          <span className="text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(6,182,212,0.8)] inline-block" />
                             TEMPO (INTENSIVE)
                           </span>
                         ) : (
-                          <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">
+                          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                             {getCategoryDisplayName(drill.type)}
                           </span>
                         )}
                         {isCoreOrAccessory(drill) ? (
-                          <span className="text-[8px] font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-1 rounded">
+                          <span className="text-[10.5px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-1 rounded">
                             🛡️ BW / Core (0 CNS Tax)
                           </span>
                         ) : (
                           <>
                             {drill.cnsDemand && (
-                              <span className={`text-[8px] font-black px-1 rounded ${
+                              <span className={`text-[10.5px] font-semibold px-1 rounded ${
                                 drill.cnsDemand === 'High' ? 'text-rose-500 bg-rose-500/10' :
                                 drill.cnsDemand === 'Medium' ? 'text-amber-500 bg-amber-500/10' : 'text-emerald-500 bg-emerald-500/10'
                               }`}>
@@ -420,12 +420,12 @@ export default function ExerciseLibrary({
                               </span>
                             )}
                             {drill.forceVector && (
-                              <span className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1 rounded">
+                              <span className="text-[10.5px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1 rounded">
                                 {drill.forceVector}
                               </span>
                             )}
                             {drill.vbtZone && (
-                              <span className="text-[8px] font-bold text-violet-600 dark:text-violet-400 bg-violet-500/10 px-1 rounded">
+                              <span className="text-[10.5px] font-semibold text-violet-600 dark:text-violet-400 bg-violet-500/10 px-1 rounded">
                                 {drill.vbtZone.split('(')[0].trim()}
                               </span>
                             )}
@@ -477,7 +477,7 @@ export default function ExerciseLibrary({
                       <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
                         {tpl.title}
                       </h4>
-                      <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase flex items-center gap-0.5">
+                      <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-0.5">
                         <FileText className="w-2.5 h-2.5 text-slate-400" />
                         {tpl.type === 'week' ? 'Weekly' : 'Daily'} Template
                       </span>
@@ -490,7 +490,7 @@ export default function ExerciseLibrary({
                         e.preventDefault();
                         onApplyTemplate(tpl);
                       }}
-                      className="px-2 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-black text-[9px] uppercase tracking-wider shadow-sm transition-all hover:scale-105 active:scale-95 shrink-0"
+                      className="px-2 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold text-[12px] shadow-sm transition-all hover:scale-105 active:scale-95 shrink-0"
                     >
                       Apply
                     </button>
@@ -530,7 +530,7 @@ export default function ExerciseLibrary({
                       <h4 className="text-xs font-extrabold text-slate-800 dark:text-slate-200 leading-tight truncate">
                         {prog.program_name}
                       </h4>
-                      <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase flex items-center gap-0.5 mt-0.5">
+                      <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-0.5 mt-0.5">
                         <Calendar className="w-2.5 h-2.5 text-slate-400" />
                         {(prog.weeks || []).length} Weeks Duration
                       </span>
@@ -547,7 +547,7 @@ export default function ExerciseLibrary({
                   {/* Deploy Button */}
                   <button
                     onClick={() => onApplyProgram(prog)}
-                    className="w-full py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold text-[10px] uppercase tracking-wider flex items-center justify-center gap-1 shadow-sm transition-colors"
+                    className="w-full py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold text-[13px] flex items-center justify-center gap-1 shadow-sm transition-colors"
                   >
                     Deploy to Timeline <ChevronRight className="w-3.5 h-3.5" />
                   </button>

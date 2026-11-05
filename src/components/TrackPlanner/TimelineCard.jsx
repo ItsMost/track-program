@@ -192,6 +192,20 @@ const getCategoryDisplayName = (type) => {
   return baseLabel;
 };
 
+// Short, sentence-case label for the card ("Acceleration", "Resisted sleds")
+// instead of "SPEED (ACCELERATION (10-30M))" in tiny capitals.
+const getShortCategoryLabel = (type) => {
+  const base = getBaseCategory(type);
+  const meta = CATEGORY_META[base] || CATEGORY_META.speed;
+  const baseLabel = meta.label || base;
+  const sub = SUBCATEGORIES[base] && type !== base ? SUBCATEGORIES[base][type] : null;
+  const label = (sub || baseLabel).replace(/\s*\(.*?\)\s*/g, ' ').trim();
+  // Sentence case, but keep acronyms such as SSC / VBT / RAMP.
+  const words = label.split(' ').map((w) => (/[A-Z].*[A-Z]/.test(w) ? w : w.toLowerCase()));
+  const out = words.join(' ');
+  return out.charAt(0).toUpperCase() + out.slice(1);
+};
+
 const TimelineCard = memo(function TimelineCard({
   drill,
   day,
@@ -443,13 +457,13 @@ const TimelineCard = memo(function TimelineCard({
       }
       
       if (drill.distance) {
-        parts.push(`${drill.distance}${drill.unit || 'm'}`);
+        parts.push(`${drill.distance} m`);
       }
-      params.push(parts.join('x'));
+      params.push(parts.join(' × '));
     } else {
       if (drill.sets) {
         if (drill.reps) {
-          params.push(`${drill.sets}x${drill.reps}${drill.unit === 'sec' ? 's' : ''}`);
+          params.push(`${drill.sets} × ${drill.reps}${drill.unit === 'sec' ? ' s' : ''}`);
         } else {
           params.push(`${drill.sets} Sets`);
         }
@@ -476,7 +490,7 @@ const TimelineCard = memo(function TimelineCard({
       {/* Dynamic Left Colored Indicator Stripe */}
       <div className="flex shrink-0 w-1 relative rounded-full overflow-hidden my-0.5">
         <div className={`w-full h-full rounded-full ${
-          drill.type === 'tempo_intensive' ? 'bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]' :
+          drill.type === 'tempo_intensive' ? 'bg-cyan-400' :
           baseCategory === 'tempo' ? 'bg-cyan-500' :
           baseCategory === 'speed' || baseCategory === 'plyometrics' ? 'bg-amber-500' :
           baseCategory === 'endurance' ? 'bg-rose-500' :
@@ -491,7 +505,7 @@ const TimelineCard = memo(function TimelineCard({
       {/* Super Set Vertical Connector Bridge */}
       {drill.superSetNext && (
         <div className="absolute left-[9px] top-[70%] bottom-[-10px] w-0.5 bg-indigo-500 dark:bg-indigo-400 z-20 flex flex-col justify-end items-center">
-          <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-ping absolute bottom-[-2px]" />
+          <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 absolute bottom-[-2px]" />
         </div>
       )}
 
@@ -502,32 +516,27 @@ const TimelineCard = memo(function TimelineCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               {drill.type === 'tempo_intensive' ? (
-                <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider flex items-center gap-1 bg-cyan-400/20 dark:bg-cyan-400/25 text-cyan-600 dark:text-cyan-300 border border-cyan-400/50 shadow-[0_0_8px_rgba(6,182,212,0.35)]">
-                  <Activity className="w-2.5 h-2.5 shrink-0 text-cyan-500 dark:text-cyan-300 animate-pulse" />
-                  TEMPO (INTENSIVE TEMPO)
+                <span className="text-[11px] font-semibold flex items-center gap-1 text-cyan-600 dark:text-cyan-300 min-w-0">
+                  <Activity className="w-3 h-3 shrink-0" />
+                  <span className="truncate">Intensive tempo</span>
                 </span>
               ) : (
-                <span className={`text-[8px] font-black uppercase tracking-wider flex items-center gap-0.5 ${meta.labelColor || 'text-slate-500'}`}>
-                  <IconComponent className="w-2.5 h-2.5 shrink-0" />
-                  {getCategoryDisplayName(drill.type)}
+                <span className={`text-[11px] font-semibold flex items-center gap-1 min-w-0 ${meta.labelColor || 'text-slate-500'}`} title={getCategoryDisplayName(drill.type)}>
+                  <IconComponent className="w-3 h-3 shrink-0" />
+                  <span className="truncate">{getShortCategoryLabel(drill.type)}</span>
                 </span>
               )}
-              {isCore ? (
-                <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-purple-500/10 dark:bg-purple-950/30 text-purple-600 dark:text-purple-300 border border-purple-500/20 flex items-center gap-1 shadow-sm" title="Bodyweight Core & Stability (0 CNS fatigue, low systemic tax)">
-                  <span>🛡️ BW / Core</span>
-                  <span className="opacity-75 font-normal">• Stability (No CNS Tax)</span>
-                </span>
-              ) : drill.percentage ? (
-                <span className="px-1 py-0.2 rounded text-[8px] font-black bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-100/50 dark:border-rose-950/30">
+              {isCore ? null : drill.percentage ? (
+                <span className="tl-num px-1.5 rounded-md text-[11px] font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400">
                   {drill.percentage}{(drill.intensityUnit === 'x BW' || drill.unit === 'x BW') ? 'x BW' : '%'} {(baseCategory === 'speed' || baseCategory === 'endurance' || baseCategory === 'tempo' || baseCategory === 'anaerobic') ? 'Vmax' : (baseCategory === 'strength' || baseCategory === 'power') ? '1RM' : 'Effort'}
                 </span>
               ) : (drill.intensityUnit === 'BW' || drill.unit === 'BW') ? (
-                <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-purple-500/10 dark:bg-purple-950/30 text-purple-600 dark:text-purple-300 border border-purple-500/20 flex items-center gap-1 shadow-sm">
-                  <span>🛡️ BW</span>
+                <span className="px-1.5 rounded-md text-[11px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-300">
+                  Bodyweight
                 </span>
               ) : null}
             </div>
-            <h4 className="text-[12px] sm:text-[13px] font-bold text-slate-800 dark:text-slate-100 leading-snug mt-0.5 group-hover:text-orange-500 dark:group-hover:text-orange-400 transition-colors whitespace-normal break-keep [word-break:keep-all]">
+            <h4 className="text-[13.5px] font-semibold text-slate-900 dark:text-slate-100 leading-snug mt-0.5 pr-1 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
               {drill.title}
             </h4>
           </div>
@@ -576,31 +585,31 @@ const TimelineCard = memo(function TimelineCard({
         </div>
 
         {/* Dynamic Inline Parameter Details & Mini Badges */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5 text-[10px] font-medium text-slate-500 dark:text-slate-400 select-none">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-[11px] font-medium text-slate-500 dark:text-slate-400 select-none">
           {renderParameters() && (
-            <span className="text-slate-600 dark:text-slate-300 font-semibold">
+            <span className="tl-num text-[13px] text-slate-700 dark:text-slate-200 font-semibold">
               {renderParameters()}
             </span>
           )}
 
           {drill.superSetNext && (
-            <span className="px-1.5 py-0.2 rounded bg-indigo-500 dark:bg-indigo-600 text-white text-[8px] font-black uppercase tracking-wider flex items-center gap-0.5 shadow-sm animate-pulse">
-              ⚡ Super Set
+            <span className="px-1.5 rounded-md bg-indigo-500 dark:bg-indigo-600 text-white text-[10.5px] font-semibold">
+              Superset
             </span>
           )}
 
           {drill.rest ? (
-            <span className="text-sky-600 dark:text-sky-400 flex items-center gap-0.5 font-bold" title="Rest interval between reps / sets">
-              <Clock className="w-2.5 h-2.5 text-sky-500 animate-pulse" />
+            <span className="tl-num text-[12px] text-sky-700 dark:text-sky-400 flex items-center gap-0.5 font-semibold" title="Rest between reps / sets">
+              <Clock className="w-3 h-3 text-sky-500" />
               {drill.rest.includes('/') ? (() => {
                 // Show only the parts that were filled ("4m / " used to render a dangling "/ set").
                 const repRest = drill.rest.split('/')[0].trim();
                 const setRest = drill.rest.split('/')[1].trim();
                 return (
                   <>
-                    {repRest && <span className="text-sky-500 dark:text-sky-400">{repRest}<span className="text-[8px] font-medium opacity-75 ml-0.5">rep</span></span>}
+                    {repRest && <span className="text-sky-500 dark:text-sky-400">{repRest}<span className="text-[10px] font-medium opacity-70 ml-0.5">rep</span></span>}
                     {repRest && setRest && <span className="text-slate-350 dark:text-slate-650 mx-0.5">/</span>}
-                    {setRest && <span className="text-sky-600 dark:text-sky-400">{setRest}<span className="text-[8px] font-medium opacity-75 ml-0.5">set</span></span>}
+                    {setRest && <span className="text-sky-600 dark:text-sky-400">{setRest}<span className="text-[10px] font-medium opacity-70 ml-0.5">set</span></span>}
                   </>
                 );
               })() : (
@@ -625,15 +634,15 @@ const TimelineCard = memo(function TimelineCard({
             const isIntensive = drill.type === 'tempo_intensive';
             return (
               <span 
-                className={`px-1.5 py-0.2 rounded text-[8px] font-black border flex items-center gap-1 ${
+                className={`tl-num px-1.5 rounded-md text-[11.5px] font-semibold flex items-center gap-1.5 ${
                   isIntensive 
-                    ? 'text-cyan-600 dark:text-cyan-300 bg-cyan-500/15 border-cyan-400/40 shadow-[0_0_6px_rgba(6,182,212,0.2)]' 
-                    : 'text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                    ? 'text-cyan-700 dark:text-cyan-300 bg-cyan-500/10' 
+                    : 'text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800'
                 }`}
-                title={`Total Volume: ${totalM}m | Estimated Workload: ~${estLoad} AU`}
+                title={`Total volume: ${totalM} m | Estimated load: ~${estLoad} AU`}
               >
-                <span>📏 {totalM}m</span>
-                {estLoad > 0 && <span className="opacity-80">| ⚡ ~{estLoad} Load</span>}
+                <span>{totalM} m</span>
+                {estLoad > 0 && <span className="opacity-70 font-medium">{estLoad} AU</span>}
               </span>
             );
           })()}
@@ -642,39 +651,34 @@ const TimelineCard = memo(function TimelineCard({
           {(() => {
             const pace = calculateTargetPace();
             if (!pace) return null;
-            if (pace.error) {
-              return (
-                <span className="text-amber-500 dark:text-amber-400 bg-amber-500/5 dark:bg-amber-950/20 px-1 py-0.2 rounded text-[8px] font-bold border border-amber-500/10" title={pace.error}>
-                  🎯 Target: --
-                </span>
-              );
-            }
+            // No PBs in the profile: show nothing rather than an empty "Target: --" chip.
+            if (pace.error) return null;
             if (pace.segments) {
               const isIntensive = drill.type === 'tempo_intensive';
               return (
                 <span 
-                  className={`px-1.5 py-0.2 rounded text-[8px] font-black border flex items-center gap-1 ${
+                  className={`tl-num px-1.5 rounded-md text-[11.5px] font-semibold flex items-center gap-1 ${
                     isIntensive 
-                      ? 'text-cyan-600 dark:text-cyan-300 bg-cyan-500/10 border-cyan-400/30' 
-                      : 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20'
+                      ? 'text-cyan-700 dark:text-cyan-300 bg-cyan-500/10' 
+                      : 'text-amber-700 dark:text-amber-400 bg-amber-500/10'
                   }`}
                   title="Target times calculated per segment from athlete profile PBs"
                 >
-                  🎯 Targets: {pace.segments.map(s => `${s.dist}m: ${s.time ? s.time + 's' : '--'}`).join(' | ')}
+                  Targets {pace.segments.map(s => `${s.dist} m ${s.time ? s.time + ' s' : '--'}`).join(', ')}
                 </span>
               );
             }
             const isIntensive = drill.type === 'tempo_intensive';
             return (
               <span 
-                className={`px-1.5 py-0.2 rounded text-[8px] font-black border ${
+                className={`tl-num px-1.5 rounded-md text-[11.5px] font-semibold ${
                   isIntensive 
-                    ? 'text-cyan-600 dark:text-cyan-300 bg-cyan-500/10 border-cyan-400/30' 
-                    : 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20'
+                    ? 'text-cyan-700 dark:text-cyan-300 bg-cyan-500/10' 
+                    : 'text-amber-700 dark:text-amber-400 bg-amber-500/10'
                 }`}
                 title={`Calculated target pace for ${drill.distance}m at ${drill.percentage}% intensity.`}
               >
-                🎯 Target: {pace.time}s
+                Target {pace.time} s
               </span>
             );
           })()}
@@ -685,8 +689,8 @@ const TimelineCard = memo(function TimelineCard({
             if (!load) return null;
             if (load.error) {
               return (
-                <span className="text-sky-500 dark:text-sky-400 bg-sky-500/5 dark:bg-sky-950/20 px-1 py-0.2 rounded text-[8px] font-bold border border-sky-500/10" title={load.error}>
-                  🏋️ {load.name}: --
+                <span className="px-1.5 rounded-md text-[11px] font-medium text-slate-500 bg-slate-100 dark:bg-slate-800" title={load.error}>
+                  {load.name}: set 1RM in profile
                 </span>
               );
             }
@@ -695,8 +699,8 @@ const TimelineCard = memo(function TimelineCard({
               ? `Calculated load for ${load.name} at ${drill.percentage}x Body Weight.`
               : `Calculated load for ${load.name} at ${drill.percentage}% 1RM.`;
             return (
-              <span className="text-sky-600 dark:text-sky-400 bg-sky-500/10 px-1 py-0.2 rounded text-[8px] font-black border border-sky-500/20" title={titleStr}>
-                🏋️ {load.name}: {load.weight}kg {load.pct1RM ? `(${load.pct1RM}% 1RM)` : ''}
+              <span className="tl-num px-1.5 rounded-md text-[11.5px] font-semibold text-sky-700 dark:text-sky-400 bg-sky-500/10" title={titleStr}>
+                {load.name} {load.weight} kg{load.pct1RM ? ` (${load.pct1RM}% 1RM)` : ''}
               </span>
             );
           })()}
@@ -707,36 +711,36 @@ const TimelineCard = memo(function TimelineCard({
             if (!vbt) return null;
             return (
               <span 
-                className="text-violet-600 dark:text-violet-400 bg-violet-500/10 px-1 py-0.2 rounded text-[8px] font-black border border-violet-500/20 flex items-center gap-1"
+                className="tl-num text-violet-700 dark:text-violet-400 bg-violet-500/10 px-1.5 rounded-md text-[11px] font-semibold flex items-center gap-1.5"
                 title={`VBT Target: Mean ${vbt.mean || '--'}, Peak ${vbt.peak || '--'}${vbt.zone ? ` (${vbt.zone})` : ''}. Stop set at ${vbt.loss || '10% Cutoff'}.`}
               >
-                <span>⚡ {vbt.mean ? `Mean: ${vbt.mean}` : ''}</span>
-                {vbt.peak && <span className="opacity-80 font-normal">| 🚀 Peak: {vbt.peak}</span>}
-                {vbt.loss && <span className="text-rose-500 font-bold">| 🛑 {vbt.loss}</span>}
+                {vbt.mean && <span>Mean {vbt.mean}</span>}
+                {vbt.peak && <span className="opacity-75 font-medium">Peak {vbt.peak}</span>}
+                {vbt.loss && <span className="text-rose-600 dark:text-rose-400">Stop at {vbt.loss}</span>}
               </span>
             );
           })()}
 
           {/* Research-Grade Scientific Tags */}
           {drill.forceVector && (
-            <span className="px-1 py-0.2 rounded text-[8px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" title={`Force Vector: ${drill.forceVector}`}>
-              ↔️ {drill.forceVector}
+            <span className="px-1.5 rounded-md text-[10.5px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" title={`Force vector: ${drill.forceVector}`}>
+              {drill.forceVector}
             </span>
           )}
           {drill.sscType && (
-            <span className="px-1 py-0.2 rounded text-[8px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20" title={`SSC Type: ${drill.sscType}`}>
-              ⚡ {drill.sscType}
+            <span className="px-1.5 rounded-md text-[10.5px] font-medium bg-blue-500/10 text-blue-700 dark:text-blue-400" title={`SSC type: ${drill.sscType}`}>
+              {drill.sscType}
             </span>
           )}
           {drill.cnsDemand && !isCore && (
-            <span className={`px-1 py-0.2 rounded text-[8px] font-black border ${
+            <span className={`px-1.5 rounded-md text-[10.5px] font-semibold border ${
               drill.cnsDemand === 'High' 
                 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30' 
                 : drill.cnsDemand === 'Medium'
                 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
                 : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
             }`} title={`CNS Demand: ${drill.cnsDemand}`}>
-              🧠 CNS: {drill.cnsDemand}
+              CNS {drill.cnsDemand.toLowerCase()}
             </span>
           )}
 
@@ -747,19 +751,16 @@ const TimelineCard = memo(function TimelineCard({
                 setShowNotes(!showNotes);
               }}
               className="p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded print:hidden"
-              title="View Coaching Notes"
+              title="Coaching notes" aria-label="Show coaching notes"
             >
-              <Info className="w-2.5 h-2.5" />
+              <Info className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
 
         {/* Expandable Technical Coaching notes */}
         {(showNotes || isPreviewMode) && drill.details ? (
-          <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed pl-2 border-l border-slate-300 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-900/30 p-1 rounded-r-lg">
-            <span className="font-bold block text-[8px] text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5">
-              Technical Cue
-            </span>
+          <p dir="auto" className="mt-1.5 text-[12px] text-slate-600 dark:text-slate-300 leading-relaxed pl-2 border-l-2 border-orange-300 dark:border-orange-700 py-0.5">
             {drill.details}
           </p>
         ) : null}
