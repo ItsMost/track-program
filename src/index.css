@@ -218,3 +218,15 @@
     }
   }
 }
+
+/* Track Lab type roles: same system font; numbers use tabular figures so columns line up. */
+.tl-display {
+  letter-spacing: -0.01em;
+}
+.tl-num {
+  font-variant-numeric: tabular-nums;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+:focus-visible { outline: 2px solid #f97316; outline-offset: 2px; }

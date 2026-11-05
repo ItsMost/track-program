@@ -3081,7 +3081,7 @@ export default function TrackFieldPlanner() {
       {/* TRACK & FIELD EXERCISE MODAL */}
       {dayDrillModal.isOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-700">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-700">
             <div className="flex justify-between items-center p-5 border-b border-slate-100 dark:border-slate-700">
               <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
                 {dayDrillModal.isNew ? (
@@ -3089,7 +3089,7 @@ export default function TrackFieldPlanner() {
                 ) : (
                   <Edit2 className="w-5 h-5 text-blue-500" />
                 )}
-                {dayDrillModal.isNew ? 'Add Workout Block' : 'Edit Parameters'}
+                {dayDrillModal.isNew ? `Add exercise · ${dayDrillModal.day}` : 'Edit exercise'}
               </h3>
               <button
                 onClick={() =>
@@ -3106,7 +3106,25 @@ export default function TrackFieldPlanner() {
               </button>
             </div>
 
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 overflow-y-auto">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
+                  Exercise Name
+                </label>
+                <input
+                  type="text"
+                  value={dayDrillModal.drill.title}
+                  onChange={(e) =>
+                    setDayDrillModal({
+                      ...dayDrillModal,
+                      drill: { ...dayDrillModal.drill, title: e.target.value },
+                    })
+                  }
+                  placeholder="Exercise Name..."
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                />
+              </div>
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
@@ -3504,24 +3522,6 @@ export default function TrackFieldPlanner() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
-                  Exercise Name
-                </label>
-                <input
-                  type="text"
-                  value={dayDrillModal.drill.title}
-                  onChange={(e) =>
-                    setDayDrillModal({
-                      ...dayDrillModal,
-                      drill: { ...dayDrillModal.drill, title: e.target.value },
-                    })
-                  }
-                  placeholder="Exercise Name..."
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white font-medium outline-none focus:ring-2 focus:ring-blue-500"
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
                   Coaching Notes (Technical Cues)
                 </label>
                 <textarea
@@ -3567,6 +3567,7 @@ export default function TrackFieldPlanner() {
               {!dayDrillModal.isNew ? (
                 <button
                   onClick={() => {
+                    if (!window.confirm('Delete this exercise?\nحذف التمرين؟ (تقدر ترجعه بزر Undo)')) return;
                     handleDeleteExercise(
                       dayDrillModal.day,
                       dayDrillModal.drill.id
@@ -3608,7 +3609,7 @@ export default function TrackFieldPlanner() {
                   } text-white rounded-xl shadow-md font-bold text-sm flex items-center gap-2`}
                 >
                   <Save className="w-4 h-4" />{' '}
-                  {dayDrillModal.isNew ? 'Add' : 'Save'}
+                  {dayDrillModal.isNew ? 'Add exercise' : 'Save changes'}
                 </button>
               </div>
             </div>
@@ -4419,7 +4420,7 @@ export default function TrackFieldPlanner() {
             {DAYS_OF_WEEK.map((day, index) => {
               const fullDateStr = weekDatesFull[index].toLocaleDateString(
                 'en-GB',
-                { day: 'numeric', month: 'short', year: 'numeric' }
+                { day: 'numeric', month: 'short' }
               );
               const dayDrills = schedule[day] || [];
               const { stats: dayStats, dayTotalCombined, dayCnsPct } = dayStatsMap[day];
@@ -4427,22 +4428,28 @@ export default function TrackFieldPlanner() {
               const isDayVisibleOnMobile = activeMobileDay === day;
               const displayClass = isMobileView
                 ? (isDayVisibleOnMobile ? 'flex flex-col w-full px-2 pb-8' : 'hidden print:flex print:flex-col')
-                : 'flex flex-col flex-1 min-w-0 transition-all duration-300';
+                : 'flex flex-col flex-1 min-w-[176px] transition-all duration-300';
 
               return (
                 <div
                   key={day}
                   className={`${displayClass} print:break-inside-avoid print:mb-0`}
                 >
-                  <div className="mb-4 flex flex-col group border-b border-slate-200 dark:border-slate-700 pb-3 px-1 md:px-2">
-                    <div className="flex justify-between items-center mb-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] md:text-xs font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase">
-                          {day}
-                        </span>
-                        {/* Quick Day Copy/Paste Buttons */}
+                  {/* Day header: date + name on the left, actions on the right (revealed on hover on
+                      desktop so they no longer overlap the next column), focus input on its own row. */}
+                  <div className="relative mb-3 flex flex-col group border-b border-slate-200 dark:border-slate-700 pb-2.5 px-1 md:px-1.5">
+                    <div className="flex items-center justify-between gap-2 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="tl-num w-8 h-8 shrink-0 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-sm font-black text-slate-900 dark:text-slate-100">
+                          {weekDates[index]}
+                        </div>
+                        <div className="min-w-0 leading-tight">
+                          <div className="tl-display text-[14px] font-extrabold text-slate-800 dark:text-slate-100 truncate">{day}</div>
+                          <div className="text-[11px] text-slate-400 dark:text-slate-500 truncate">{fullDateStr}</div>
+                        </div>
+                      </div>
                         {!isPreviewMode && (
-                          <div className="flex items-center gap-1.5 print:hidden">
+                          <div className={`flex items-center gap-0.5 shrink-0 print:hidden transition-opacity ${isMobileView ? '' : 'md:absolute md:right-0 md:top-0 md:bg-white md:dark:bg-slate-900 md:rounded-lg md:border md:border-slate-200 md:dark:border-slate-700 md:p-0.5 md:shadow-sm md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100'}`}>
                             <button
                               onClick={() => handleCopyDay(day)}
                               className="p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-orange-500 dark:hover:text-orange-400 rounded transition-colors"
@@ -4487,60 +4494,50 @@ export default function TrackFieldPlanner() {
                             </button>
                           </div>
                         )}
-                      </div>
-                      <span className="text-[9px] md:text-[10px] font-semibold text-slate-400 dark:text-slate-500 whitespace-nowrap">
-                        {fullDateStr}
-                      </span>
                     </div>
-                    <div className="flex items-start gap-1 md:gap-2 justify-between">
-                      <div className="flex items-start gap-1 md:gap-2 flex-1">
-                        <div className="w-6 h-6 md:w-8 md:h-8 shrink-0 rounded-full border border-slate-200 dark:border-slate-800 flex items-center justify-center text-xs md:text-sm font-black text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 shadow-sm">
-                          {weekDates[index]}
-                        </div>
-                        <input
-                          type="text"
-                          value={dayTitles[day] || ''}
-                          onChange={(e) =>
-                            handleDayTitleChange(day, e.target.value)
-                          }
-                          placeholder="Workout Focus"
-                          className="text-xs md:text-[14px] font-bold text-slate-900 dark:text-slate-50 bg-transparent border-none outline-none w-full placeholder-slate-400 dark:placeholder-slate-500"
-                          readOnly={isPreviewMode}
-                        />
-                      </div>
-                    </div>
+                    <input
+                      type="text"
+                      value={dayTitles[day] || ''}
+                      onChange={(e) =>
+                        handleDayTitleChange(day, e.target.value)
+                      }
+                      placeholder="Session focus"
+                      aria-label={`${day} session focus`}
+                      className="mt-2 text-[14px] font-bold text-slate-900 dark:text-slate-50 bg-transparent border-0 border-b border-transparent focus:border-orange-400 outline-none w-full px-0.5 py-0.5 placeholder-slate-400 dark:placeholder-slate-500 transition-colors"
+                      readOnly={isPreviewMode}
+                    />
                   </div>
 
                   {/* Research-Grade Day Biometrics Pill Bar */}
                   {dayDrills.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-1.5 mb-2.5 px-1.5 py-1 bg-slate-50/80 dark:bg-slate-900/60 rounded-xl border border-slate-200/50 dark:border-slate-800/60 text-[9px] print:hidden">
+                    <div className="tl-num flex flex-wrap items-center gap-1.5 mb-2.5 px-1 text-[12px] print:hidden">
                       {/* CNS Score & Level Pill */}
                       <span
-                        className={`px-1.5 py-0.5 rounded-lg font-black uppercase tracking-wider flex items-center gap-1 border ${
+                        className={`px-1.5 py-0.5 rounded-md font-semibold flex items-center gap-1 border ${
                           dayStats.cnsLevel === 'High'
-                            ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 shadow-[0_0_8px_rgba(239,68,68,0.2)]'
+                            ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
                             : dayStats.cnsLevel === 'Med'
                             ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
                             : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
                         }`}
                         title={`CNS Neural Load: ${dayStats.cnsScore || 0}/100. High-CNS sessions require 48h neural recovery.`}
                       >
-                        🧠 CNS: {dayStats.cnsLevel || 'Low'} ({dayStats.cnsScore || 0})
+                        CNS {(dayStats.cnsLevel || 'Low').toLowerCase()} {dayStats.cnsScore || 0}
                       </span>
 
                       {/* Sprint Volume Pill */}
                       {(dayStats.totalMeters || 0) > 0 && (
                         <span
-                          className={`px-1.5 py-0.5 rounded-lg font-black flex items-center gap-1 border ${
+                          className={`px-1.5 py-0.5 rounded-md font-semibold flex items-center gap-1 border ${
                             dayStats.accelAlert || dayStats.maxVelAlert
                               ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
                               : 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30'
                           }`}
                           title={`Sprint Volume: ${dayStats.totalMeters}m (Accel: ${dayStats.accelMeters || 0}m, MaxVel: ${dayStats.maxVelMeters || 0}m, SpeedEnd: ${dayStats.speedEnduranceMeters || 0}m, Tempo: ${dayStats.tempoMeters || 0}m)${dayStats.accelAlert ? ' | ⚠️ Accel >300m cap exceeded!' : ''}${dayStats.maxVelAlert ? ' | ⚠️ MaxVel >150m cap exceeded!' : ''}`}
                         >
-                          🏃 {dayStats.totalMeters}m
+                          {dayStats.totalMeters} m
                           {(dayStats.accelAlert || dayStats.maxVelAlert) && (
-                            <span className="text-[8px] text-rose-500 font-extrabold animate-pulse">⚠️ CAP</span>
+                            <span className="text-rose-600 font-bold">over cap</span>
                           )}
                         </span>
                       )}
@@ -4548,16 +4545,16 @@ export default function TrackFieldPlanner() {
                       {/* Plyo Ground Contacts Pill */}
                       {(dayStats.totalContacts || 0) > 0 && (
                         <span
-                          className={`px-1.5 py-0.5 rounded-lg font-black flex items-center gap-1 border ${
+                          className={`px-1.5 py-0.5 rounded-md font-semibold flex items-center gap-1 border ${
                             dayStats.plyoAlert
                               ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
                               : 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30'
                           }`}
                           title={`Ground Contacts: ${dayStats.totalContacts} (Fast SSC: ${dayStats.fastSscContacts || 0}, Slow SSC: ${dayStats.slowSscContacts || 0})${dayStats.plyoAlert ? ' | ⚠️ Safe session limit (>80 Fast or >100 Total)!' : ''}`}
                         >
-                          ⚡ {dayStats.totalContacts}ct
+                          {dayStats.totalContacts} contacts
                           {dayStats.plyoAlert && (
-                            <span className="text-[8px] text-rose-500 font-extrabold animate-pulse">⚠️ CAP</span>
+                            <span className="text-rose-600 font-bold">over cap</span>
                           )}
                         </span>
                       )}
@@ -4565,10 +4562,10 @@ export default function TrackFieldPlanner() {
                       {/* Consecutive High-CNS Day Warning */}
                       {weeklyStats.consecutiveHighDays?.flat()?.includes(day) && (
                         <span
-                          className="px-1.5 py-0.5 rounded-lg font-black uppercase text-amber-500 bg-amber-500/15 border border-amber-500/40 animate-pulse flex items-center gap-0.5"
+                          className="px-1.5 py-0.5 rounded-md font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/15 border border-amber-500/40 flex items-center gap-0.5"
                           title="High/Low Warning: Back-to-back High-CNS training days violate the Charlie Francis High/Low model and risk neural fatigue."
                         >
-                          ⚠️ B2B High CNS
+                          High CNS back to back
                         </span>
                       )}
                     </div>
@@ -4622,12 +4619,12 @@ export default function TrackFieldPlanner() {
                     {/* Enhanced T&F Daily Card Summary */}
                     {schedule[day].length > 0 && !isPreviewMode && (
                       <div className="mt-4 p-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-2 print:hidden">
-                        <div className="flex justify-between items-center text-[10px] sm:text-xs font-bold">
+                        <div className="tl-num flex justify-between items-center text-[15px] font-semibold">
                           <div
                             className="flex flex-col items-center text-slate-400"
                             title="Total Exercises"
                           >
-                            <span className="text-[8px] uppercase">Drills</span>
+                            <span className="font-sans text-[10.5px] font-medium">Exercises</span>
                             <span className="text-slate-700 dark:text-slate-300">
                               {dayStats.totalExercises}
                             </span>
@@ -4637,7 +4634,7 @@ export default function TrackFieldPlanner() {
                             className="flex flex-col items-center text-orange-500"
                             title="Overall System Load"
                           >
-                            <span className="text-orange-400 text-[8px] uppercase">
+                            <span className="text-orange-400 font-sans text-[10.5px] font-medium">
                               Load
                             </span>
                             <span>{dayStats.totalVolumeScore}</span>
@@ -4653,10 +4650,10 @@ export default function TrackFieldPlanner() {
                               className="flex flex-col items-center text-indigo-500"
                               title="Total Sprints Distance"
                             >
-                              <span className="text-indigo-400 text-[8px] uppercase">
+                              <span className="text-indigo-400 font-sans text-[10.5px] font-medium">
                                 Meters
                               </span>
-                              <span>{dayStats.totalMeters}m</span>
+                              <span>{dayStats.totalMeters} m</span>
                             </div>
                           )}
                           {dayStats.totalContacts > 0 && (
@@ -4664,7 +4661,7 @@ export default function TrackFieldPlanner() {
                               className="flex flex-col items-center text-amber-500"
                               title="Total Foot Contacts"
                             >
-                              <span className="text-amber-400 text-[8px] uppercase">
+                              <span className="text-amber-400 font-sans text-[10.5px] font-medium">
                                 Contacts
                               </span>
                               <span>{dayStats.totalContacts}</span>

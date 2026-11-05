@@ -90,11 +90,11 @@ export default function Header({
           <Activity className="w-5 h-5 text-white" />
         </div>
         <div className="hidden sm:block">
-          <h1 className="text-base font-extrabold tracking-tight text-slate-900 dark:text-slate-50 leading-none">
+          <h1 className="text-base font-extrabold tracking-tight text-slate-900 dark:text-slate-50 leading-none whitespace-nowrap">
             Track Lab
           </h1>
-          <span className="text-[10px] font-bold text-orange-500 tracking-wider uppercase">
-            Performance Core
+          <span className="hidden 2xl:block text-[11px] font-semibold text-orange-600 whitespace-nowrap">
+            Performance core
           </span>
         </div>
       </div>
@@ -114,7 +114,7 @@ export default function Header({
         >
           Today
         </button>
-        <span className="text-xs font-bold text-slate-900 dark:text-slate-100 px-2 min-w-[120px] text-center select-none">
+        <span className="text-xs font-bold text-slate-900 dark:text-slate-100 px-2 min-w-[120px] text-center select-none whitespace-nowrap">
           {formatDateRange()}
         </span>
         <button
@@ -135,14 +135,14 @@ export default function Header({
 
       {/* Top Header Workload Summary Widget */}
       {weeklyStats && (
-        <div className="hidden lg:flex items-center gap-3.5 px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm transition-all duration-200">
+        <div className="hidden xl:flex items-center gap-3 px-3.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl whitespace-nowrap transition-all duration-200">
           {/* Total Load */}
           <div className="flex items-center gap-1.5">
             <BarChart3 className="w-4 h-4 text-orange-500" />
-            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-              Total Load:
+            <span className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
+              Week load
             </span>
-            <span className="text-xs font-black text-slate-900 dark:text-slate-100">
+            <span className="tl-num text-[15px] font-semibold text-slate-900 dark:text-slate-100">
               {weeklyStats.load} AU
             </span>
           </div>
@@ -162,38 +162,38 @@ export default function Header({
               badgeClass = 'text-red-600 bg-red-50 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20';
             }
             return (
-              <span className={`px-2.5 py-0.5 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-colors ${badgeClass}`}>
+              <span className={`px-2 py-0.5 rounded-md border text-[11.5px] font-semibold transition-colors ${badgeClass}`}>
                 {label}
               </span>
             );
           })()}
 
-          <div className="w-px h-4 bg-slate-200 dark:bg-slate-800"></div>
+          <div className="hidden 2xl:block w-px h-4 bg-slate-200 dark:bg-slate-800"></div>
 
-          {/* Weekly Intensity */}
-          <div className="flex items-center gap-1.5">
+          {/* Weekly Intensity (wide screens only, so the header never wraps) */}
+          <div className="hidden 2xl:flex items-center gap-1.5">
             <Activity className="w-3.5 h-3.5 text-indigo-500" />
-            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-              Avg Intensity:
+            <span className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
+              Avg intensity
             </span>
-            <span className="text-xs font-black text-slate-900 dark:text-slate-100">
+            <span className="tl-num text-[15px] font-semibold text-slate-900 dark:text-slate-100">
               {weeklyStats.intensity}%
             </span>
           </div>
 
-          <div className="w-px h-4 bg-slate-200 dark:bg-slate-800"></div>
+          <div className="hidden 2xl:block w-px h-4 bg-slate-200 dark:bg-slate-800"></div>
 
           {/* CNS vs Structural Stress */}
-          <div className="flex items-center gap-1.5 select-none">
+          <div className="hidden 2xl:flex items-center gap-1.5 select-none">
             <div className="flex items-center gap-1 bg-red-50 dark:bg-red-950/20 px-2 py-0.5 rounded-lg border border-red-100 dark:border-red-900/30">
-              <span className="text-[8px] font-black text-red-500 dark:text-red-400">CNS:</span>
-              <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200">
+              <span className="text-[11px] font-semibold text-red-600 dark:text-red-400">CNS</span>
+              <span className="tl-num text-[13px] font-semibold text-slate-800 dark:text-slate-200">
                 {weeklyStats.cnsPercentage}%
               </span>
             </div>
             <div className="flex items-center gap-1 bg-blue-50 dark:bg-blue-950/20 px-2 py-0.5 rounded-lg border border-blue-100 dark:border-blue-900/30">
-              <span className="text-[8px] font-black text-blue-500 dark:text-blue-400">STRUCT:</span>
-              <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200">
+              <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400">Structural</span>
+              <span className="tl-num text-[13px] font-semibold text-slate-800 dark:text-slate-200">
                 {weeklyStats.structuralPercentage}%
               </span>
             </div>
@@ -205,13 +205,13 @@ export default function Header({
               <div className="w-px h-4 bg-slate-200 dark:bg-slate-800"></div>
               <div className="flex items-center gap-1.5 select-none">
                 {(weeklyStats.weekMeters || 0) > 0 && (
-                  <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-lg border border-cyan-500/20" title="Total Running Volume This Week">
-                    🏃 {weeklyStats.weekMeters}m
+                  <span className="tl-num text-[13px] font-semibold text-cyan-700 dark:text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-md border border-cyan-500/20" title="Total Running Volume This Week">
+                    {weeklyStats.weekMeters} m
                   </span>
                 )}
                 {(weeklyStats.weekContacts || 0) > 0 && (
-                  <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-lg border border-purple-500/20" title="Total Ground Foot Contacts This Week">
-                    ⚡ {weeklyStats.weekContacts}ct
+                  <span className="tl-num text-[13px] font-semibold text-purple-700 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-md border border-purple-500/20" title="Total Ground Foot Contacts This Week">
+                    {weeklyStats.weekContacts} contacts
                   </span>
                 )}
               </div>
@@ -223,10 +223,10 @@ export default function Header({
             <>
               <div className="w-px h-4 bg-slate-200 dark:bg-slate-800"></div>
               <span
-                className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-500/15 border border-rose-500/40 animate-pulse flex items-center gap-1"
+                className="px-2 py-0.5 rounded-md text-[11.5px] font-semibold text-rose-700 dark:text-rose-400 bg-rose-500/15 border border-rose-500/40 flex items-center gap-1"
                 title={weeklyStats.highLowWarning}
               >
-                ⚠️ High-CNS Overload
+                High CNS back to back
               </span>
             </>
           )}
