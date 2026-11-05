@@ -14,6 +14,7 @@ import {
   Activity
 } from 'lucide-react';
 import { calculateRunningLoad, PACE_SEGMENTS, SEGMENT_STRUCTURE, isCoreOrAccessory } from '../../data/loadModel.js';
+import { resolveLiftMax } from '../../data/liftMapping';
 
 const CATEGORY_META = {
   speed: {
@@ -281,10 +282,12 @@ const TimelineCard = memo(function TimelineCard({
       adjustedTime = time100 / scaleFactor;
     }
 
-    let targetTime = adjustedTime / (pct / 100);
-    if (targetTime > 0.24) {
-      targetTime = targetTime - 0.24;
-    }
+    // Targets are expressed in the same timing as the athlete's PBs.
+    // (The old code subtracted 0.24 s from every target, making all targets,
+    // tempo included, faster than the athlete's own records support.
+    // The 0.24 s hand-to-electronic convention goes the other way: it is
+    // ADDED to a hand time, and only for 100/200 m.)
+    const targetTime = adjustedTime / (pct / 100);
     return { time: targetTime.toFixed(2), exact: !!exact };
   };
 
@@ -322,39 +325,7 @@ const TimelineCard = memo(function TimelineCard({
     if (isNaN(pct) || pct <= 0) return null;
 
     const isBW = drill.intensityUnit === 'x BW' || drill.unit === 'x BW';
-    const titleLower = (drill.title || '').toLowerCase();
-    let liftMax = null;
-    let liftName = '';
-
-    if (titleLower.includes('bench')) {
-      liftMax = athlete?.bench;
-      liftName = 'Bench';
-    } else if (titleLower.includes('clean')) {
-      liftMax = athlete?.clean;
-      liftName = 'Clean';
-    } else if (titleLower.includes('deadlift')) {
-      if (titleLower.includes('trap')) {
-        liftMax = athlete?.trapBarDeadlift || athlete?.trap_bar_deadlift || athlete?.deadlift;
-        liftName = 'Trap Bar DL';
-      } else {
-        liftMax = athlete?.deadlift;
-        liftName = 'Deadlift';
-      }
-    } else if (titleLower.includes('trap bar') || titleLower.includes('hex bar')) {
-      liftMax = athlete?.trapBarDeadlift || athlete?.trap_bar_deadlift || athlete?.deadlift;
-      liftName = 'Trap Bar DL';
-    } else if (titleLower.includes('squat')) {
-      if (titleLower.includes('half')) {
-        liftMax = athlete?.halfSquat;
-        liftName = 'Half Squat';
-      } else if (titleLower.includes('quarter')) {
-        liftMax = athlete?.quarterSquat;
-        liftName = 'Quarter Squat';
-      } else {
-        liftMax = athlete?.fullSquat;
-        liftName = 'Squat';
-      }
-    }
+    const { liftMax, liftName } = resolveLiftMax(drill.title, athlete);
 
     if (isBW) {
       const bwVal = parseFloat(athlete?.weight) || 70;
@@ -448,6 +419,7 @@ const TimelineCard = memo(function TimelineCard({
 
   const handleDeleteClick = (e) => {
     e.stopPropagation();
+    if (!window.confirm(`Delete "${drill.title || 'exercise'}"?\nحذف التمرين؟ (تقدر ترجعه بزر Undo)`)) return;
     onDelete(day, drill.id);
   };
 
@@ -547,7 +519,7 @@ const TimelineCard = memo(function TimelineCard({
                 </span>
               ) : drill.percentage ? (
                 <span className="px-1 py-0.2 rounded text-[8px] font-black bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-100/50 dark:border-rose-950/30">
-                  {drill.percentage}{(drill.intensityUnit === 'x BW' || drill.unit === 'x BW') ? 'x BW' : '%'} {(baseCategory === 'speed' || baseCategory === 'endurance' || baseCategory === 'tempo' || baseCategory === 'anaerobic') ? 'Vmax' : '1RM'}
+                  {drill.percentage}{(drill.intensityUnit === 'x BW' || drill.unit === 'x BW') ? 'x BW' : '%'} {(baseCategory === 'speed' || baseCategory === 'endurance' || baseCategory === 'tempo' || baseCategory === 'anaerobic') ? 'Vmax' : (baseCategory === 'strength' || baseCategory === 'power') ? '1RM' : 'Effort'}
                 </span>
               ) : (drill.intensityUnit === 'BW' || drill.unit === 'BW') ? (
                 <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-purple-500/10 dark:bg-purple-950/30 text-purple-600 dark:text-purple-300 border border-purple-500/20 flex items-center gap-1 shadow-sm">
@@ -620,13 +592,18 @@ const TimelineCard = memo(function TimelineCard({
           {drill.rest ? (
             <span className="text-sky-600 dark:text-sky-400 flex items-center gap-0.5 font-bold" title="Rest interval between reps / sets">
               <Clock className="w-2.5 h-2.5 text-sky-500 animate-pulse" />
-              {drill.rest.includes('/') ? (
-                <>
-                  <span className="text-sky-500 dark:text-sky-400">{drill.rest.split('/')[0].trim()}<span className="text-[8px] font-medium opacity-75 ml-0.5">rep</span></span>
-                  <span className="text-slate-350 dark:text-slate-650 mx-0.5">/</span>
-                  <span className="text-sky-600 dark:text-sky-400">{drill.rest.split('/')[1].trim()}<span className="text-[8px] font-medium opacity-75 ml-0.5">set</span></span>
-                </>
-              ) : (
+              {drill.rest.includes('/') ? (() => {
+                // Show only the parts that were filled ("4m / " used to render a dangling "/ set").
+                const repRest = drill.rest.split('/')[0].trim();
+                const setRest = drill.rest.split('/')[1].trim();
+                return (
+                  <>
+                    {repRest && <span className="text-sky-500 dark:text-sky-400">{repRest}<span className="text-[8px] font-medium opacity-75 ml-0.5">rep</span></span>}
+                    {repRest && setRest && <span className="text-slate-350 dark:text-slate-650 mx-0.5">/</span>}
+                    {setRest && <span className="text-sky-600 dark:text-sky-400">{setRest}<span className="text-[8px] font-medium opacity-75 ml-0.5">set</span></span>}
+                  </>
+                );
+              })() : (
                 drill.rest
               )}
             </span>

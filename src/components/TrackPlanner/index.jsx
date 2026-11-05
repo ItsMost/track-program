@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { resolveLiftMax } from '../../data/liftMapping';
 import * as htmlToImage from 'html-to-image';
 import {
   Check,
@@ -172,6 +173,16 @@ const getBaseCategory = (type) => {
   if (lower.startsWith('triple_jump')) return 'triple_jump';
   return lower;
 };
+
+// Which input layout an exercise uses. These used to compare the exact type
+// string (type === 'speed'), so picking any subcategory (speed_resisted,
+// plyo_fast_ssc, ...) dropped the distance / contacts / duration fields and
+// the meters were then guessed. They now go by the base category.
+const RUN_BASES = ['speed', 'tempo', 'endurance', 'anaerobic'];
+const isRunForm = (type) => RUN_BASES.includes(getBaseCategory(type));
+const isContactForm = (type) =>
+  ['plyometrics', 'long_jump', 'triple_jump'].includes(getBaseCategory(type));
+const isDurationForm = (type) => getBaseCategory(type) === 'isometric';
 
 const DAYS_OF_WEEK = [
   'Saturday',
@@ -690,6 +701,9 @@ export default function TrackFieldPlanner() {
   };
 
   useEffect(() => {
+    // Guards against a slow response from a previously viewed week/athlete
+    // arriving late and being shown (and then saved) under the wrong dates.
+    let cancelled = false;
     const fetchWeekData = async () => {
       if (!selectedAthleteId) {
         setIsLoading(false);
@@ -697,6 +711,9 @@ export default function TrackFieldPlanner() {
       }
       setIsLoading(true);
       try {
+        // Make sure edits from the previous view are written before reading.
+        await flushAllSaves();
+        if (cancelled) return;
         const endStr = getDbDateStr(weekDatesFull[6]);
         const { data } = await supabase
           .from('track_athlete_workouts')
@@ -704,6 +721,7 @@ export default function TrackFieldPlanner() {
           .eq('athlete_id', selectedAthleteId)
           .gte('workout_date', weekStartDateStr)
           .lte('workout_date', endStr);
+        if (cancelled) return;
         const newSchedule = {};
         const newTitles = {};
         DAYS_OF_WEEK.forEach((day) => {
@@ -732,10 +750,14 @@ export default function TrackFieldPlanner() {
       } catch (err) {
         console.error("Error in fetchWeekData:", err);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
     fetchWeekData();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAthleteId, weekStartDateStr]);
 
   useEffect(() => {
@@ -847,27 +869,96 @@ export default function TrackFieldPlanner() {
     fetch4WeekData();
   }, [selectedAthleteId, weekStartDateStr, showStatsModal]);
 
-  const autoSaveDay = useCallback(async (day, drillsToSave, titleToSave) => {
+  // ------------------------------------------------------------------
+  // Auto-save queue (per athlete + date)
+  // Previously every keystroke / edit fired its own upsert with no ordering,
+  // so an older request could land after a newer one and overwrite it
+  // (letters or whole exercises "disappearing"). Now:
+  //  - saves are debounced per day (only the latest state is written)
+  //  - writes for the same day are serialized (never out of order)
+  //  - a failed write is retried once
+  //  - pending writes are flushed before leaving the page
+  // ------------------------------------------------------------------
+  const saveQueueRef = useRef({});
+
+  const performUpsert = async (payload) => {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const { error } = await supabase
+        .from('track_athlete_workouts')
+        .upsert(payload, { onConflict: 'athlete_id,workout_date' });
+      if (!error) return true;
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, 1000));
+      } else {
+        console.error('Supabase auto-save error:', error);
+        handleToast(`Database save failed: ${error.message}`);
+      }
+    }
+    return false;
+  };
+
+  const flushSave = (key) => {
+    const entry = saveQueueRef.current[key];
+    if (!entry) return Promise.resolve();
+    if (entry.timer) {
+      clearTimeout(entry.timer);
+      entry.timer = null;
+    }
+    if (!entry.payload) return entry.chain || Promise.resolve();
+    const payload = entry.payload;
+    entry.payload = null;
+    entry.chain = (entry.chain || Promise.resolve()).then(() => performUpsert(payload));
+    return entry.chain;
+  };
+
+  const flushAllSaves = () =>
+    Promise.all(Object.keys(saveQueueRef.current).map((k) => flushSave(k)));
+
+  // Drop a not-yet-sent save (used before deleting a day so a late save
+  // cannot resurrect it) and wait for any in-flight write to finish.
+  const cancelPendingSave = (athleteId, dateStr) => {
+    const entry = saveQueueRef.current[`${athleteId}|${dateStr}`];
+    if (!entry) return Promise.resolve();
+    if (entry.timer) clearTimeout(entry.timer);
+    entry.timer = null;
+    entry.payload = null;
+    return entry.chain || Promise.resolve();
+  };
+
+  const autoSaveDay = useCallback((day, drillsToSave, titleToSave) => {
     if (!selectedAthleteId) return;
     const dateStr = getDbDateStr(weekDatesFull[DAYS_OF_WEEK.indexOf(day)]);
     const finalTitle =
       titleToSave !== undefined ? titleToSave : dayTitles[day] || '';
     const finalDrills =
       drillsToSave !== undefined ? drillsToSave : schedule[day] || [];
-    const { error } = await supabase.from('track_athlete_workouts').upsert(
-      {
-        athlete_id: selectedAthleteId,
-        workout_date: dateStr,
-        workout_title: finalTitle,
-        drills: finalDrills,
-      },
-      { onConflict: 'athlete_id,workout_date' }
-    );
-    if (error) {
-      console.error("Supabase auto-save error:", error);
-      handleToast(`Database save failed: ${error.message}`);
-    }
+    const key = `${selectedAthleteId}|${dateStr}`;
+    const entry = saveQueueRef.current[key] || (saveQueueRef.current[key] = {});
+    entry.payload = {
+      athlete_id: selectedAthleteId,
+      workout_date: dateStr,
+      workout_title: finalTitle,
+      drills: finalDrills,
+    };
+    if (entry.timer) clearTimeout(entry.timer);
+    entry.timer = setTimeout(() => flushSave(key), 500);
   }, [selectedAthleteId, weekDatesFull, dayTitles, schedule]);
+
+  // Flush pending saves when the tab is closed / reloaded.
+  useEffect(() => {
+    const onBeforeUnload = (e) => {
+      const keys = Object.keys(saveQueueRef.current).filter(
+        (k) => saveQueueRef.current[k].payload
+      );
+      if (keys.length === 0) return;
+      keys.forEach((k) => flushSave(k));
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleUndo = () => {
     if (historyIndex > 0) {
@@ -941,6 +1032,12 @@ export default function TrackFieldPlanner() {
 
   const handlePasteWeek = () => {
     if (!clipboard || clipboard.type !== 'week') return;
+    if (
+      DAYS_OF_WEEK.some((d) => (schedule[d] || []).length > 0) &&
+      !window.confirm('This will replace the current week. Continue?\nهيتم استبدال الأسبوع الحالي. تكمّل؟')
+    ) {
+      return;
+    }
     const newSchedule = {};
     const newTitles = { ...clipboard.data.dayTitles };
     DAYS_OF_WEEK.forEach((day) => {
@@ -1126,6 +1223,28 @@ export default function TrackFieldPlanner() {
   const handleApplyProgramBlock = async (program) => {
     if (!selectedAthleteId || !program.weeks || program.weeks.length === 0)
       return;
+    // Write pending edits, then warn if the block would overwrite existing days.
+    await flushAllSaves();
+    const blockEnd = new Date(currentWeekStart);
+    blockEnd.setDate(blockEnd.getDate() + program.weeks.length * 7 - 1);
+    const { data: existingRows } = await supabase
+      .from('track_athlete_workouts')
+      .select('workout_date, drills')
+      .eq('athlete_id', selectedAthleteId)
+      .gte('workout_date', weekStartDateStr)
+      .lte('workout_date', getDbDateStr(blockEnd));
+    const filledDays = (existingRows || []).filter(
+      (r) => Array.isArray(r.drills) && r.drills.length > 0
+    ).length;
+    if (
+      filledDays > 0 &&
+      !window.confirm(
+        `Warning: ${filledDays} day(s) in these ${program.weeks.length} week(s) already have exercises and will be OVERWRITTEN.\n` +
+          `تنبيه: فيه ${filledDays} يوم عليهم تمارين وهيتكتب فوقهم. تكمّل؟`
+      )
+    ) {
+      return;
+    }
     setIsLoading(true);
     for (let i = 0; i < program.weeks.length; i++) {
       const futureWeekStart = new Date(currentWeekStart);
@@ -1206,7 +1325,9 @@ export default function TrackFieldPlanner() {
     e.preventDefault();
     e.stopPropagation();
     if (!draggedItem) return;
-    setSchedule((prev) => {
+    // Computed from the current schedule and applied once (side effects
+    // outside the state updater).
+    const applyDrop = (prev) => {
       const newSchedule = { ...prev };
       if (draggedItem.source === 'timeline') {
         const { day: sourceDay, drill, index: sourceIndex } = draggedItem;
@@ -1255,7 +1376,9 @@ export default function TrackFieldPlanner() {
         autoSaveDay(targetDay, newSchedule[targetDay], dayTitles[targetDay]);
       }
       return newSchedule;
-    });
+    };
+    const result = applyDrop(schedule);
+    if (result !== schedule) setSchedule(result);
     setDraggedItem(null);
   };
 
@@ -1289,30 +1412,21 @@ export default function TrackFieldPlanner() {
     setDraggedItem(null);
   };
 
-  const moveDrillUp = (day, index) => {
-    if (index === 0) return;
-    setSchedule((prev) => {
-      const newSchedule = { ...prev };
-      const drills = [...newSchedule[day]];
-      [drills[index - 1], drills[index]] = [drills[index], drills[index - 1]];
-      newSchedule[day] = drills;
-      pushToHistory(newSchedule, dayTitles);
-      autoSaveDay(day, drills, dayTitles[day]);
-      return newSchedule;
-    });
+  // Side effects run outside the state updater (an updater may be invoked
+  // more than once by React, which used to fire duplicate saves).
+  const moveDrill = (day, index, delta) => {
+    const current = schedule[day] || [];
+    const target = index + delta;
+    if (target < 0 || target >= current.length) return;
+    const drills = [...current];
+    [drills[target], drills[index]] = [drills[index], drills[target]];
+    const newSchedule = { ...schedule, [day]: drills };
+    setSchedule(newSchedule);
+    pushToHistory(newSchedule, dayTitles);
+    autoSaveDay(day, drills, dayTitles[day]);
   };
-  const moveDrillDown = (day, index) => {
-    if (index === schedule[day].length - 1) return;
-    setSchedule((prev) => {
-      const newSchedule = { ...prev };
-      const drills = [...newSchedule[day]];
-      [drills[index + 1], drills[index]] = [drills[index], drills[index + 1]];
-      newSchedule[day] = drills;
-      pushToHistory(newSchedule, dayTitles);
-      autoSaveDay(day, drills, dayTitles[day]);
-      return newSchedule;
-    });
-  };
+  const moveDrillUp = (day, index) => moveDrill(day, index, -1);
+  const moveDrillDown = (day, index) => moveDrill(day, index, 1);
 
   const handleAddExerciseBtn = (day) => {
     setDayDrillModal({
@@ -1363,23 +1477,21 @@ export default function TrackFieldPlanner() {
   };
 
   const handleDeleteExercise = useCallback((day, id) => {
-    setSchedule((prev) => {
-      const updatedDrills = (prev[day] || []).filter((w) => w.id !== id);
-      const newSchedule = { ...prev, [day]: updatedDrills };
-      pushToHistory(newSchedule, dayTitles);
-      autoSaveDay(day, updatedDrills, dayTitles[day]);
-      return newSchedule;
-    });
-  }, [dayTitles, pushToHistory, autoSaveDay]);
+    const updatedDrills = (schedule[day] || []).filter((w) => w.id !== id);
+    const newSchedule = { ...schedule, [day]: updatedDrills };
+    setSchedule(newSchedule);
+    pushToHistory(newSchedule, dayTitles);
+    autoSaveDay(day, updatedDrills, dayTitles[day]);
+  }, [schedule, dayTitles, pushToHistory, autoSaveDay]);
 
+  // Side effects (history + save) run outside the state updater so they fire
+  // exactly once per change; the save itself is debounced by autoSaveDay.
   const handleDayTitleChange = useCallback((day, newTitle) => {
-    setDayTitles((prev) => {
-      const newTitles = { ...prev, [day]: newTitle };
-      pushToHistory(schedule, newTitles);
-      autoSaveDay(day, schedule[day], newTitle);
-      return newTitles;
-    });
-  }, [schedule, pushToHistory, autoSaveDay]);
+    const newTitles = { ...dayTitles, [day]: newTitle };
+    setDayTitles(newTitles);
+    pushToHistory(schedule, newTitles);
+    autoSaveDay(day, schedule[day], newTitle);
+  }, [dayTitles, schedule, pushToHistory, autoSaveDay]);
 
   const handleSaveDayTitleFromMonth = useCallback(async (dateKeyStr, newTitle) => {
     if (!selectedAthleteId) return;
@@ -1442,10 +1554,11 @@ export default function TrackFieldPlanner() {
       setSchedule(emptySchedule);
       setDayTitles({});
       pushToHistory(emptySchedule, {});
-      
+
       if (selectedAthleteId) {
         for (const day of DAYS_OF_WEEK) {
           const dateStr = getDbDateStr(weekDatesFull[DAYS_OF_WEEK.indexOf(day)]);
+          await cancelPendingSave(selectedAthleteId, dateStr);
           await supabase
             .from('track_athlete_workouts')
             .delete()
@@ -1467,6 +1580,7 @@ export default function TrackFieldPlanner() {
       
       if (selectedAthleteId) {
         const dateStr = getDbDateStr(weekDatesFull[DAYS_OF_WEEK.indexOf(tDay)]);
+        await cancelPendingSave(selectedAthleteId, dateStr);
         const { error } = await supabase
           .from('track_athlete_workouts')
           .delete()
@@ -1559,6 +1673,21 @@ export default function TrackFieldPlanner() {
       handleToast("Please select an athlete first!");
       return;
     }
+    const isDayTemplate = tpl.type === 'day' || tpl.template_type === 'day';
+    const targetDayHasDrills = isDayTemplate
+      ? (schedule[activeMobileDay || 'Saturday'] || []).length > 0
+      : DAYS_OF_WEEK.some((d) => (schedule[d] || []).length > 0);
+    if (
+      targetDayHasDrills &&
+      !window.confirm(
+        isDayTemplate
+          ? `This will replace the exercises of ${activeMobileDay || 'Saturday'}. Continue?\nهيتم استبدال تمارين اليوم ده. تكمّل؟`
+          : 'This will replace the exercises of the whole week. Continue?\nهيتم استبدال تمارين الأسبوع كله. تكمّل؟'
+      )
+    ) {
+      return;
+    }
+    await flushAllSaves();
     setIsLoading(true);
     try {
       const drillsObj = tpl.drills || {};
@@ -1640,6 +1769,34 @@ export default function TrackFieldPlanner() {
     if (endWeek < startWeek) {
       handleToast("End week must be greater than or equal to start week!");
       return;
+    }
+
+    // Write any pending edits of the current week first, then warn before
+    // copying it over future weeks that already contain a program.
+    await flushAllSaves();
+    if (endWeek > startWeek) {
+      const firstFuture = new Date(currentWeekStart);
+      firstFuture.setDate(firstFuture.getDate() + 7);
+      const lastFuture = new Date(currentWeekStart);
+      lastFuture.setDate(lastFuture.getDate() + (endWeek - startWeek) * 7 + 6);
+      const { data: existingRows } = await supabase
+        .from('track_athlete_workouts')
+        .select('workout_date, drills')
+        .eq('athlete_id', selectedAthleteId)
+        .gte('workout_date', getDbDateStr(firstFuture))
+        .lte('workout_date', getDbDateStr(lastFuture));
+      const filledDays = (existingRows || []).filter(
+        (r) => Array.isArray(r.drills) && r.drills.length > 0
+      ).length;
+      if (
+        filledDays > 0 &&
+        !window.confirm(
+          `Warning: ${filledDays} day(s) in the following weeks already have exercises and will be OVERWRITTEN.\n` +
+            `تنبيه: فيه ${filledDays} يوم في الأسابيع الجاية عليهم تمارين وهيتكتب فوقهم. تكمّل؟`
+        )
+      ) {
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -1858,7 +2015,8 @@ export default function TrackFieldPlanner() {
       accel_10m: updatedProfile.accel10m ? parseFloat(updatedProfile.accel10m) : null,
       fly_30m: updatedProfile.fly30m ? parseFloat(updatedProfile.fly30m) : null,
       max_velocity: updatedProfile.maxVelocity ? parseFloat(updatedProfile.maxVelocity) : null,
-      cmj: updatedProfile.cmj ? parseFloat(updatedProfile.cmj) : (updatedProfile.verticalJump ? parseFloat(updatedProfile.verticalJump) : null),
+      // The form edits verticalJump; keep cmj in sync with what the coach sees.
+      cmj: updatedProfile.verticalJump ? parseFloat(updatedProfile.verticalJump) : (updatedProfile.cmj ? parseFloat(updatedProfile.cmj) : null),
       rsi: updatedProfile.rsi ? parseFloat(updatedProfile.rsi) : null,
       broad_jump: updatedProfile.broadJump ? parseFloat(updatedProfile.broadJump) : (updatedProfile.standingLongJump ? parseFloat(updatedProfile.standingLongJump) : null),
       trap_bar_deadlift: updatedProfile.trapBarDeadlift ? parseFloat(updatedProfile.trapBarDeadlift) : null,
@@ -2965,7 +3123,7 @@ export default function TrackFieldPlanner() {
                       
                       let newUnit = dayDrillModal.drill.unit;
                       let newIntensityUnit = dayDrillModal.drill.intensityUnit;
-                      if (newBaseType === 'speed' || newBaseType === 'endurance') newUnit = 'meters';
+                      if (RUN_BASES.includes(newBaseType)) newUnit = 'meters';
                       else if (newBaseType === 'plyometrics' || newBaseType === 'long_jump' || newBaseType === 'triple_jump') newUnit = 'contacts';
                       else if (newBaseType === 'isometric' || newBaseType === 'mobility') newUnit = 'sec';
                       else newUnit = 'reps';
@@ -3008,8 +3166,13 @@ export default function TrackFieldPlanner() {
                         }
                         className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
                       >
+                        {/* A plain category ('speed') used to display as the first subcategory without
+                            being one; list it explicitly and only offer this category's subcategories. */}
+                        {getBaseCategory(dayDrillModal.drill.type) === dayDrillModal.drill.type && (
+                          <option value={dayDrillModal.drill.type}>General / عام</option>
+                        )}
                         {Object.entries(SUBCATEGORIES[getBaseCategory(dayDrillModal.drill.type)])
-                          .filter(([k]) => k !== 'all')
+                          .filter(([k]) => k !== 'all' && getBaseCategory(k) === getBaseCategory(dayDrillModal.drill.type))
                           .map(([key, label]) => (
                             <option key={key} value={key}>{label}</option>
                           ))}
@@ -3022,30 +3185,14 @@ export default function TrackFieldPlanner() {
                   <div className="flex-1">
                     <div className="flex justify-between items-center mb-1.5">
                       <label className="block text-xs font-bold text-slate-500 uppercase">
-                        {dayDrillModal.drill.type === 'speed' ? 'Speed' : 'Intensity'}
+                        {isRunForm(dayDrillModal.drill.type) ? 'Speed' : 'Intensity'}
                       </label>
-                      {dayDrillModal.drill.type !== 'speed' && (dayDrillModal.drill.intensityUnit === 'x BW' || dayDrillModal.drill.unit === 'x BW') && selectedAthlete && selectedAthlete.weight && (
+                      {!isRunForm(dayDrillModal.drill.type) && (dayDrillModal.drill.intensityUnit === 'x BW' || dayDrillModal.drill.unit === 'x BW') && selectedAthlete && selectedAthlete.weight && (
                         (() => {
                           const bwVal = parseFloat(dayDrillModal.drill.percentage) || 0;
                           const targetKg = bwVal * parseFloat(selectedAthlete.weight);
                           if (targetKg > 0) {
-                            const titleLower = (dayDrillModal.drill.title || '').toLowerCase();
-                            let liftMax = 0;
-                            if (titleLower.includes('bench')) {
-                              liftMax = parseFloat(selectedAthlete.bench) || 0;
-                            } else if (titleLower.includes('clean')) {
-                              liftMax = parseFloat(selectedAthlete.clean) || 0;
-                            } else if (titleLower.includes('deadlift')) {
-                              liftMax = parseFloat(selectedAthlete.deadlift) || 0;
-                            } else if (titleLower.includes('squat')) {
-                              if (titleLower.includes('half')) {
-                                liftMax = parseFloat(selectedAthlete.halfSquat) || 0;
-                              } else if (titleLower.includes('quarter')) {
-                                liftMax = parseFloat(selectedAthlete.quarterSquat) || 0;
-                              } else {
-                                liftMax = parseFloat(selectedAthlete.fullSquat) || 0;
-                              }
-                            }
+                            const liftMax = parseFloat(resolveLiftMax(dayDrillModal.drill.title, selectedAthlete).liftMax) || 0;
                             if (liftMax > 0) {
                               const pct = Math.round((targetKg / liftMax) * 100);
                               return <span className="text-[10px] font-black text-rose-500 lowercase font-sans">{targetKg.toFixed(1)}kg ({pct}% 1RM)</span>;
@@ -3084,7 +3231,7 @@ export default function TrackFieldPlanner() {
                       />
                     </div>
                   </div>
-                  {dayDrillModal.drill.type !== 'speed' && (
+                  {!isRunForm(dayDrillModal.drill.type) && (
                     <div className="w-18 shrink-0">
                       <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
                         Unit
@@ -3133,7 +3280,7 @@ export default function TrackFieldPlanner() {
                   />
                 </div>
 
-                {dayDrillModal.drill.type === 'speed' && (
+                {isRunForm(dayDrillModal.drill.type) && (
                   <>
                     <div className="flex-1">
                       <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
@@ -3176,7 +3323,7 @@ export default function TrackFieldPlanner() {
                   </>
                 )}
 
-                {dayDrillModal.drill.type === 'isometric' && (
+                {isDurationForm(dayDrillModal.drill.type) && (
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
                       Duration (Seconds)
@@ -3200,10 +3347,10 @@ export default function TrackFieldPlanner() {
                   </div>
                 )}
 
-                {dayDrillModal.drill.type !== 'speed' && dayDrillModal.drill.type !== 'isometric' && (
+                {!isRunForm(dayDrillModal.drill.type) && !isDurationForm(dayDrillModal.drill.type) && (
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
-                      {dayDrillModal.drill.type === 'plyometrics' || dayDrillModal.drill.type === 'long_jump' || dayDrillModal.drill.type === 'triple_jump' ? 'Contacts / Jumps' : 'Reps'}
+                      {isContactForm(dayDrillModal.drill.type) ? 'Contacts / Jumps' : 'Reps'}
                     </label>
                     <input
                       type="text"
@@ -3214,7 +3361,7 @@ export default function TrackFieldPlanner() {
                           drill: {
                             ...dayDrillModal.drill,
                             reps: e.target.value,
-                            unit: (dayDrillModal.drill.type === 'plyometrics' || dayDrillModal.drill.type === 'long_jump' || dayDrillModal.drill.type === 'triple_jump') ? 'contacts' : 'reps'
+                            unit: (isContactForm(dayDrillModal.drill.type)) ? 'contacts' : 'reps'
                           },
                         })
                       }
@@ -3224,7 +3371,7 @@ export default function TrackFieldPlanner() {
                   </div>
                 )}
 
-                {dayDrillModal.drill.type !== 'speed' && (
+                {!isRunForm(dayDrillModal.drill.type) && (
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
                       Rest
@@ -3245,7 +3392,7 @@ export default function TrackFieldPlanner() {
                 )}
               </div>
 
-              {dayDrillModal.drill.type === 'speed' && (
+              {isRunForm(dayDrillModal.drill.type) && (
                 <div className="flex gap-2 sm:gap-3">
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
@@ -3800,7 +3947,7 @@ export default function TrackFieldPlanner() {
 
                     let defaultUnit = addExerciseModal.unit;
                     let defaultIntensityUnit = addExerciseModal.intensityUnit;
-                    if (newBaseType === 'speed' || newBaseType === 'endurance') defaultUnit = 'meters';
+                    if (RUN_BASES.includes(newBaseType)) defaultUnit = 'meters';
                     else if (newBaseType === 'plyometrics' || newBaseType === 'long_jump' || newBaseType === 'triple_jump') defaultUnit = 'contacts';
                     else if (newBaseType === 'isometric' || newBaseType === 'mobility') defaultUnit = 'sec';
                     else defaultUnit = 'reps';
@@ -3838,8 +3985,11 @@ export default function TrackFieldPlanner() {
                       }
                       className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
                     >
+                      {getBaseCategory(addExerciseModal.type) === addExerciseModal.type && (
+                        <option value={addExerciseModal.type}>General / عام</option>
+                      )}
                       {Object.entries(SUBCATEGORIES[getBaseCategory(addExerciseModal.type)])
-                        .filter(([k]) => k !== 'all')
+                        .filter(([k]) => k !== 'all' && getBaseCategory(k) === getBaseCategory(addExerciseModal.type))
                         .map(([key, label]) => (
                           <option key={key} value={key}>{label}</option>
                         ))}
@@ -3865,7 +4015,7 @@ export default function TrackFieldPlanner() {
                 {/* Reps */}
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">
-                    {addExerciseModal.type === 'plyometrics' || addExerciseModal.type === 'long_jump' || addExerciseModal.type === 'triple_jump' ? 'Contacts / Jumps' : 'Reps'}
+                    {isContactForm(addExerciseModal.type) ? 'Contacts / Jumps' : 'Reps'}
                   </label>
                   <input
                     type="text"
@@ -3877,7 +4027,7 @@ export default function TrackFieldPlanner() {
                 </div>
 
                 {/* Distance (Only visible if speed or relevant) */}
-                {addExerciseModal.type === 'speed' && (
+                {isRunForm(addExerciseModal.type) && (
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Distance (m)</label>
                     <input
@@ -3895,28 +4045,12 @@ export default function TrackFieldPlanner() {
                   <div className="flex-1">
                     <div className="flex justify-between items-center mb-1.5">
                       <label className="block text-xs font-bold text-slate-500 uppercase">Intensity</label>
-                      {addExerciseModal.type !== 'speed' && (addExerciseModal.intensityUnit === 'x BW' || addExerciseModal.unit === 'x BW') && selectedAthlete && selectedAthlete.weight && (
+                      {!isRunForm(addExerciseModal.type) && (addExerciseModal.intensityUnit === 'x BW' || addExerciseModal.unit === 'x BW') && selectedAthlete && selectedAthlete.weight && (
                         (() => {
                           const bwVal = parseFloat(addExerciseModal.percentage) || 0;
                           const targetKg = bwVal * parseFloat(selectedAthlete.weight);
                           if (targetKg > 0) {
-                            const titleLower = (addExerciseModal.title || '').toLowerCase();
-                            let liftMax = 0;
-                            if (titleLower.includes('bench')) {
-                              liftMax = parseFloat(selectedAthlete.bench) || 0;
-                            } else if (titleLower.includes('clean')) {
-                              liftMax = parseFloat(selectedAthlete.clean) || 0;
-                            } else if (titleLower.includes('deadlift')) {
-                              liftMax = parseFloat(selectedAthlete.deadlift) || 0;
-                            } else if (titleLower.includes('squat')) {
-                              if (titleLower.includes('half')) {
-                                liftMax = parseFloat(selectedAthlete.halfSquat) || 0;
-                              } else if (titleLower.includes('quarter')) {
-                                liftMax = parseFloat(selectedAthlete.quarterSquat) || 0;
-                              } else {
-                                liftMax = parseFloat(selectedAthlete.fullSquat) || 0;
-                              }
-                            }
+                            const liftMax = parseFloat(resolveLiftMax(addExerciseModal.title, selectedAthlete).liftMax) || 0;
                             if (liftMax > 0) {
                               const pct = Math.round((targetKg / liftMax) * 100);
                               return <span className="text-[10px] font-black text-rose-500 lowercase font-sans">{targetKg.toFixed(1)}kg ({pct}% 1RM)</span>;
@@ -3946,7 +4080,7 @@ export default function TrackFieldPlanner() {
                       />
                     </div>
                   </div>
-                  {addExerciseModal.type !== 'speed' && (
+                  {!isRunForm(addExerciseModal.type) && (
                     <div className="w-20">
                       <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Unit</label>
                       <select
@@ -3970,7 +4104,7 @@ export default function TrackFieldPlanner() {
                 </div>
 
                 {/* Rest */}
-                {addExerciseModal.type === 'speed' ? (
+                {isRunForm(addExerciseModal.type) ? (
                   <>
                     <div>
                       <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Rest (Reps)</label>
@@ -4402,7 +4536,7 @@ export default function TrackFieldPlanner() {
                               ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
                               : 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30'
                           }`}
-                          title={`Sprint Volume: ${dayStats.totalMeters}m (Accel: ${dayStats.accelMeters || 0}m, MaxVel: ${dayStats.maxVelMeters || 0}m, SpeedEnd: ${dayStats.speedEnduranceMeters || 0}m, Tempo: ${dayStats.tempoMeters || 0}m)${dayStats.accelAlert ? ' | ⚠️ Accel >300m cap exceeded!' : ''}${dayStats.maxVelAlert ? ' | ⚠️ MaxVel >250m cap exceeded!' : ''}`}
+                          title={`Sprint Volume: ${dayStats.totalMeters}m (Accel: ${dayStats.accelMeters || 0}m, MaxVel: ${dayStats.maxVelMeters || 0}m, SpeedEnd: ${dayStats.speedEnduranceMeters || 0}m, Tempo: ${dayStats.tempoMeters || 0}m)${dayStats.accelAlert ? ' | ⚠️ Accel >300m cap exceeded!' : ''}${dayStats.maxVelAlert ? ' | ⚠️ MaxVel >150m cap exceeded!' : ''}`}
                         >
                           🏃 {dayStats.totalMeters}m
                           {(dayStats.accelAlert || dayStats.maxVelAlert) && (
@@ -4858,7 +4992,7 @@ export default function TrackFieldPlanner() {
 
         <div style={{ flex: '1', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px', overflow: 'hidden' }}>
           {(schedule[activeMobileDay] || []).slice(0, 5).map((drill, idx) => {
-            const isSpeed = drill.type === 'speed' || drill.unit === 'meters';
+            const isSpeed = isRunForm(drill.type) || drill.unit === 'meters';
             return (
               <div
                 key={`export-drill-${drill.id || idx}`}
