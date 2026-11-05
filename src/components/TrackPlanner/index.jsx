@@ -3083,7 +3083,7 @@ export default function TrackFieldPlanner() {
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-700">
             <div className="flex justify-between items-center p-5 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="tl-display text-xl font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
                 {dayDrillModal.isNew ? (
                   <Plus className="w-5 h-5 text-green-500" />
                 ) : (
@@ -4440,11 +4440,11 @@ export default function TrackFieldPlanner() {
                   <div className="relative mb-3 flex flex-col group border-b border-slate-200 dark:border-slate-700 pb-2.5 px-1 md:px-1.5">
                     <div className="flex items-center justify-between gap-2 min-w-0">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="tl-num w-8 h-8 shrink-0 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-base font-bold text-slate-900 dark:text-slate-100">
+                        <div className="tl-num w-8 h-8 shrink-0 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-sm font-black text-slate-900 dark:text-slate-100">
                           {weekDates[index]}
                         </div>
                         <div className="min-w-0 leading-tight">
-                          <div className="tl-display text-[15px] font-semibold text-slate-800 dark:text-slate-100 truncate">{day}</div>
+                          <div className="tl-display text-[14px] font-extrabold text-slate-800 dark:text-slate-100 truncate">{day}</div>
                           <div className="text-[11px] text-slate-400 dark:text-slate-500 truncate">{fullDateStr}</div>
                         </div>
                       </div>
@@ -4503,7 +4503,7 @@ export default function TrackFieldPlanner() {
                       }
                       placeholder="Session focus"
                       aria-label={`${day} session focus`}
-                      className="mt-2 text-[13px] font-semibold text-slate-900 dark:text-slate-50 bg-transparent border-0 border-b border-transparent focus:border-orange-400 outline-none w-full px-0.5 py-0.5 placeholder-slate-400 dark:placeholder-slate-500 transition-colors"
+                      className="mt-2 text-[14px] font-bold text-slate-900 dark:text-slate-50 bg-transparent border-0 border-b border-transparent focus:border-orange-400 outline-none w-full px-0.5 py-0.5 placeholder-slate-400 dark:placeholder-slate-500 transition-colors"
                       readOnly={isPreviewMode}
                     />
                   </div>

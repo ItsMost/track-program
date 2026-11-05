@@ -536,7 +536,7 @@ const TimelineCard = memo(function TimelineCard({
                 </span>
               ) : null}
             </div>
-            <h4 className="text-[13.5px] font-semibold text-slate-900 dark:text-slate-100 leading-snug mt-0.5 pr-1 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
+            <h4 className="text-[13px] font-bold text-slate-800 dark:text-slate-100 leading-snug mt-0.5 pr-1 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
               {drill.title}
             </h4>
           </div>
@@ -587,7 +587,7 @@ const TimelineCard = memo(function TimelineCard({
         {/* Dynamic Inline Parameter Details & Mini Badges */}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-[11px] font-medium text-slate-500 dark:text-slate-400 select-none">
           {renderParameters() && (
-            <span className="tl-num text-[13px] text-slate-700 dark:text-slate-200 font-semibold">
+            <span className="tl-num text-[12px] text-slate-600 dark:text-slate-300 font-bold">
               {renderParameters()}
             </span>
           )}

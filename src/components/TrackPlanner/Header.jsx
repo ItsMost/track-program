@@ -90,7 +90,7 @@ export default function Header({
           <Activity className="w-5 h-5 text-white" />
         </div>
         <div className="hidden sm:block">
-          <h1 className="tl-display text-lg font-bold tracking-tight text-slate-900 dark:text-slate-50 leading-none whitespace-nowrap">
+          <h1 className="text-base font-extrabold tracking-tight text-slate-900 dark:text-slate-50 leading-none whitespace-nowrap">
             Track Lab
           </h1>
           <span className="hidden 2xl:block text-[11px] font-semibold text-orange-600 whitespace-nowrap">
@@ -114,7 +114,7 @@ export default function Header({
         >
           Today
         </button>
-        <span className="tl-num text-[15px] font-semibold text-slate-900 dark:text-slate-100 px-2 min-w-[120px] text-center select-none whitespace-nowrap">
+        <span className="text-xs font-bold text-slate-900 dark:text-slate-100 px-2 min-w-[120px] text-center select-none whitespace-nowrap">
           {formatDateRange()}
         </span>
         <button
