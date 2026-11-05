@@ -36,6 +36,36 @@ export const getRunningLoadProfile = (type = '', intensityPct = 0) => {
   return { multiplier: 2.0, cnsShare: intensitySplit };
 };
 
+// When a drill has no % entered, assume a typical intensity for its type
+// instead of a flat 75% (which inflated tempo and under-rated sprints).
+export const getDefaultIntensity = (type = '') => {
+  const t = (type || '').toLowerCase();
+  const base = t.split('_')[0];
+  if (t === 'tempo_extensive') return 65;
+  if (t === 'tempo_intensive') return 80;
+  if (base === 'tempo') return 70;
+  if (t === 'speed_endurance') return 92;
+  if (base === 'speed') return 95;
+  if (base === 'endurance') return 70;
+  if (base === 'anaerobic') return 85;
+  if (base === 'strength' || base === 'power' || base === 'isometric') return 70;
+  return 75;
+};
+
+// Long-jump approach / rhythm runs are runs, not jumps: no takeoff contacts.
+export const isApproachRun = (drill) => {
+  const t = (drill?.type || '').toLowerCase();
+  const title = (drill?.title || '').toLowerCase();
+  if (!(t.startsWith('long_jump') || t.startsWith('triple_jump'))) return false;
+  return (
+    title.includes('no jump') ||
+    title.includes('run-through') ||
+    title.includes('run through') ||
+    title.includes('rhythm run') ||
+    title.includes('approach run')
+  );
+};
+
 export const calculateRunningLoad = (type, totalMeters, intensityPct) => {
   const pct = parseFloat(intensityPct) || 0;
   const meters = parseFloat(totalMeters) || 0;
@@ -120,14 +150,17 @@ export const isCoreOrAccessory = (exercise) => {
 // ============================================================================
 // Sprint Distance Categorization & Session Volume Tracking
 // - Acceleration: 10m - 30m (Optimal Session Cap: 300m)
-// - Max Velocity / Flys: 31m - 60m (Optimal Session Cap: 250m)
+// - Max Velocity / Flys: 31m - 60m (Session Cap: 150m — Haugen et al. 2019: 50–150 m)
 // - Speed Endurance: 61m - 300m
 // - Tempo: Extensive & Intensive
 // ============================================================================
 export const classifySprintDistance = (drill) => {
   if (isCoreOrAccessory(drill)) return 'other';
 
-  const dist = parseFloat(drill?.distance) || 0;
+  // Older entries without a distance but with unit "meters" kept the meters in reps.
+  const dist =
+    parseFloat(drill?.distance) ||
+    (drill?.unit === 'meters' ? parseFloat(String(drill?.reps || '').replace(/[^\d.]/g, '')) || 0 : 0);
   const type = (drill?.type || '').toLowerCase();
   const title = (drill?.title || '').toLowerCase();
   const intensity = parseFloat(drill?.percentage) || 0;
@@ -239,20 +272,27 @@ export const calculateSessionBiometrics = (drills = [], athlete = null) => {
 
     const type = (drill.type || 'speed').toLowerCase();
     const title = (drill.title || '').toLowerCase();
-    const intensity = parseFloat(drill.percentage) || 75;
+    const intensity = parseFloat(drill.percentage) || getDefaultIntensity(type);
 
     let s = parseFloat(String(drill.sets || '').replace(/[^\d.]/g, '')) || 1;
     let r = parseFloat(String(drill.reps || '').replace(/[^\d.]/g, '')) || 1;
     let dist = parseFloat(String(drill.distance || '').replace(/[^\d.]/g, '')) || 0;
 
     const baseType = type.split('_')[0];
-    const isRunning = isRunningCategory(baseType);
-    const isPlyo = baseType === 'plyometrics' || type.startsWith('plyo') || drill.unit === 'contacts';
-    const isJump = baseType === 'long' || baseType === 'triple' || type.includes('jump');
+    const approachRun = isApproachRun(drill);
+    const isRunning = isRunningCategory(baseType) || approachRun;
+    const isPlyo = !approachRun && (baseType === 'plyometrics' || type.startsWith('plyo') || drill.unit === 'contacts');
+    const isJump = !approachRun && (baseType === 'long' || baseType === 'triple' || type.includes('jump'));
 
     // 1. Running classification
     if (isRunning) {
-      const volumeMeters = s * r * (dist > 0 ? dist : 10);
+      // Meters per rep come from the distance field. Older entries saved
+      // without a distance but with unit "meters" stored the meters in reps.
+      // With no distance at all we no longer invent 10 m per rep (that turned
+      // 4x15 into 600 m and raised false CAP / High-CNS warnings).
+      let volumeMeters = 0;
+      if (dist > 0) volumeMeters = s * r * dist;
+      else if (drill.unit === 'meters') volumeMeters = s * r;
       const sprintCategory = classifySprintDistance(drill);
 
       if (sprintCategory === 'accel') {
@@ -351,7 +391,7 @@ export const calculateSessionBiometrics = (drills = [], athlete = null) => {
 
   // Volume Session Alert Flags
   const accelAlert = accelMeters > 300;
-  const maxVelAlert = maxVelMeters > 250;
+  const maxVelAlert = maxVelMeters > 150;
   const plyoAlert = fastSscContacts > 80 || totalContacts > 100;
 
   return {
@@ -423,7 +463,9 @@ export const checkHighLowCNSPattern = (schedule = {}, athlete = null) => {
 export const calculateNeuroMechanicalProfile = (athlete) => {
   if (!athlete) return null;
 
-  const cmj = parseFloat(athlete?.cmj || athlete?.verticalJump) || 0;
+  // The profile form edits "verticalJump"; "cmj" could keep an old value,
+  // so the visible field wins.
+  const cmj = parseFloat(athlete?.verticalJump || athlete?.cmj) || 0;
   const sj = parseFloat(athlete?.squatJump) || 0;
   const bw = parseFloat(athlete?.weight) || 75;
   const squat = parseFloat(athlete?.fullSquat) || 0;
