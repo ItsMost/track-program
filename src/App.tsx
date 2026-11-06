@@ -1,8 +1,11 @@
 import TrackFieldPlanner from './components/TrackPlanner/index.jsx';
+import CoachGate from './components/Auth/CoachGate.jsx';
 
 function App() {
   return (
-    <TrackFieldPlanner />
+    <CoachGate>
+      <TrackFieldPlanner />
+    </CoachGate>
   );
 }
 
