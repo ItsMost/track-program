@@ -9,8 +9,10 @@ import {
   Eye,
   EyeOff,
   Layout,
-  FileText
+  FileText,
+  LogOut
 } from 'lucide-react';
+import { supabase, isRealSupabase } from '../../supabaseClient';
 
 export default function Sidebar({
   isPreviewMode,
@@ -131,6 +133,17 @@ export default function Sidebar({
         >
           <Trash2 className="w-4 h-4" />
         </button>
+
+        {/* Coach sign-out (only when connected to the real database) */}
+        {isRealSupabase && (
+          <button
+            onClick={() => supabase.auth.signOut()}
+            className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors hidden md:block"
+            title="Sign out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </aside>
   );

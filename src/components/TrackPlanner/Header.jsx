@@ -276,7 +276,7 @@ export default function Header({
                 <div className="p-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/30">
                   <input
                     type="text"
-                    placeholder="Search athletes... / ابحث عن لاعب..."
+                    placeholder="Search athletes..."
                     value={athleteSearchQuery}
                     onChange={(e) => setAthleteSearchQuery(e.target.value)}
                     className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 dark:text-white font-medium outline-none focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
@@ -290,7 +290,7 @@ export default function Header({
                     if (filtered.length === 0) {
                       return (
                         <div className="text-center py-4 text-xs font-semibold text-slate-400 dark:text-slate-500">
-                          No athletes found / لم يتم العثور على لاعبين
+                          No athletes found
                         </div>
                       );
                     }
@@ -353,14 +353,14 @@ export default function Header({
             <button
               onClick={() => setSaveWeekTemplateModal({ isOpen: true, name: '' })}
               className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors hidden md:block"
-              title="Save Week as Template / حفظ الأسبوع كقالب"
+              title="Save Week as Template"
             >
               <Save className="w-4 h-4" />
             </button>
             <button
               onClick={() => setSaveBlockRangeModal({ isOpen: true, name: '', startWeek: 1, endWeek: 4 })}
               className="p-1.5 text-slate-500 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors hidden md:block"
-              title="Save Block Range (Multi-Week) / تكرار وحفظ مدى الأسابيع الكبرى"
+              title="Save Block Range (Multi-Week)"
             >
               <Calendar className="w-4 h-4 text-orange-500" />
             </button>
@@ -371,7 +371,7 @@ export default function Header({
                   ? 'bg-orange-500/10 text-orange-500 font-bold'
                   : 'text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
-              title="Toggle Exercise Library / مكتبة التمارين"
+              title="Toggle Exercise Library"
             >
               <Library className="w-4 h-4" />
             </button>
