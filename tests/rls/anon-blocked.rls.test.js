@@ -24,13 +24,16 @@ const anon = createClient(env.VITE_SUPABASE_URL || 'http://invalid', env.VITE_SU
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-const TABLES = ['track_athletes', 'track_athlete_workouts', 'track_library_drills', 'track_week_templates', 'track_macro_programs', 'track_workouts', 'track_coaches'];
+const TABLES = ['track_athletes', 'track_athlete_workouts', 'track_library_drills', 'track_week_templates', 'track_macro_programs', 'track_workouts', 'track_coaches', 'track_readiness', 'track_athlete_codes', 'track_code_attempts'];
 const IMPOSSIBLE_ID = '__rls_probe_does_not_exist__';
 // An id that cannot exist, in each table's id type (text / bigint / uuid).
 const PROBE = {
   track_week_templates: ['id', -1],
   track_workouts: ['id', -1],
   track_coaches: ['user_id', '00000000-0000-0000-0000-000000000000'],
+  track_readiness: ['id', -1],
+  track_athlete_codes: ['athlete_id', IMPOSSIBLE_ID],
+  track_code_attempts: ['id', -1],
 };
 const probe = (table) => PROBE[table] || ['id', IMPOSSIBLE_ID];
 const denied = (error) => !!error && (error.code === '42501' || /permission denied/i.test(error.message || ''));
@@ -46,7 +49,7 @@ describe.skipIf(!LIVE)('anon / publishable key is blocked on track_* tables', ()
     });
 
     it(`${table}: UPDATE is denied`, async () => {
-      const { error } = await anon.from(table).update({ created_at: new Date().toISOString() }).eq(...probe(table));
+      const { error } = await anon.from(table).update(table === 'track_code_attempts' ? { attempted_at: new Date().toISOString() } : { created_at: new Date().toISOString() }).eq(...probe(table));
       expect(denied(error), `got ${error?.code} ${error?.message}`).toBe(true);
     });
 
