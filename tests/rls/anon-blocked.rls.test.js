@@ -26,6 +26,13 @@ const anon = createClient(env.VITE_SUPABASE_URL || 'http://invalid', env.VITE_SU
 
 const TABLES = ['track_athletes', 'track_athlete_workouts', 'track_library_drills', 'track_week_templates', 'track_macro_programs', 'track_workouts', 'track_coaches'];
 const IMPOSSIBLE_ID = '__rls_probe_does_not_exist__';
+// An id that cannot exist, in each table's id type (text / bigint / uuid).
+const PROBE = {
+  track_week_templates: ['id', -1],
+  track_workouts: ['id', -1],
+  track_coaches: ['user_id', '00000000-0000-0000-0000-000000000000'],
+};
+const probe = (table) => PROBE[table] || ['id', IMPOSSIBLE_ID];
 const denied = (error) => !!error && (error.code === '42501' || /permission denied/i.test(error.message || ''));
 
 // Opt-in only, so it never hits the live project by accident.
@@ -39,12 +46,12 @@ describe.skipIf(!LIVE)('anon / publishable key is blocked on track_* tables', ()
     });
 
     it(`${table}: UPDATE is denied`, async () => {
-      const { error } = await anon.from(table).update({ created_at: new Date().toISOString() }).eq(table === 'track_coaches' ? 'user_id' : 'id', IMPOSSIBLE_ID);
+      const { error } = await anon.from(table).update({ created_at: new Date().toISOString() }).eq(...probe(table));
       expect(denied(error), `got ${error?.code} ${error?.message}`).toBe(true);
     });
 
     it(`${table}: DELETE is denied`, async () => {
-      const { error } = await anon.from(table).delete().eq(table === 'track_coaches' ? 'user_id' : 'id', IMPOSSIBLE_ID);
+      const { error } = await anon.from(table).delete().eq(...probe(table));
       expect(denied(error), `got ${error?.code} ${error?.message}`).toBe(true);
     });
   }
