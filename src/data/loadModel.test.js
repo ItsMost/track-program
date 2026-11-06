@@ -96,6 +96,32 @@ describe('follow-up calibration', () => {
     expect(sat.cnsLevel).toBe('High');
   });
 
+  it('max-velocity work has the highest CNS cost per meter', () => {
+    const perMeter = (d) => calculateSessionBiometrics([d]).cnsLoad / (parseCount(d.sets) * parseCount(d.reps) * parseCount(d.distance));
+    const flys95 = perMeter(FLYS);
+    const accel100 = perMeter({ title: '20m Acceleration', type: 'speed_acceleration', sets: '1', reps: '2', distance: '20', percentage: 100 });
+    const sled100 = perMeter({ title: 'Sled Sprints', type: 'speed_resisted', sets: '2', reps: '2', distance: '15', percentage: 100 });
+    const se95 = perMeter({ title: '150m Speed Endurance', type: 'speed_endurance', sets: '1', reps: '2', distance: '150', percentage: 95 });
+    expect(flys95).toBeGreaterThan(accel100);
+    expect(flys95).toBeGreaterThan(sled100);
+    expect(flys95).toBeGreaterThan(se95);
+  });
+
+  it('flys + 40 contacts + hang clean scores at least the CNS of sled + 100 m accel + back squat', () => {
+    const mon = SAMPLE_WEEK.Monday;
+    const flysDay = calculateSessionBiometrics([
+      mon.find((d) => d.title.startsWith('Flying')),
+      ...mon.filter((d) => /pop-up|short-approach|hurdle|bounding/i.test(d.title)),
+      mon.find((d) => d.title === 'Hang Clean'),
+    ]);
+    expect(flysDay.totalContacts).toBe(40);
+    const sledDay = calculateSessionBiometrics(
+      SAMPLE_WEEK.Saturday.filter((d) => /sled|acceleration|back squat/i.test(d.title))
+    );
+    expect(sledDay.accelMeters + 0).toBeGreaterThanOrEqual(100);
+    expect(flysDay.cnsScore).toBeGreaterThanOrEqual(sledDay.cnsScore);
+  });
+
   it('100 is reserved for an extreme day (double Saturday)', () => {
     const extreme = calculateSessionBiometrics([...SAMPLE_WEEK.Saturday, ...SAMPLE_WEEK.Saturday]);
     expect(extreme.cnsScore).toBe(100);

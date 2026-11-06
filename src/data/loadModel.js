@@ -381,6 +381,26 @@ export const classifyPlyoContacts = (drill) => {
 // plyo contacts.
 // ============================================================================
 
+// CNS cost per meter for sprint zones, applied as meters x (intensity/100)^2 x
+// cost. Max velocity is the most neurally demanding per meter (highest
+// contraction speed); resisted sprints and accelerations are slower and more
+// force-dominant. Speed endurance and tempo keep the load x CNS-share split.
+export const SPRINT_CNS_PER_METER = {
+  maxVel: 2.6, // flys, wickets, assisted / overspeed
+  resisted: 1.6, // sleds, hills
+  accel: 1.5, // 10-30 m accelerations, block starts
+};
+export const getSprintCnsPerMeter = (type = '', sprintCategory = '') => {
+  const t = String(type || '').toLowerCase();
+  if (t === 'speed_max_velocity' || t === 'speed_assisted') return SPRINT_CNS_PER_METER.maxVel;
+  if (t === 'speed_resisted') return SPRINT_CNS_PER_METER.resisted;
+  if (t === 'speed_acceleration') return SPRINT_CNS_PER_METER.accel;
+  if (!t.startsWith('speed') || t === 'speed_endurance') return null;
+  if (sprintCategory === 'maxVel') return SPRINT_CNS_PER_METER.maxVel;
+  if (sprintCategory === 'accel') return SPRINT_CNS_PER_METER.accel;
+  return null;
+};
+
 // CNS score (0-100) = summed CNS load of one session / CNS_SCORE_DIVISOR.
 // Calibrated so a normal high day (sled + accelerations + plyos + heavy squat)
 // lands around 70-85 and 100 needs roughly 1.2x that; only extreme days cap.
@@ -466,7 +486,12 @@ export const calculateSessionBiometrics = (drills = [], athlete = null) => {
       const drillLoad = volumeMeters * Math.pow(intensity / 100, 2) * multiplier;
       trackLoad += drillLoad;
 
-      cnsLoadSum += drillLoad * profile.cnsShare;
+      // Sprint zones carry their own CNS cost per meter (max velocity highest);
+      // other running keeps the load x CNS-share split.
+      const cnsPerMeter = approachRun ? null : getSprintCnsPerMeter(type, sprintCategory);
+      cnsLoadSum += cnsPerMeter !== null
+        ? volumeMeters * Math.pow(intensity / 100, 2) * cnsPerMeter
+        : drillLoad * profile.cnsShare;
       mechanicalLoadSum += drillLoad * (1 - profile.cnsShare) * 0.7;
       metabolicLoadSum += drillLoad * (1 - profile.cnsShare) * 0.3;
     }
