@@ -24,7 +24,7 @@ const anon = createClient(env.VITE_SUPABASE_URL || 'http://invalid', env.VITE_SU
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-const TABLES = ['track_athletes', 'track_athlete_workouts', 'track_library_drills', 'track_week_templates', 'track_macro_programs', 'track_workouts', 'track_coaches', 'track_readiness', 'track_athlete_codes', 'track_code_attempts'];
+const TABLES = ['track_athletes', 'track_athlete_workouts', 'track_library_drills', 'track_week_templates', 'track_macro_programs', 'track_workouts', 'track_coaches', 'track_readiness', 'track_athlete_codes', 'track_code_attempts', 'track_readiness_overrides'];
 const IMPOSSIBLE_ID = '__rls_probe_does_not_exist__';
 // An id that cannot exist, in each table's id type (text / bigint / uuid).
 const PROBE = {
@@ -34,6 +34,7 @@ const PROBE = {
   track_readiness: ['id', -1],
   track_athlete_codes: ['athlete_id', IMPOSSIBLE_ID],
   track_code_attempts: ['id', -1],
+  track_readiness_overrides: ['athlete_id', IMPOSSIBLE_ID],
 };
 const probe = (table) => PROBE[table] || ['id', IMPOSSIBLE_ID];
 const denied = (error) => !!error && (error.code === '42501' || /permission denied/i.test(error.message || ''));
