@@ -1087,7 +1087,7 @@ export default function TrackFieldPlanner() {
     if (!clipboard || clipboard.type !== 'week') return;
     if (
       DAYS_OF_WEEK.some((d) => (schedule[d] || []).length > 0) &&
-      !window.confirm('This will replace the current week. Continue?\nهيتم استبدال الأسبوع الحالي. تكمّل؟')
+      !window.confirm('This will replace the current week. Continue?')
     ) {
       return;
     }
@@ -1306,8 +1306,7 @@ export default function TrackFieldPlanner() {
     if (
       filledDays > 0 &&
       !window.confirm(
-        `Warning: ${filledDays} day(s) in these ${program.weeks.length} week(s) already have exercises and will be OVERWRITTEN.\n` +
-          `تنبيه: فيه ${filledDays} يوم عليهم تمارين وهيتكتب فوقهم. تكمّل؟`
+        `Warning: ${filledDays} day(s) in these ${program.weeks.length} week(s) already have exercises and will be OVERWRITTEN. Continue?`
       )
     ) {
       return;
@@ -1748,8 +1747,8 @@ export default function TrackFieldPlanner() {
       targetDayHasDrills &&
       !window.confirm(
         isDayTemplate
-          ? `This will replace the exercises of ${activeMobileDay || 'Saturday'}. Continue?\nهيتم استبدال تمارين اليوم ده. تكمّل؟`
-          : 'This will replace the exercises of the whole week. Continue?\nهيتم استبدال تمارين الأسبوع كله. تكمّل؟'
+          ? `This will replace the exercises of ${activeMobileDay || 'Saturday'}. Continue?`
+          : 'This will replace the exercises of the whole week. Continue?'
       )
     ) {
       return;
@@ -1858,8 +1857,7 @@ export default function TrackFieldPlanner() {
       if (
         filledDays > 0 &&
         !window.confirm(
-          `Warning: ${filledDays} day(s) in the following weeks already have exercises and will be OVERWRITTEN.\n` +
-            `تنبيه: فيه ${filledDays} يوم في الأسابيع الجاية عليهم تمارين وهيتكتب فوقهم. تكمّل؟`
+          `Warning: ${filledDays} day(s) in the following weeks already have exercises and will be OVERWRITTEN. Continue?`
         )
       ) {
         return;
@@ -1970,7 +1968,7 @@ export default function TrackFieldPlanner() {
   const handleExportMobileImage = async () => {
     const el = document.getElementById('mobile-export-card');
     if (!el) {
-      handleToast("Export container not found / لم يتم العثور على بطاقة التصدير!");
+      handleToast("Export container not found.");
       return;
     }
     setIsLoading(true);
@@ -1986,7 +1984,7 @@ export default function TrackFieldPlanner() {
       link.download = `${selectedAthlete?.name || 'Athlete'}_${activeMobileDay}_Workout.png`;
       link.href = dataUrl;
       link.click();
-      handleToast(`Successfully exported mobile image for ${activeMobileDay}! / تم تصدير بطاقة الجوال بنجاح!`);
+      handleToast(`Mobile image exported for ${activeMobileDay}`);
     } catch (err) {
       console.error("Error exporting mobile image:", err);
       handleToast(`Mobile image export failed: ${err.message}`);
@@ -2470,13 +2468,13 @@ export default function TrackFieldPlanner() {
           <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200 dark:border-slate-700 p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
-                <CalendarIcon className="w-5 h-5 text-orange-500" /> Save Block Range / حفظ كتل الأسابيع
+                <CalendarIcon className="w-5 h-5 text-orange-500" /> Save Block Range
               </h3>
               <button onClick={() => setSaveBlockRangeModal({ isOpen: false, name: '', startWeek: 1, endWeek: 4 })} className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-white rounded-full transition-colors"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Block Name / اسم الوحدة الكبرى</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Block Name</label>
                 <input
                   type="text"
                   value={saveBlockRangeModal.name}
@@ -2489,7 +2487,7 @@ export default function TrackFieldPlanner() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Start Week / أسبوع البدء</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Start Week</label>
                   <select
                     value={saveBlockRangeModal.startWeek}
                     onChange={(e) => setSaveBlockRangeModal({ ...saveBlockRangeModal, startWeek: parseInt(e.target.value) })}
@@ -2501,7 +2499,7 @@ export default function TrackFieldPlanner() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">End Week / أسبوع الانتهاء</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">End Week</label>
                   <select
                     value={saveBlockRangeModal.endWeek}
                     onChange={(e) => setSaveBlockRangeModal({ ...saveBlockRangeModal, endWeek: parseInt(e.target.value) })}
@@ -2519,14 +2517,14 @@ export default function TrackFieldPlanner() {
                   onClick={() => setSaveBlockRangeModal({ isOpen: false, name: '', startWeek: 1, endWeek: 4 })}
                   className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-sm"
                 >
-                  Cancel / إلغاء
+                  Cancel
                 </button>
                 <button
                   onClick={handleSaveBlockRange}
                   disabled={!saveBlockRangeModal.name.trim() || saveBlockRangeModal.endWeek < saveBlockRangeModal.startWeek}
                   className="px-6 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl shadow-md font-bold text-sm disabled:opacity-50 transition-all active:scale-95"
                 >
-                  Save Range / تأكيد التكرار
+                  Save Range
                 </button>
               </div>
             </div>
@@ -2860,7 +2858,7 @@ export default function TrackFieldPlanner() {
               <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700/80 rounded-2xl space-y-3">
                 <div className="flex justify-between items-center">
                   <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                    <Activity className="w-4 h-4 text-orange-500" /> Weekly Workload Distribution / منحنى الحمل الأسبوعي
+                    <Activity className="w-4 h-4 text-orange-500" /> Weekly Workload Distribution
                   </h4>
                   <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 italic">
                     Daily Fatigue & Volume Tracking (AU)
@@ -3020,7 +3018,7 @@ export default function TrackFieldPlanner() {
               <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700/80 rounded-2xl space-y-4">
                 <div className="flex justify-between items-center">
                   <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                    <CalendarIcon className="w-4 h-4 text-orange-500" /> 4-Week Load Cycle Breakdown / دورة الحمل لـ 4 أسابيع
+                    <CalendarIcon className="w-4 h-4 text-orange-500" /> 4-Week Load Cycle Breakdown
                   </h4>
                   <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 italic">
                     Macrocycle Periodization Plan
@@ -3058,7 +3056,7 @@ export default function TrackFieldPlanner() {
                                 {w.startStr}
                               </p>
                               <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
-                                Start Date / بداية الأسبوع
+                                Start Date
                               </p>
                             </div>
                           </div>
@@ -3257,7 +3255,7 @@ export default function TrackFieldPlanner() {
                         {/* A plain category ('speed') used to display as the first subcategory without
                             being one; list it explicitly and only offer this category's subcategories. */}
                         {getBaseCategory(dayDrillModal.drill.type) === dayDrillModal.drill.type && (
-                          <option value={dayDrillModal.drill.type}>General / عام</option>
+                          <option value={dayDrillModal.drill.type}>General</option>
                         )}
                         {Object.entries(SUBCATEGORIES[getBaseCategory(dayDrillModal.drill.type)])
                           .filter(([k]) => k !== 'all' && getBaseCategory(k) === getBaseCategory(dayDrillModal.drill.type))
@@ -3595,6 +3593,7 @@ export default function TrackFieldPlanner() {
                   Coaching Notes (Technical Cues)
                 </label>
                 <textarea
+                  dir="auto"
                   value={dayDrillModal.drill.details}
                   onChange={(e) =>
                     setDayDrillModal({
@@ -3628,7 +3627,6 @@ export default function TrackFieldPlanner() {
                   <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
                     ⚡ Link with NEXT exercise (Super Set)
                   </span>
-                  <span className="text-[10px] text-blue-500 font-medium font-arabic text-left">(سوبر سيت - ربط بالتمرين التالي)</span>
                 </label>
               </div>
             </div>
@@ -3637,7 +3635,7 @@ export default function TrackFieldPlanner() {
               {!dayDrillModal.isNew ? (
                 <button
                   onClick={() => {
-                    if (!window.confirm('Delete this exercise?\nحذف التمرين؟ (تقدر ترجعه بزر Undo)')) return;
+                    if (!window.confirm('Delete this exercise? You can bring it back with Undo.')) return;
                     handleDeleteExercise(
                       dayDrillModal.day,
                       dayDrillModal.drill.id
@@ -3698,20 +3696,14 @@ export default function TrackFieldPlanner() {
               <div>
                 <h3 className="text-base font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
                   {deleteConfirmation.type === 'week' 
-                    ? 'Clear Entire Week / مسح الأسبوع بالكامل' 
-                    : `Clear ${deleteConfirmation.targetDay} / مسح تمارين اليوم`
+                    ? 'Clear Entire Week' 
+                    : `Clear ${deleteConfirmation.targetDay}`
                   }
                 </h3>
                 <p className="text-xs font-bold text-slate-500 dark:text-slate-450 mt-2 leading-relaxed">
                   {deleteConfirmation.type === 'week'
                     ? 'Are you sure you want to delete all exercises and reset this week\'s plan? This action cannot be undone.'
                     : 'Are you sure you want to clear all workouts for this day?'
-                  }
-                </p>
-                <p className="text-[10px] text-red-500 font-semibold font-arabic leading-relaxed mt-1">
-                  {deleteConfirmation.type === 'week'
-                    ? '(هل أنت متأكد من رغبتك في حذف جميع تمارين هذا الأسبوع؟ لا يمكن التراجع عن هذا الإجراء)'
-                    : '(هل أنت متأكد من رغبتك في مسح جميع تمارين هذا اليوم؟)'
                   }
                 </p>
               </div>
@@ -3722,13 +3714,13 @@ export default function TrackFieldPlanner() {
                 onClick={() => setDeleteConfirmation({ isOpen: false, type: null, targetDay: null })}
                 className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 font-bold text-xs"
               >
-                Cancel / إلغاء
+                Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-600/10 flex items-center gap-1.5 transition-all active:scale-95"
               >
-                <Trash className="w-3.5 h-3.5" /> Clear / تأكيد المسح
+                <Trash className="w-3.5 h-3.5" /> Clear
               </button>
             </div>
           </div>
@@ -3741,7 +3733,7 @@ export default function TrackFieldPlanner() {
           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col">
             <div className="flex justify-between items-center p-5 md:p-6 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-lg md:text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
-                <Printer className="w-5 h-5 text-indigo-500 animate-pulse" /> Printing & PDF Lab / استوديو الطباعة والـ PDF
+                <Printer className="w-5 h-5 text-indigo-500 animate-pulse" /> Printing & PDF Lab
               </h3>
               <button
                 onClick={() => setShowPrintModal(false)}
@@ -3755,7 +3747,7 @@ export default function TrackFieldPlanner() {
               {/* 1. Orientation Selection */}
               <div className="space-y-3">
                 <label className="block text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                  1. Layout Orientation / اتجاه الصفحة
+                  1. Layout Orientation
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -3772,7 +3764,7 @@ export default function TrackFieldPlanner() {
                     </div>
                     <div>
                       <p className="text-sm font-bold">Landscape (1 Page)</p>
-                      <p className="text-[10px] opacity-75 mt-0.5 font-arabic font-medium">بالعرض - ورقة واحدة كامل الأسبوع</p>
+                      <p className="text-[10px] opacity-75 mt-0.5 font-medium">Whole week on one sheet</p>
                     </div>
                   </button>
 
@@ -3790,7 +3782,7 @@ export default function TrackFieldPlanner() {
                     </div>
                     <div>
                       <p className="text-sm font-bold">Portrait (Vertical)</p>
-                      <p className="text-[10px] opacity-75 mt-0.5 font-arabic font-medium">بالطول - قائمة عمودية</p>
+                      <p className="text-[10px] opacity-75 mt-0.5 font-medium">Vertical list, day by day</p>
                     </div>
                   </button>
                 </div>
@@ -3799,7 +3791,7 @@ export default function TrackFieldPlanner() {
               {/* 2. Theme Selection */}
               <div className="space-y-3">
                 <label className="block text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                  2. Visual Print Theme / المظهر الفني للطباعة
+                  2. Visual Print Theme
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {/* Crimson Theme */}
@@ -3815,7 +3807,7 @@ export default function TrackFieldPlanner() {
                       <div className="w-4 h-4 rounded bg-red-600" />
                       <div>
                         <p className="text-xs font-black">Classic Crimson</p>
-                        <p className="text-[9px] opacity-75 font-arabic">الأحمر الكلاسيكي للمدرب</p>
+                        <p className="text-[9px] opacity-75">Classic coach red</p>
                       </div>
                     </div>
                     {printTheme === 'classic-crimson' && <div className="w-2 h-2 rounded-full bg-red-600" />}
@@ -3834,7 +3826,7 @@ export default function TrackFieldPlanner() {
                       <div className="w-4 h-4 rounded bg-blue-800" />
                       <div>
                         <p className="text-xs font-black">Professional Navy</p>
-                        <p className="text-[9px] opacity-75 font-arabic">الكحلي الاحترافي</p>
+                        <p className="text-[9px] opacity-75">Professional navy</p>
                       </div>
                     </div>
                     {printTheme === 'pro-navy' && <div className="w-2 h-2 rounded-full bg-blue-700" />}
@@ -3853,7 +3845,7 @@ export default function TrackFieldPlanner() {
                       <div className="w-4 h-4 rounded bg-emerald-650" />
                       <div>
                         <p className="text-xs font-black">Athletic Green</p>
-                        <p className="text-[9px] opacity-75 font-arabic">الأخضر الرياضي الحركي</p>
+                        <p className="text-[9px] opacity-75">Sporty green</p>
                       </div>
                     </div>
                     {printTheme === 'athletic-green' && <div className="w-2 h-2 rounded-full bg-emerald-600" />}
@@ -3872,7 +3864,7 @@ export default function TrackFieldPlanner() {
                       <div className="w-4 h-4 rounded bg-white border border-slate-900" />
                       <div>
                         <p className="text-xs font-black">Minimal Ink Saver</p>
-                        <p className="text-[9px] opacity-75 font-arabic">موفّر الحبر (أبيض وأسود)</p>
+                        <p className="text-[9px] opacity-75">Ink saver (black and white)</p>
                       </div>
                     </div>
                     {printTheme === 'minimal-ink' && <div className="w-2 h-2 rounded-full bg-slate-900 dark:bg-white" />}
@@ -3893,7 +3885,7 @@ export default function TrackFieldPlanner() {
                       </div>
                       <div>
                         <p className="text-xs font-black">Elite Dark (Digital PDF)</p>
-                        <p className="text-[9px] opacity-75 font-arabic">الداكن الرياضي الاحترافي (مثالي للملفات الرقمية)</p>
+                        <p className="text-[9px] opacity-75">Dark (best for digital files)</p>
                       </div>
                     </div>
                     {printTheme === 'dark-neon' && <div className="w-2 h-2 rounded-full bg-sky-400" />}
@@ -3904,7 +3896,7 @@ export default function TrackFieldPlanner() {
               {/* 3. Mobile Card Export */}
               <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <label className="block text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                  3. Select Day for Mobile Image / اختر يوم التصدير للجوال
+                  3. Select Day for Mobile Image
                 </label>
                 <select
                   value={activeMobileDay}
@@ -3926,19 +3918,19 @@ export default function TrackFieldPlanner() {
                 onClick={() => setShowPrintModal(false)}
                 className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 font-bold text-sm mr-auto"
               >
-                Cancel / إلغاء
+                Cancel
               </button>
               <button
                 onClick={handleExportMobileImage}
                 className="px-5 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-sm shadow-lg flex items-center gap-2 transition-all active:scale-95"
               >
-                <Smartphone className="w-4 h-4" /> Export Mobile / تصدير كصورة
+                <Smartphone className="w-4 h-4" /> Export Mobile
               </button>
               <button
                 onClick={triggerActualPrint}
                 className="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-sm shadow-lg flex items-center gap-2 transition-all active:scale-95"
               >
-                <Printer className="w-4 h-4" /> Print Plan / طباعة البرنامج
+                <Printer className="w-4 h-4" /> Print Plan
               </button>
             </div>
           </div>
@@ -3997,6 +3989,7 @@ export default function TrackFieldPlanner() {
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Description</label>
                 <textarea
+                  dir="auto"
                   value={addExerciseModal.details}
                   onChange={(e) => setAddExerciseModal({ ...addExerciseModal, details: e.target.value })}
                   placeholder="Additional execution details..."
@@ -4057,7 +4050,7 @@ export default function TrackFieldPlanner() {
                       className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-medium outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
                     >
                       {getBaseCategory(addExerciseModal.type) === addExerciseModal.type && (
-                        <option value={addExerciseModal.type}>General / عام</option>
+                        <option value={addExerciseModal.type}>General</option>
                       )}
                       {Object.entries(SUBCATEGORIES[getBaseCategory(addExerciseModal.type)])
                         .filter(([k]) => k !== 'all' && getBaseCategory(k) === getBaseCategory(addExerciseModal.type))
@@ -5065,7 +5058,7 @@ export default function TrackFieldPlanner() {
             {selectedAthlete ? selectedAthlete.name : 'McCarthy, Dillan'}
           </h2>
           <p style={{ fontSize: '11px', fontWeight: 'bold', color: '#475569', margin: '4px 0 0 0', textTransform: 'uppercase' }}>
-            Focus: {dayTitles[activeMobileDay] || 'General Preparation / إعداد عام'}
+            Focus: {dayTitles[activeMobileDay] || 'General Preparation'}
           </p>
         </div>
 
@@ -5138,7 +5131,7 @@ export default function TrackFieldPlanner() {
 
           {(schedule[activeMobileDay] || []).length === 0 && (
             <div style={{ flex: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #cbd5e1', borderRadius: '16px', color: '#94a3b8', fontSize: '11px', fontWeight: 'bold' }}>
-              Rest Day / يوم راحة
+              Rest Day
             </div>
           )}
         </div>

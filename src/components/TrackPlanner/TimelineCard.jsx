@@ -433,7 +433,7 @@ const TimelineCard = memo(function TimelineCard({
 
   const handleDeleteClick = (e) => {
     e.stopPropagation();
-    if (!window.confirm(`Delete "${drill.title || 'exercise'}"?\nحذف التمرين؟ (تقدر ترجعه بزر Undo)`)) return;
+    if (!window.confirm(`Delete "${drill.title || 'exercise'}"? You can bring it back with Undo.`)) return;
     onDelete(day, drill.id);
   };
 
