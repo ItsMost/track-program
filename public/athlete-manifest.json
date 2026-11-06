@@ -1,0 +1,15 @@
+{
+  "name": "Track Lab Athlete",
+  "short_name": "Track Lab",
+  "description": "Your training week, daily check-in and gym timer",
+  "start_url": "/athlete/",
+  "scope": "/athlete/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#f97316",
+  "icons": [
+    { "src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
