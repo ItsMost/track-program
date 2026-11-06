@@ -9,9 +9,12 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "loads:sample": "node scripts/print-sample-week-loads.mjs"
+    "loads:sample": "node scripts/print-sample-week-loads.mjs",
+    "test:rls": "vitest run --config vitest.rls.config.mjs"
   },
   "dependencies": {
+    "@fontsource/ibm-plex-sans": "^5.2.5",
+    "@fontsource/ibm-plex-sans-arabic": "^5.2.5",
     "@supabase/supabase-js": "^2.106.1",
     "@tailwindcss/vite": "^4.3.0",
     "html-to-image": "^1.11.13",
