@@ -881,11 +881,11 @@ export default function TrackFieldPlanner() {
   // Previous 4 weeks (read-only) for the acute:chronic week label.
   useEffect(() => {
     let cancelled = false;
+    // Clear right away so the label never shows a ratio computed from another
+    // athlete's or another week's history while the fetch is in flight.
+    setPreviousWeekLoads([]);
     const fetchPreviousWeeks = async () => {
-      if (!selectedAthleteId) {
-        setPreviousWeekLoads([]);
-        return;
-      }
+      if (!selectedAthleteId) return;
       const DAY_MS = 24 * 60 * 60 * 1000;
       const weekStart = new Date(currentWeekStart);
       const rangeStart = new Date(weekStart.getTime() - 28 * DAY_MS);
@@ -904,8 +904,10 @@ export default function TrackFieldPlanner() {
           const wEndStr = getDbDateStr(new Date(rangeStart.getTime() + (w * 7 + 6) * DAY_MS));
           const days = (data || [])
             .filter((row) => row.workout_date >= wStartStr && row.workout_date <= wEndStr)
-            .map((row) => row.drills || []);
-          loads.push(calculateWeekLoad(days, selectedAthlete).total);
+            .map((row) => row.drills || [])
+            .filter((drills) => drills.length > 0);
+          // A week counts as history only if it has saved exercises.
+          loads.push(days.length > 0 ? calculateWeekLoad(days, selectedAthlete).total : null);
         }
         if (!cancelled) setPreviousWeekLoads(loads);
       } catch (err) {
@@ -2810,7 +2812,7 @@ export default function TrackFieldPlanner() {
                   <p className="text-sm font-bold mt-1 opacity-90" title={weeklyStats.loadStatusTitle}>
                     Week: {weeklyStats.loadLabel}
                     {weeklyStats.loadStatus?.ratio != null && (
-                      <span className="tl-num font-semibold opacity-80"> ({weeklyStats.loadStatus.ratio}x avg)</span>
+                      <span className="tl-num font-semibold opacity-80"> ({weeklyStats.loadStatus.ratio.toFixed(2)}x avg)</span>
                     )}
                   </p>
                 </div>
