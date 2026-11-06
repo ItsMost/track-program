@@ -49,7 +49,7 @@ import ExerciseLibrary from './ExerciseLibrary.jsx';
 import AthleteProfileModal from './AthleteProfileModal.jsx';
 import { INITIAL_ATHLETES, INITIAL_LIBRARY, DEFAULT_800M_PROGRAM, DEFAULT_6WEEK_800M_PROGRAM, DEFAULT_LONG_JUMP_PROGRAM, DEFAULT_TRIPLE_JUMP_PROGRAM } from '../../data/constants.js';
 import { supabase, isRealSupabase } from '../../supabaseClient.js';
-import { getRunningLoadProfile, calculateSessionBiometrics, checkHighLowCNSPattern, isCoreOrAccessory } from '../../data/loadModel.js';
+import { getRunningLoadProfile, calculateSessionBiometrics, checkHighLowCNSPattern, isCoreOrAccessory, getWeekLoadStatus, calculateWeekLoad } from '../../data/loadModel.js';
 
 // 1. Updated Track & Field Specific Categories
 const EXERCISE_CATEGORIES = {
@@ -310,6 +310,9 @@ export default function TrackFieldPlanner() {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [fourWeekData, setFourWeekData] = useState([]);
   const [is4WeekLoading, setIs4WeekLoading] = useState(false);
+  // Total load of the 4 weeks before the visible week (oldest first), used for
+  // the acute:chronic week label.
+  const [previousWeekLoads, setPreviousWeekLoads] = useState([]);
 
   const handleToast = (msg) => {
     setToastMessage(msg);
@@ -827,18 +830,22 @@ export default function TrackFieldPlanner() {
           });
           
           let wLoad = 0;
+          let wTrack = 0;
+          let wGym = 0;
           let wMeters = 0;
           let wContacts = 0;
           const wDaily = [];
-          
+
           for (let d = 0; d < 7; d++) {
             const dDate = new Date(wStart.getTime() + d * 24 * 60 * 60 * 1000);
             const dStr = getDbDateStr(dDate);
             const dayRecord = wWorkouts.find(row => row.workout_date === dStr);
             const drills = dayRecord ? (dayRecord.drills || []) : [];
-            
+
             const stats = calculateDayVolume(drills);
             wLoad += stats.totalVolumeScore;
+            wTrack += stats.trackLoad;
+            wGym += stats.gymLoad;
             wMeters += stats.totalMeters;
             wContacts += stats.totalContacts;
             wDaily.push({
@@ -852,6 +859,8 @@ export default function TrackFieldPlanner() {
             weekIndex: w + 1,
             startStr: wStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
             load: wLoad,
+            track: wTrack,
+            gym: wGym,
             meters: wMeters,
             contacts: wContacts,
             daily: wDaily
@@ -868,6 +877,48 @@ export default function TrackFieldPlanner() {
     
     fetch4WeekData();
   }, [selectedAthleteId, weekStartDateStr, showStatsModal]);
+
+  // Previous 4 weeks (read-only) for the acute:chronic week label.
+  useEffect(() => {
+    let cancelled = false;
+    const fetchPreviousWeeks = async () => {
+      if (!selectedAthleteId) {
+        setPreviousWeekLoads([]);
+        return;
+      }
+      const DAY_MS = 24 * 60 * 60 * 1000;
+      const weekStart = new Date(currentWeekStart);
+      const rangeStart = new Date(weekStart.getTime() - 28 * DAY_MS);
+      const rangeEnd = new Date(weekStart.getTime() - DAY_MS);
+      try {
+        const { data, error } = await supabase
+          .from('track_athlete_workouts')
+          .select('workout_date, drills')
+          .eq('athlete_id', selectedAthleteId)
+          .gte('workout_date', getDbDateStr(rangeStart))
+          .lte('workout_date', getDbDateStr(rangeEnd));
+        if (error) throw error;
+        const loads = [];
+        for (let w = 0; w < 4; w++) {
+          const wStartStr = getDbDateStr(new Date(rangeStart.getTime() + w * 7 * DAY_MS));
+          const wEndStr = getDbDateStr(new Date(rangeStart.getTime() + (w * 7 + 6) * DAY_MS));
+          const days = (data || [])
+            .filter((row) => row.workout_date >= wStartStr && row.workout_date <= wEndStr)
+            .map((row) => row.drills || []);
+          loads.push(calculateWeekLoad(days, selectedAthlete).total);
+        }
+        if (!cancelled) setPreviousWeekLoads(loads);
+      } catch (err) {
+        console.error('Error fetching previous weeks:', err);
+        if (!cancelled) setPreviousWeekLoads([]);
+      }
+    };
+    fetchPreviousWeeks();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAthleteId, weekStartDateStr]);
 
   // ------------------------------------------------------------------
   // Auto-save queue (per athlete + date)
@@ -1075,6 +1126,8 @@ export default function TrackFieldPlanner() {
     return {
       totalExercises: (dayDrills || []).length,
       totalVolumeScore: bio.totalVolumeScore,
+      trackLoad: bio.trackLoad,
+      gymLoad: bio.gymLoad,
       avgIntensity,
       totalMeters: (bio.totalSprintMeters || 0) + (bio.tempoMeters || 0),
       totalSprintMeters: bio.totalSprintMeters || 0,
@@ -1099,6 +1152,8 @@ export default function TrackFieldPlanner() {
 
   const weeklyStats = useMemo(() => {
     let totalLoad = 0;
+    let trackLoad = 0;
+    let gymLoad = 0;
     let totalCns = 0;
     let totalStruct = 0;
     let sumIntensities = 0;
@@ -1110,6 +1165,8 @@ export default function TrackFieldPlanner() {
     DAYS_OF_WEEK.forEach((day) => {
       const stats = calculateDayVolume(schedule[day] || []);
       totalLoad += stats.totalVolumeScore;
+      trackLoad += stats.trackLoad;
+      gymLoad += stats.gymLoad;
       totalCns += stats.cnsLoad;
       totalStruct += stats.structuralLoad;
       weekMeters += stats.totalMeters;
@@ -1122,6 +1179,8 @@ export default function TrackFieldPlanner() {
       dailyData.push({
         day,
         load: stats.totalVolumeScore,
+        track: stats.trackLoad,
+        gym: stats.gymLoad,
         intensity: stats.avgIntensity,
       });
     });
@@ -1134,36 +1193,42 @@ export default function TrackFieldPlanner() {
     const structuralPercentage =
       combinedLoad > 0 ? Math.round((totalStruct / combinedLoad) * 100) : 0;
 
-    // Track & Field specific Status Evaluation
-    let loadLabel = 'Balanced Base';
-    let loadColor = 'text-green-600 bg-green-50 border-green-200';
-    if (totalLoad < 1000) {
-      loadLabel = 'Recovery/Deload';
-      loadColor = 'text-blue-600 bg-blue-50 border-blue-200';
-    } else if (cnsPercentage >= 70 && totalLoad > 3000) {
-      loadLabel = 'Neural Peak Week';
-      loadColor = 'text-red-600 bg-red-50 border-red-200';
-    } else if (structuralPercentage >= 65 && totalLoad > 4000) {
-      loadLabel = 'Structural Accumulation';
-      loadColor = 'text-orange-600 bg-orange-50 border-orange-200';
-    }
+    // Week label relative to this athlete's previous 4 weeks (acute:chronic).
+    const loadStatus = getWeekLoadStatus(totalLoad, previousWeekLoads);
+    const STATUS_COLORS = {
+      baseline: 'text-slate-600 bg-slate-50 border-slate-200 dark:text-slate-300 dark:bg-slate-500/10 dark:border-slate-500/20',
+      low: 'text-blue-600 bg-blue-50 border-blue-200 dark:text-blue-400 dark:bg-blue-500/10 dark:border-blue-500/20',
+      normal: 'text-green-600 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-500/10 dark:border-green-500/20',
+      high: 'text-orange-600 bg-orange-50 border-orange-200 dark:text-orange-400 dark:bg-orange-500/10 dark:border-orange-500/20',
+      spike: 'text-red-600 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-500/10 dark:border-red-500/20',
+    };
+    const loadLabel = loadStatus.label;
+    const loadColor = STATUS_COLORS[loadStatus.status];
+    const loadStatusTitle =
+      loadStatus.status === 'baseline'
+        ? `Needs at least 3 trained weeks in the previous 4 to compare (has ${loadStatus.weeksOfHistory}).`
+        : `This week ${totalLoad} AU vs ${loadStatus.chronic} AU average of the previous ${loadStatus.weeksOfHistory} weeks (ratio ${loadStatus.ratio}). Under 0.8 low, 0.8-1.3 normal, 1.3-1.5 high, over 1.5 spike.`;
 
     const highLowCheck = checkHighLowCNSPattern(schedule, selectedAthlete);
 
     return {
       load: totalLoad,
+      trackLoad,
+      gymLoad,
       intensity: avgIntensity,
       loadLabel,
       loadColor,
+      loadStatus,
+      loadStatusTitle,
       dailyData,
       weekMeters,
       weekContacts,
       cnsPercentage,
       structuralPercentage,
-      highLowWarning: highLowCheck.hasWarning ? highLowCheck.warningMessage : null,
+      highLowWarning: highLowCheck.hasConsecutiveHighCNS ? highLowCheck.warning : null,
       consecutiveHighDays: highLowCheck.consecutiveHighDays || [],
     };
-  }, [schedule, calculateDayVolume, selectedAthlete]);
+  }, [schedule, calculateDayVolume, selectedAthlete, previousWeekLoads]);
 
   const dayStatsMap = useMemo(() => {
     const map = {};
@@ -2741,8 +2806,14 @@ export default function TrackFieldPlanner() {
                     {weeklyStats.load}{' '}
                     <span className="text-sm font-medium opacity-80">AU</span>
                   </p>
-                  <p className="text-sm font-bold mt-1 opacity-90">
-                    Phase: {weeklyStats.loadLabel}
+                  <p className="tl-num text-xs font-semibold mt-1 opacity-90">
+                    Track {weeklyStats.trackLoad} AU, Gym {weeklyStats.gymLoad} AU
+                  </p>
+                  <p className="text-sm font-bold mt-1 opacity-90" title={weeklyStats.loadStatusTitle}>
+                    Week: {weeklyStats.loadLabel}
+                    {weeklyStats.loadStatus?.ratio != null && (
+                      <span className="tl-num font-semibold opacity-80"> ({weeklyStats.loadStatus.ratio}x avg)</span>
+                    )}
                   </p>
                 </div>
                 <div className="p-4 rounded-2xl border border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
@@ -2820,10 +2891,13 @@ export default function TrackFieldPlanner() {
                       areaD += ` L ${points[points.length - 1].x} 115 Z`;
                     }
 
-                    let chartColor = '#f97316';
-                    if (weeklyStats.loadLabel === 'Recovery/Deload') chartColor = '#3b82f6';
-                    else if (weeklyStats.loadLabel === 'Neural Peak Week') chartColor = '#ef4444';
-                    else if (weeklyStats.loadLabel === 'Balanced Base') chartColor = '#22c55e';
+                    const chartColor = {
+                      baseline: '#f97316',
+                      low: '#3b82f6',
+                      normal: '#22c55e',
+                      high: '#f97316',
+                      spike: '#ef4444',
+                    }[weeklyStats.loadStatus?.status] || '#f97316';
 
                     const dayAbbrev = {
                       Saturday: 'Sat',
@@ -2962,23 +3036,13 @@ export default function TrackFieldPlanner() {
                       const maxWeekLoad = Math.max(...fourWeekData.map(wk => wk.load), 1000);
                       const loadPercentage = Math.min((w.load / maxWeekLoad) * 100, 100);
                       
-                      // Color coding based on load level
-                      let barColor = 'bg-emerald-500';
-                      let textColor = 'text-emerald-600 dark:text-emerald-400';
-                      let badgeColor = 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100';
-                      if (w.load < 1000) {
-                        barColor = 'bg-blue-500';
-                        textColor = 'text-blue-600 dark:text-blue-400';
-                        badgeColor = 'bg-blue-50 dark:bg-blue-950/20 border-blue-100';
-                      } else if (w.load > 3500) {
-                        barColor = 'bg-red-500';
-                        textColor = 'text-red-600 dark:text-red-400';
-                        badgeColor = 'bg-red-50 dark:bg-red-950/20 border-red-100';
-                      } else if (w.load > 2500) {
-                        barColor = 'bg-orange-500';
-                        textColor = 'text-orange-600 dark:text-orange-400';
-                        badgeColor = 'bg-orange-50 dark:bg-orange-950/20 border-orange-100';
-                      }
+                      // Bars are split Track (orange) / Gym (blue). No fixed
+                      // "peak" thresholds: the week label in the header
+                      // compares each week to the athlete's own history.
+                      const barColor = 'bg-orange-500';
+                      const textColor = 'text-orange-600 dark:text-orange-400';
+                      const badgeColor = 'bg-orange-50 dark:bg-orange-950/20 border-orange-100';
+                      const trackShare = w.load > 0 ? Math.round(((w.track || 0) / w.load) * 100) : 0;
 
                       return (
                         <div key={w.weekIndex} className="p-3 bg-white dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:border-slate-200 dark:hover:border-slate-700 transition-all">
@@ -3005,11 +3069,15 @@ export default function TrackFieldPlanner() {
                             </div>
                             <div className="w-full h-2 bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden border border-slate-200/50 dark:border-slate-800/50">
                               <div
-                                  className={`h-full ${barColor} transition-all duration-500 rounded-full`}
+                                  className="h-full flex transition-all duration-500 rounded-full overflow-hidden"
                                   style={{ width: `${loadPercentage}%` }}
-                              />
+                              >
+                                <div className={`h-full ${barColor}`} style={{ width: `${trackShare}%` }} title={`Track ${w.track || 0} AU`} />
+                                <div className="h-full bg-blue-500" style={{ width: `${100 - trackShare}%` }} title={`Gym ${w.gym || 0} AU`} />
+                              </div>
                             </div>
                             <div className="flex gap-2.5 text-[8px] font-bold text-slate-450 uppercase tracking-wider">
+                              {w.load > 0 && <span className="tl-num">Track {w.track || 0} / Gym {w.gym || 0}</span>}
                               {w.meters > 0 && <span>🏃‍♂️ {w.meters}m</span>}
                               {w.contacts > 0 && <span>🦘 {w.contacts} contacts</span>}
                             </div>
@@ -4336,9 +4404,10 @@ export default function TrackFieldPlanner() {
                   pillStyle = 'border-orange-500 bg-gradient-to-br from-orange-500 to-amber-500 text-white font-bold shadow-[0_8px_20px_-6px_rgba(249,115,22,0.45)] dark:shadow-[0_8px_24px_-6px_rgba(249,115,22,0.35)] scale-105 z-10';
                 } else {
                   if (load > 0) {
-                    if (load < 1000) {
+                    // Colour by the day's CNS level (absolute AU thresholds no longer fit the scale)
+                    if (stats.cnsLevel === 'Low') {
                       pillStyle = 'border-blue-200 dark:border-blue-900/40 bg-blue-50/40 dark:bg-blue-955/15 text-blue-600 dark:text-blue-400 hover:border-blue-300';
-                    } else if (load > 3000) {
+                    } else if (stats.cnsLevel === 'High') {
                       pillStyle = 'border-red-200 dark:border-red-900/40 bg-red-50/40 dark:bg-red-955/15 text-red-600 dark:text-red-400 hover:border-red-300';
                     } else {
                       pillStyle = 'border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/40 dark:bg-emerald-955/15 text-emerald-600 dark:text-emerald-400 hover:border-emerald-300';
@@ -4364,9 +4433,9 @@ export default function TrackFieldPlanner() {
                       <span className={`text-[8px] font-black uppercase mt-2 px-1.5 py-0.5 rounded-lg border ${
                         isActive
                           ? 'bg-white/20 border-white/30 text-white'
-                          : load < 1000
+                          : stats.cnsLevel === 'Low'
                             ? 'bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400'
-                            : load > 3000
+                            : stats.cnsLevel === 'High'
                               ? 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400'
                               : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
                       }`}>
@@ -4632,7 +4701,7 @@ export default function TrackFieldPlanner() {
                           <div className="w-px h-5 bg-slate-200 dark:bg-slate-700"></div>
                           <div
                             className="flex flex-col items-center text-orange-500"
-                            title="Overall System Load"
+                            title={`Total load ${dayStats.totalVolumeScore} AU: Track ${dayStats.trackLoad} AU (sprints, tempo, plyos, jumps) + Gym ${dayStats.gymLoad} AU (strength, power, isometrics)`}
                           >
                             <span className="text-orange-400 font-sans text-[10.5px] font-medium">
                               Load
@@ -4668,6 +4737,17 @@ export default function TrackFieldPlanner() {
                             </div>
                           )}
                         </div>
+
+                        {dayStats.totalVolumeScore > 0 && (
+                          <div className="tl-num flex justify-center gap-3 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                            <span title="Sprints, tempo, plyos and jumps">
+                              Track <span className="font-semibold text-slate-700 dark:text-slate-200">{dayStats.trackLoad}</span>
+                            </span>
+                            <span title="Strength, power and isometrics">
+                              Gym <span className="font-semibold text-slate-700 dark:text-slate-200">{dayStats.gymLoad}</span>
+                            </span>
+                          </div>
+                        )}
 
                         {dayTotalCombined > 0 && (
                           <div className="space-y-0.5">

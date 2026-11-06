@@ -145,28 +145,26 @@ export default function Header({
             <span className="tl-num text-[15px] font-semibold text-slate-900 dark:text-slate-100">
               {weeklyStats.load} AU
             </span>
+            <span
+              className="tl-num text-[12px] font-medium text-slate-500 dark:text-slate-400"
+              title="Track = sprints, tempo, plyos, jumps. Gym = strength, power, isometrics."
+            >
+              (Track {weeklyStats.trackLoad ?? 0}, Gym {weeklyStats.gymLoad ?? 0})
+            </span>
           </div>
 
           <div className="w-px h-4 bg-slate-200 dark:bg-slate-800"></div>
 
-          {/* Load Status Badge */}
-          {(() => {
-            let label = 'Medium (Base)';
-            let badgeClass = 'text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20';
-            const load = weeklyStats.load;
-            if (load < 1500) {
-              label = 'Deload (Low)';
-              badgeClass = 'text-green-600 bg-green-50 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20';
-            } else if (load > 4000) {
-              label = 'High (Peak Week)';
-              badgeClass = 'text-red-600 bg-red-50 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20';
-            }
-            return (
-              <span className={`px-2 py-0.5 rounded-md border text-[11.5px] font-semibold transition-colors ${badgeClass}`}>
-                {label}
-              </span>
-            );
-          })()}
+          {/* Load Status Badge: this week vs the athlete's previous 4 weeks */}
+          <span
+            className={`px-2 py-0.5 rounded-md border text-[11.5px] font-semibold transition-colors ${weeklyStats.loadColor || ''}`}
+            title={weeklyStats.loadStatusTitle}
+          >
+            {weeklyStats.loadLabel}
+            {weeklyStats.loadStatus?.ratio != null && (
+              <span className="tl-num font-medium opacity-80"> {weeklyStats.loadStatus.ratio}x</span>
+            )}
+          </span>
 
           <div className="hidden 2xl:block w-px h-4 bg-slate-200 dark:bg-slate-800"></div>
 
