@@ -4681,7 +4681,7 @@ export default function TrackFieldPlanner() {
                     {/* Enhanced T&F Daily Card Summary */}
                     {schedule[day].length > 0 && !isPreviewMode && (
                       <div className="mt-4 p-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-2 print:hidden">
-                        <div className="tl-num flex justify-between items-center text-[15px] font-semibold">
+                        <div className="tl-num flex justify-between items-center gap-1 text-[14px] leading-tight font-semibold whitespace-nowrap">
                           <div
                             className="flex flex-col items-center text-slate-400"
                             title="Total Exercises"
@@ -5039,7 +5039,7 @@ export default function TrackFieldPlanner() {
           padding: '24px',
           backgroundColor: '#f8fafc',
           color: '#0f172a',
-          fontFamily: 'sans-serif',
+          fontFamily: '"IBM Plex Sans", "IBM Plex Sans Arabic", sans-serif',
           border: '1px solid #e2e8f0',
         }}
       >

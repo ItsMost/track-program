@@ -527,16 +527,16 @@ const TimelineCard = memo(function TimelineCard({
                 </span>
               )}
               {isCore ? null : drill.percentage ? (
-                <span className="tl-num px-1.5 rounded-md text-[11px] font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400">
+                <span className="tl-num px-1.5 rounded-md text-[11px] leading-[1.6] font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400">
                   {drill.percentage}{(drill.intensityUnit === 'x BW' || drill.unit === 'x BW') ? 'x BW' : '%'} {(baseCategory === 'speed' || baseCategory === 'endurance' || baseCategory === 'tempo' || baseCategory === 'anaerobic') ? 'Vmax' : (baseCategory === 'strength' || baseCategory === 'power') ? '1RM' : 'Effort'}
                 </span>
               ) : (drill.intensityUnit === 'BW' || drill.unit === 'BW') ? (
-                <span className="px-1.5 rounded-md text-[11px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-300">
+                <span className="px-1.5 rounded-md text-[11px] leading-[1.6] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-300">
                   Bodyweight
                 </span>
               ) : null}
             </div>
-            <h4 className="text-[13px] font-bold text-slate-800 dark:text-slate-100 leading-snug mt-0.5 pr-1 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
+            <h4 dir="auto" className="text-[14px] font-semibold text-slate-900 dark:text-slate-50 leading-[1.3] tracking-[-0.005em] mt-0.5 pr-1 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
               {drill.title}
             </h4>
           </div>
@@ -587,13 +587,13 @@ const TimelineCard = memo(function TimelineCard({
         {/* Dynamic Inline Parameter Details & Mini Badges */}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-[11px] font-medium text-slate-500 dark:text-slate-400 select-none">
           {renderParameters() && (
-            <span className="tl-num text-[12px] text-slate-600 dark:text-slate-300 font-bold">
+            <span className="tl-num text-[13px] leading-[1.35] text-slate-700 dark:text-slate-200 font-semibold">
               {renderParameters()}
             </span>
           )}
 
           {drill.superSetNext && (
-            <span className="px-1.5 rounded-md bg-indigo-500 dark:bg-indigo-600 text-white text-[10.5px] font-semibold">
+            <span className="px-1.5 rounded-md bg-indigo-500 dark:bg-indigo-600 text-white text-[11px] leading-[1.6] font-semibold">
               Superset
             </span>
           )}
@@ -634,7 +634,7 @@ const TimelineCard = memo(function TimelineCard({
             const isIntensive = drill.type === 'tempo_intensive';
             return (
               <span 
-                className={`tl-num px-1.5 rounded-md text-[11.5px] font-semibold flex items-center gap-1.5 ${
+                className={`tl-num px-1.5 rounded-md text-[11px] leading-[1.6] font-semibold flex items-center gap-1.5 ${
                   isIntensive 
                     ? 'text-cyan-700 dark:text-cyan-300 bg-cyan-500/10' 
                     : 'text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800'
@@ -657,7 +657,7 @@ const TimelineCard = memo(function TimelineCard({
               const isIntensive = drill.type === 'tempo_intensive';
               return (
                 <span 
-                  className={`tl-num px-1.5 rounded-md text-[11.5px] font-semibold flex items-center gap-1 ${
+                  className={`tl-num px-1.5 rounded-md text-[11px] leading-[1.6] font-semibold flex items-center gap-1 ${
                     isIntensive 
                       ? 'text-cyan-700 dark:text-cyan-300 bg-cyan-500/10' 
                       : 'text-amber-700 dark:text-amber-400 bg-amber-500/10'
@@ -671,7 +671,7 @@ const TimelineCard = memo(function TimelineCard({
             const isIntensive = drill.type === 'tempo_intensive';
             return (
               <span 
-                className={`tl-num px-1.5 rounded-md text-[11.5px] font-semibold ${
+                className={`tl-num px-1.5 rounded-md text-[11px] leading-[1.6] font-semibold ${
                   isIntensive 
                     ? 'text-cyan-700 dark:text-cyan-300 bg-cyan-500/10' 
                     : 'text-amber-700 dark:text-amber-400 bg-amber-500/10'
@@ -689,7 +689,7 @@ const TimelineCard = memo(function TimelineCard({
             if (!load) return null;
             if (load.error) {
               return (
-                <span className="px-1.5 rounded-md text-[11px] font-medium text-slate-500 bg-slate-100 dark:bg-slate-800" title={load.error}>
+                <span className="px-1.5 rounded-md text-[11px] leading-[1.6] font-medium text-slate-500 bg-slate-100 dark:bg-slate-800" title={load.error}>
                   {load.name}: set 1RM in profile
                 </span>
               );
@@ -699,7 +699,7 @@ const TimelineCard = memo(function TimelineCard({
               ? `Calculated load for ${load.name} at ${drill.percentage}x Body Weight.`
               : `Calculated load for ${load.name} at ${drill.percentage}% 1RM.`;
             return (
-              <span className="tl-num px-1.5 rounded-md text-[11.5px] font-semibold text-sky-700 dark:text-sky-400 bg-sky-500/10" title={titleStr}>
+              <span className="tl-num px-1.5 rounded-md text-[11px] leading-[1.6] font-semibold text-sky-700 dark:text-sky-400 bg-sky-500/10" title={titleStr}>
                 {load.name} {load.weight} kg{load.pct1RM ? ` (${load.pct1RM}% 1RM)` : ''}
               </span>
             );
@@ -711,7 +711,7 @@ const TimelineCard = memo(function TimelineCard({
             if (!vbt) return null;
             return (
               <span 
-                className="tl-num text-violet-700 dark:text-violet-400 bg-violet-500/10 px-1.5 rounded-md text-[11px] font-semibold flex items-center gap-1.5"
+                className="tl-num text-violet-700 dark:text-violet-400 bg-violet-500/10 px-1.5 rounded-md text-[11px] leading-[1.6] font-semibold flex items-center gap-1.5"
                 title={`VBT Target: Mean ${vbt.mean || '--'}, Peak ${vbt.peak || '--'}${vbt.zone ? ` (${vbt.zone})` : ''}. Stop set at ${vbt.loss || '10% Cutoff'}.`}
               >
                 {vbt.mean && <span>Mean {vbt.mean}</span>}
@@ -723,17 +723,17 @@ const TimelineCard = memo(function TimelineCard({
 
           {/* Research-Grade Scientific Tags */}
           {drill.forceVector && (
-            <span className="px-1.5 rounded-md text-[10.5px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" title={`Force vector: ${drill.forceVector}`}>
+            <span className="px-1.5 rounded-md text-[11px] leading-[1.6] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" title={`Force vector: ${drill.forceVector}`}>
               {drill.forceVector}
             </span>
           )}
           {drill.sscType && (
-            <span className="px-1.5 rounded-md text-[10.5px] font-medium bg-blue-500/10 text-blue-700 dark:text-blue-400" title={`SSC type: ${drill.sscType}`}>
+            <span className="px-1.5 rounded-md text-[11px] leading-[1.6] font-medium bg-blue-500/10 text-blue-700 dark:text-blue-400" title={`SSC type: ${drill.sscType}`}>
               {drill.sscType}
             </span>
           )}
           {drill.cnsDemand && !isCore && (
-            <span className={`px-1.5 rounded-md text-[10.5px] font-semibold border ${
+            <span className={`px-1.5 rounded-md text-[11px] leading-[1.6] font-semibold border ${
               drill.cnsDemand === 'High' 
                 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30' 
                 : drill.cnsDemand === 'Medium'
