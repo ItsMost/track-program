@@ -155,6 +155,12 @@ export default function Header({
 
           <div className="w-px h-4 bg-slate-200 dark:bg-slate-800"></div>
 
+          {weeklyStats.srpeWeek > 0 && (
+            <span className="tl-num text-[12px] font-medium text-slate-500 dark:text-slate-400" title="Athlete-reported session RPE x minutes this week">
+              sRPE <span className="font-semibold text-slate-900 dark:text-slate-100">{Math.round(weeklyStats.srpeWeek)}</span>
+            </span>
+          )}
+
           {/* Load Status Badge: this week vs the athlete's previous 4 weeks */}
           <span
             className={`px-2 py-0.5 rounded-md border text-[11.5px] font-semibold transition-colors ${weeklyStats.loadColor || ''}`}

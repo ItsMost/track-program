@@ -47,6 +47,8 @@ import Sidebar from './Sidebar.jsx';
 import TimelineCard from './TimelineCard.jsx';
 import ExerciseLibrary from './ExerciseLibrary.jsx';
 import AthleteProfileModal from './AthleteProfileModal.jsx';
+import TodayPage, { ColorChip } from '../Readiness/TodayPage.jsx';
+import { fetchReadiness, fetchOverrides, readinessFor, weeklySrpe, markCommentSeen, isoAdd } from '../Readiness/coachReadiness.js';
 import { INITIAL_ATHLETES, INITIAL_LIBRARY, DEFAULT_800M_PROGRAM, DEFAULT_6WEEK_800M_PROGRAM, DEFAULT_LONG_JUMP_PROGRAM, DEFAULT_TRIPLE_JUMP_PROGRAM } from '../../data/constants.js';
 import { supabase, isRealSupabase } from '../../supabaseClient.js';
 import { getRunningLoadProfile, calculateSessionBiometrics, checkHighLowCNSPattern, isCoreOrAccessory, getWeekLoadStatus, calculateWeekLoad } from '../../data/loadModel.js';
@@ -264,6 +266,9 @@ export default function TrackFieldPlanner() {
     name: '',
   });
   const [showStatsModal, setShowStatsModal] = useState(false);
+  const [showToday, setShowToday] = useState(false);
+  // Athlete check-ins for the visible week (+ earlier days for the baseline).
+  const [weekReadiness, setWeekReadiness] = useState({ rows: [], overrides: [] });
   const [showMobileTools, setShowMobileTools] = useState(false);
   const [saveBlockRangeModal, setSaveBlockRangeModal] = useState({
     isOpen: false,
@@ -877,6 +882,30 @@ export default function TrackFieldPlanner() {
     
     fetch4WeekData();
   }, [selectedAthleteId, weekStartDateStr, showStatsModal]);
+
+  // Readiness check-ins + coach overrides for the visible week (read-only).
+  useEffect(() => {
+    let cancelled = false;
+    setWeekReadiness({ rows: [], overrides: [] });
+    if (!selectedAthleteId) return undefined;
+    const end = isoAdd(weekStartDateStr, 6);
+    Promise.all([
+      fetchReadiness({ athleteId: selectedAthleteId, from: isoAdd(weekStartDateStr, -120), to: end }),
+      fetchOverrides({ athleteId: selectedAthleteId, from: weekStartDateStr, to: end }),
+    ])
+      .then(([rows, overrides]) => { if (!cancelled) setWeekReadiness({ rows, overrides }); })
+      .catch(() => { /* readiness tables not set up yet: show nothing */ });
+    return () => { cancelled = true; };
+  }, [selectedAthleteId, weekStartDateStr, showToday]);
+
+  const handleMarkCommentSeen = async (rowId) => {
+    try {
+      await markCommentSeen(rowId);
+      setWeekReadiness((w) => ({ ...w, rows: w.rows.map((r) => (r.id === rowId ? { ...r, coach_seen_at: new Date().toISOString() } : r)) }));
+    } catch (err) {
+      handleToast(`Could not mark as read: ${err.message}`);
+    }
+  };
 
   // Previous 4 weeks (read-only) for the acute:chronic week label.
   useEffect(() => {
@@ -2373,6 +2402,7 @@ export default function TrackFieldPlanner() {
           <span className="font-medium text-sm">{toastMessage}</span>
         </div>
       )}
+      {showToday && <TodayPage athletes={athletes} onClose={() => setShowToday(false)} />}
       {showProfileModal && selectedAthlete && (
         <AthleteProfileModal
           athlete={selectedAthlete}
@@ -2768,7 +2798,7 @@ export default function TrackFieldPlanner() {
         handleToast={handleToast}
         setSaveWeekTemplateModal={setSaveWeekTemplateModal}
         setSaveBlockRangeModal={setSaveBlockRangeModal}
-        weeklyStats={weeklyStats}
+        weeklyStats={{ ...weeklyStats, srpeWeek: weeklySrpe(weekReadiness.rows, selectedAthleteId, weekStartDateStr) }}
         onDeleteAthlete={handleDeleteAthlete}
       />
 
@@ -4347,6 +4377,7 @@ export default function TrackFieldPlanner() {
           canUndo={historyIndex > 0}
           canRedo={historyIndex < history.length - 1}
           onShowStats={() => setShowStatsModal(true)}
+          onShowToday={() => setShowToday(true)}
           onClearWeek={() =>
             setDeleteConfirmation({ isOpen: true, type: 'week' })
           }
@@ -4570,6 +4601,40 @@ export default function TrackFieldPlanner() {
                       className="mt-2 text-[14px] font-bold text-slate-900 dark:text-slate-50 bg-transparent border-0 border-b border-transparent focus:border-orange-400 outline-none w-full px-0.5 py-0.5 placeholder-slate-400 dark:placeholder-slate-500 transition-colors"
                       readOnly={isPreviewMode}
                     />
+                    {/* Athlete readiness + session comment for this day */}
+                    {(() => {
+                      const iso = getDbDateStr(weekDatesFull[index]);
+                      const rd = readinessFor(weekReadiness.rows, weekReadiness.overrides, selectedAthleteId, iso);
+                      if (!rd.entry && !rd.override) return null;
+                      return (
+                        <div className="mt-1.5 space-y-1.5 print:hidden">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <ColorChip color={rd.color} title={rd.reasons.join(' · ') || undefined} />
+                            {rd.entry?.session_rpe != null && (
+                              <span className="tl-num text-[11px] font-medium text-slate-500 dark:text-slate-400" title="Session RPE x minutes">
+                                sRPE {rd.entry.session_minutes ? rd.entry.session_rpe * rd.entry.session_minutes : rd.entry.session_rpe}
+                              </span>
+                            )}
+                          </div>
+                          {rd.reasons.length > 0 && rd.color !== 'green' && (
+                            <p className="text-[11px] leading-snug text-slate-500 dark:text-slate-400">{rd.reasons.join(' · ')}</p>
+                          )}
+                          {rd.entry?.athlete_note && (
+                            <div className={`rounded-lg px-2 py-1.5 text-[12px] leading-snug ${rd.hasNewComment ? 'bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/30' : 'bg-slate-100/70 dark:bg-slate-800/60'}`}>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                                  Athlete comment{rd.hasNewComment && <span className="ml-1 px-1 rounded bg-orange-500 text-white">New</span>}
+                                </span>
+                                {rd.hasNewComment && (
+                                  <button type="button" onClick={() => handleMarkCommentSeen(rd.entry.id)} className="text-[11px] font-semibold text-orange-600 dark:text-orange-400">Mark read</button>
+                                )}
+                              </div>
+                              <p dir="auto" className="text-slate-700 dark:text-slate-200">{rd.entry.athlete_note}</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Research-Grade Day Biometrics Pill Bar */}

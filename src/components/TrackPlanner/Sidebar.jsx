@@ -10,7 +10,8 @@ import {
   EyeOff,
   Layout,
   FileText,
-  LogOut
+  LogOut,
+  HeartPulse
 } from 'lucide-react';
 import { supabase, isRealSupabase } from '../../supabaseClient';
 
@@ -24,6 +25,7 @@ export default function Sidebar({
   canUndo,
   canRedo,
   onShowStats,
+  onShowToday,
   onClearWeek,
   onPrintLandscape,
   onPrintPortrait
@@ -55,6 +57,17 @@ export default function Sidebar({
         >
           <BarChart3 className="w-4.5 h-4.5" />
         </button>
+
+        {/* Readiness: every athlete's colour, check-in and comments today */}
+        {onShowToday && (
+          <button
+            onClick={onShowToday}
+            className="p-2.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+            title="Today: readiness of every athlete"
+          >
+            <HeartPulse className="w-4.5 h-4.5 text-rose-500" />
+          </button>
+        )}
 
         {/* Undo/Redo */}
         <div className="flex flex-row md:flex-col items-center gap-1">
