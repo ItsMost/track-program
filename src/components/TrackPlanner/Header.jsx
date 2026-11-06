@@ -162,7 +162,7 @@ export default function Header({
           >
             {weeklyStats.loadLabel}
             {weeklyStats.loadStatus?.ratio != null && (
-              <span className="tl-num font-medium opacity-80"> {weeklyStats.loadStatus.ratio}x</span>
+              <span className="tl-num font-medium opacity-80"> {weeklyStats.loadStatus.ratio.toFixed(2)}x</span>
             )}
           </span>
 
