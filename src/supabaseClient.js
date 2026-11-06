@@ -257,7 +257,7 @@ const mockResolve = (code) => {
   mockWrite('track_athlete_codes', rows);
   return row.athlete_id;
 };
-const CHECKIN_FIELDS = ['sleep', 'soreness', 'ankle_pain', 'hamstring_pain', 'cmj_cm', 'sprint_test', 'sprint_time_s', 'session_rpe', 'session_minutes', 'athlete_note'];
+const CHECKIN_FIELDS = ['sleep', 'soreness', 'ankle_pain', 'hamstring_pain', 'cmj_cm', 'sprint_test', 'sprint_time_s', 'session_rpe', 'session_minutes', 'athlete_note', 'broad_jump_m'];
 
 const mockRpc = async (fn, args = {}) => {
   const ok = (data) => ({ data: { ok: true, ...data }, error: null });
@@ -281,7 +281,7 @@ const mockRpc = async (fn, args = {}) => {
   }
 
   const athleteId = mockResolve(args.p_code);
-  if (['get_my_profile', 'get_my_week', 'submit_checkin', 'get_my_checkins'].includes(fn)) {
+  if (['get_my_profile', 'get_my_week', 'submit_checkin', 'get_my_checkins', 'get_my_history'].includes(fn)) {
     await new Promise((r) => setTimeout(r, athleteId ? 150 : 1000));
     if (!athleteId) return fail('invalid_code');
   }
@@ -312,16 +312,19 @@ const mockRpc = async (fn, args = {}) => {
     const rows = mockRead('track_readiness');
     let row = rows.find((r) => r.athlete_id === athleteId && r.date === args.p_date);
     if (!row) {
-      row = { athlete_id: athleteId, date: args.p_date, created_at: new Date().toISOString() };
+      row = { id: `rd-${Date.now()}-${Math.floor(Math.random() * 100000)}`, athlete_id: athleteId, date: args.p_date, created_at: new Date().toISOString() };
       rows.push(row);
     }
+    // a new or changed note shows as "new" to the coach
+    const newNote = args.p_athlete_note ? String(args.p_athlete_note).trim() : '';
+    if (newNote && newNote !== row.athlete_note) row.coach_seen_at = null;
     CHECKIN_FIELDS.forEach((f) => {
       const v = args[`p_${f}`];
       if (v !== undefined && v !== null && v !== '') row[f] = v;
     });
     row.updated_at = new Date().toISOString();
     mockWrite('track_readiness', rows);
-    const { athlete_id: _omit, ...checkin } = row;
+    const { athlete_id: _omit, coach_seen_at: _seen, ...checkin } = row;
     return ok({ checkin });
   }
   if (fn === 'get_my_checkins') {
@@ -329,8 +332,27 @@ const mockRpc = async (fn, args = {}) => {
     const checkins = mockRead('track_readiness')
       .filter((r) => r.athlete_id === athleteId && r.date >= args.p_from && r.date <= to)
       .sort((a, b) => (a.date < b.date ? -1 : 1))
-      .map(({ athlete_id: _omit, ...rest }) => rest);
+      .map(({ athlete_id: _omit, coach_seen_at: _seen, ...rest }) => rest);
     return ok({ checkins });
+  }
+  if (fn === 'get_my_history') {
+    const from = args.p_from || '1900-01-01';
+    const checkins = mockRead('track_readiness')
+      .filter((r) => r.athlete_id === athleteId && r.date >= from && r.date <= today)
+      .sort((a, b) => (a.date < b.date ? -1 : 1))
+      .map((r) => ({
+        date: r.date, cmj_cm: r.cmj_cm ?? null, sprint_test: r.sprint_test ?? null,
+        sprint_time_s: r.sprint_time_s ?? null, broad_jump_m: r.broad_jump_m ?? null,
+        session_rpe: r.session_rpe ?? null, session_minutes: r.session_minutes ?? null,
+      }));
+    const a = mockRead('track_athletes').find((x) => x.id === athleteId) || {};
+    return ok({
+      checkins,
+      profile: {
+        cmj: a.cmj ?? a.vertical_jump ?? null, accel_10m: a.accel_10m ?? null,
+        fly_30m: a.fly_30m ?? null, broad_jump: a.broad_jump ?? a.standing_long_jump ?? null,
+      },
+    });
   }
   return { data: null, error: { message: `Unknown function ${fn}` } };
 };

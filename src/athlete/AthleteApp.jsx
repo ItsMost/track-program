@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Activity, CalendarDays, ClipboardCheck, Loader2, LogOut } from 'lucide-react';
+import { Activity, CalendarDays, ClipboardCheck, LineChart, Loader2, LogOut } from 'lucide-react';
 import { getMyProfile, PortalError } from './api';
 import WeekView from './WeekView.jsx';
 import CheckInForm from './CheckInForm.jsx';
 import GymTimer from './GymTimer.jsx';
+import ProgressView from './ProgressView.jsx';
 
 const CODE_KEY = 'tracklab_athlete_code';
 const readSavedCode = () => {
@@ -107,15 +108,18 @@ export default function AthleteApp() {
             currentWeekStart={profile.current_week_start}
             onStartSession={(date, drills) => setSession({ date, drills })}
           />
-        ) : (
+        ) : tab === 'checkin' ? (
           <CheckInForm code={code} today={profile.today} onSaved={() => showToast('Check-in saved')} />
+        ) : (
+          <ProgressView code={code} today={profile.today} />
         )}
       </main>
 
       <nav className="fixed bottom-0 inset-x-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-t border-slate-200 dark:border-slate-800 pb-[env(safe-area-inset-bottom)]">
-        <div className="max-w-md mx-auto grid grid-cols-2">
+        <div className="max-w-md mx-auto grid grid-cols-3">
           <TabButton active={tab === 'week'} onClick={() => setTab('week')} icon={CalendarDays} label="Program" />
           <TabButton active={tab === 'checkin'} onClick={() => setTab('checkin')} icon={ClipboardCheck} label="Check-in" />
+          <TabButton active={tab === 'progress'} onClick={() => setTab('progress')} icon={LineChart} label="Progress" />
         </div>
       </nav>
 

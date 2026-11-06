@@ -5,7 +5,7 @@ import { addDays, shortDate } from './cairoDate';
 
 const EMPTY = {
   sleep: null, soreness: null, ankle_pain: null, hamstring_pain: null,
-  cmj_cm: '', sprint_test: '', sprint_time_s: '', session_rpe: null, session_minutes: '', athlete_note: '',
+  cmj_cm: '', broad_jump_m: '', sprint_test: '', sprint_time_s: '', session_rpe: null, session_minutes: '', athlete_note: '',
 };
 
 export default function CheckInForm({ code, today, onSaved }) {
@@ -46,6 +46,7 @@ export default function CheckInForm({ code, today, onSaved }) {
         ankle_pain: form.ankle_pain,
         hamstring_pain: form.hamstring_pain,
         cmj_cm: num(form.cmj_cm),
+        broad_jump_m: num(form.broad_jump_m),
         sprint_test: form.sprint_test || undefined,
         sprint_time_s: form.sprint_test ? num(form.sprint_time_s) : undefined,
         session_rpe: form.session_rpe,
@@ -89,6 +90,7 @@ export default function CheckInForm({ code, today, onSaved }) {
 
           <Card title="Tests (if you did them)">
             <NumberField id="cmj" label="CMJ" unit="cm" step="0.1" value={form.cmj_cm} onChange={(v) => set('cmj_cm', v)} />
+            <NumberField id="broad" label="Broad jump" unit="m" step="0.01" value={form.broad_jump_m} onChange={(v) => set('broad_jump_m', v)} />
             <div className="space-y-1.5">
               <label htmlFor="sprint-test" className="block text-sm font-medium">Sprint test</label>
               <select
@@ -100,6 +102,7 @@ export default function CheckInForm({ code, today, onSaved }) {
                 <option value="">None</option>
                 <option value="10m">10 m</option>
                 <option value="fly20">Flying 20 m</option>
+                <option value="fly30">Flying 30 m</option>
                 <option value="other">Other</option>
               </select>
             </div>

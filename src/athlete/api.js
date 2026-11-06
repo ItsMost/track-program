@@ -36,6 +36,7 @@ const call = async (fn, args) => {
 
 export const getMyProfile = (code) => call('get_my_profile', { p_code: code });
 export const getMyWeek = (code, weekStart) => call('get_my_week', { p_code: code, p_week_start: weekStart });
+export const getMyHistory = (code, from) => call('get_my_history', { p_code: code, p_from: from });
 export const getMyCheckins = (code, from, to) => call('get_my_checkins', { p_code: code, p_from: from, p_to: to });
 
 // Only fields that are set are sent; the server keeps the others.
