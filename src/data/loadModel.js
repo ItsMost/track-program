@@ -106,9 +106,26 @@ export const parseCount = (value) => {
 // ============================================================================
 export const GYM_LOAD_FACTOR = 12; // AU per rep at 100% (intensity is squared)
 export const POWER_LOAD_FACTOR = 14; // explosive lifts: a little more per rep
-export const ACCESSORY_WEIGHT = 0.45;
-export const ACCESSORY_REP_CAP = 8; // reps per set beyond 8 add no load (light, high-rep work)
-export const ACCESSORY_DEFAULT_PCT = 50; // assumed intensity for an accessory with no %
+// Accessories come in two kinds:
+//  - hypertrophy / compound accessories (hip thrust, RDL, split squat, rows,
+//    presses, pull-ups): 3x10 hip thrust with no % ~ 48% of 4x4 back squat @75%
+//  - small-muscle isolation (tibialis, calf, soleus, hip flexor, ankle work):
+//    kept low, 2x15 tibialis < 25% of 3x20 m flys @95%
+export const ACCESSORY_WEIGHT = 0.4; // hypertrophy / compound accessory
+export const ACCESSORY_REP_CAP = 12; // reps per set beyond 12 add no load
+export const ACCESSORY_DEFAULT_PCT = 60; // assumed intensity with no %
+export const ISOLATION_WEIGHT = 0.45;
+export const ISOLATION_REP_CAP = 8;
+export const ISOLATION_DEFAULT_PCT = 50;
+const ISOLATION_KEYWORDS = [
+  'tibialis', 'tib raise', 'calf', 'soleus', 'hip flexor', 'ankle', 'toe ', 'foot ',
+  'adductor', 'abductor', 'band walk', 'monster walk', 'face pull', 'lateral raise',
+  'bicep', 'tricep', 'wrist',
+];
+export const isIsolationAccessory = (drill) => {
+  const title = String(drill?.title || drill?.name || '').toLowerCase();
+  return ISOLATION_KEYWORDS.some((w) => title.includes(w));
+};
 export const ISO_LOAD_PER_SEC = 0.2; // isometrics: AU per second of hold at 100%
 export const APPROACH_RUN_DEFAULT_M = 35; // LJ/TJ approach run with no distance entered
 export const APPROACH_RUN_MULTIPLIER = 1.0; // rhythm runs are sub-maximal, below sprints (2.0)
@@ -188,10 +205,13 @@ export const calculateGymDrillLoad = (drill) => {
 
   // Accessory (incl. rep-based isometric switches and power drills that are
   // not a main lift, e.g. jump squats, med-ball throws).
-  const accPct = pct > 0 ? pct : baseType === 'power' ? 60 : ACCESSORY_DEFAULT_PCT;
-  const effReps = Math.min(reps, ACCESSORY_REP_CAP);
-  const load = sets * effReps * Math.pow(accPct / 100, 2) * GYM_LOAD_FACTOR * ACCESSORY_WEIGHT;
-  return { load, cnsShare: baseType === 'power' ? 0.5 : 0.15, kind: 'accessory' };
+  const isolation = isIsolationAccessory(drill);
+  const defaultPct = baseType === 'power' ? 60 : isolation ? ISOLATION_DEFAULT_PCT : ACCESSORY_DEFAULT_PCT;
+  const accPct = pct > 0 ? pct : defaultPct;
+  const effReps = Math.min(reps, isolation ? ISOLATION_REP_CAP : ACCESSORY_REP_CAP);
+  const weight = isolation ? ISOLATION_WEIGHT : ACCESSORY_WEIGHT;
+  const load = sets * effReps * Math.pow(accPct / 100, 2) * GYM_LOAD_FACTOR * weight;
+  return { load, cnsShare: baseType === 'power' ? 0.5 : 0.15, kind: isolation ? 'isolation' : 'accessory' };
 };
 
 // ============================================================================
@@ -361,11 +381,12 @@ export const classifyPlyoContacts = (drill) => {
 // plyo contacts.
 // ============================================================================
 
-// CNS level thresholds on the summed CNS load of one session.
-// 400 CNS-AU ~ a full high-intensity sprint + jump + Olympic-lift day.
-export const CNS_SCORE_DIVISOR = 400;
-export const CNS_HIGH_SCORE = 60;
-export const CNS_MED_SCORE = 30;
+// CNS score (0-100) = summed CNS load of one session / CNS_SCORE_DIVISOR.
+// Calibrated so a normal high day (sled + accelerations + plyos + heavy squat)
+// lands around 70-85 and 100 needs roughly 1.2x that; only extreme days cap.
+export const CNS_SCORE_DIVISOR = 520;
+export const CNS_HIGH_SCORE = 50;
+export const CNS_MED_SCORE = 25;
 
 const getIntensity = (drill, type) => {
   const unit = drill?.intensityUnit || drill?.unit;
@@ -547,8 +568,10 @@ export const calculateSessionBiometrics = (drills = [], athlete = null) => {
 export const ACWR_MIN_HISTORY_WEEKS = 3;
 
 export const getWeekLoadStatus = (currentLoad = 0, previousWeekLoads = []) => {
+  // null / undefined = a week with no saved exercises (not history).
   const history = (previousWeekLoads || [])
     .slice(-4)
+    .filter((v) => v !== null && v !== undefined && v !== '')
     .map((v) => parseFloat(v) || 0)
     .filter((v) => v > 0);
   const weeksOfHistory = history.length;
