@@ -224,9 +224,123 @@ class MockSupabaseQuery {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Local mock of the athlete-portal RPCs (offline testing only). Mirrors the
+// SQL functions in supabase/migrations/20261106130000_track_athlete_portal.sql.
+// Codes are kept in plain text here because this data never leaves the browser.
+// ---------------------------------------------------------------------------
+const mockRead = (key) => {
+  try { return JSON.parse(localStorage.getItem(`db_${key}`) || '[]'); } catch { return []; }
+};
+const mockWrite = (key, rows) => {
+  try { localStorage.setItem(`db_${key}`, JSON.stringify(rows)); } catch { /* storage blocked */ }
+};
+const cairoTodayIso = () =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+const isoAdd = (iso, n) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + n));
+  return t.toISOString().slice(0, 10);
+};
+const isoWeekStart = (iso) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  return isoAdd(iso, -((dow + 1) % 7));
+};
+const normalizeCode = (c) => String(c || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+const mockResolve = (code) => {
+  const c = normalizeCode(code);
+  const rows = mockRead('track_athlete_codes');
+  const row = rows.find((r) => r.code === c);
+  if (!row) return null;
+  row.last_used_at = new Date().toISOString();
+  mockWrite('track_athlete_codes', rows);
+  return row.athlete_id;
+};
+const CHECKIN_FIELDS = ['sleep', 'soreness', 'ankle_pain', 'hamstring_pain', 'cmj_cm', 'sprint_test', 'sprint_time_s', 'session_rpe', 'session_minutes', 'athlete_note'];
+
+const mockRpc = async (fn, args = {}) => {
+  const ok = (data) => ({ data: { ok: true, ...data }, error: null });
+  const fail = (code) => ({ data: { ok: false, error: code }, error: null });
+  const today = cairoTodayIso();
+
+  if (fn === 'track_is_coach') return { data: true, error: null };
+
+  if (fn === 'track_set_athlete_code') {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const bytes = crypto.getRandomValues(new Uint8Array(8));
+    const code = Array.from(bytes, (b) => alphabet[b % 32]).join('');
+    const rows = mockRead('track_athlete_codes').filter((r) => r.athlete_id !== args.p_athlete_id);
+    rows.push({ athlete_id: args.p_athlete_id, code, created_at: new Date().toISOString(), last_used_at: null });
+    mockWrite('track_athlete_codes', rows);
+    return { data: code, error: null };
+  }
+  if (fn === 'track_athlete_code_status') {
+    const row = mockRead('track_athlete_codes').find((r) => r.athlete_id === args.p_athlete_id);
+    return { data: row ? { has_code: true, created_at: row.created_at, last_used_at: row.last_used_at } : { has_code: false }, error: null };
+  }
+
+  const athleteId = mockResolve(args.p_code);
+  if (['get_my_profile', 'get_my_week', 'submit_checkin', 'get_my_checkins'].includes(fn)) {
+    await new Promise((r) => setTimeout(r, athleteId ? 150 : 1000));
+    if (!athleteId) return fail('invalid_code');
+  }
+
+  if (fn === 'get_my_profile') {
+    const a = mockRead('track_athletes').find((x) => x.id === athleteId) || INITIAL_ATHLETES.find((x) => x.id === athleteId);
+    const athlete = {
+      id: athleteId, name: a?.name || 'Athlete', weight: a?.weight ?? null,
+      fullSquat: a?.full_squat ?? a?.fullSquat ?? null, halfSquat: a?.half_squat ?? a?.halfSquat ?? null,
+      quarterSquat: a?.quarter_squat ?? a?.quarterSquat ?? null, clean: a?.clean ?? null,
+      bench: a?.bench ?? null, deadlift: a?.deadlift ?? null,
+    };
+    return ok({ athlete, today, current_week_start: isoWeekStart(today) });
+  }
+  if (fn === 'get_my_week') {
+    const start = isoWeekStart(args.p_week_start);
+    const limit = isoAdd(isoWeekStart(today), 6);
+    if (start > limit) return ok({ week_start: start, workouts: [] });
+    const end = [isoAdd(start, 6), limit].sort()[0];
+    const workouts = mockRead('track_athlete_workouts')
+      .filter((w) => w.athlete_id === athleteId && w.workout_date >= start && w.workout_date <= end)
+      .sort((a, b) => (a.workout_date < b.workout_date ? -1 : 1))
+      .map((w) => ({ workout_date: w.workout_date, workout_title: w.workout_title, drills: w.drills }));
+    return ok({ week_start: start, workouts });
+  }
+  if (fn === 'submit_checkin') {
+    if (![today, isoAdd(today, -1)].includes(args.p_date)) return fail('date_not_allowed');
+    const rows = mockRead('track_readiness');
+    let row = rows.find((r) => r.athlete_id === athleteId && r.date === args.p_date);
+    if (!row) {
+      row = { athlete_id: athleteId, date: args.p_date, created_at: new Date().toISOString() };
+      rows.push(row);
+    }
+    CHECKIN_FIELDS.forEach((f) => {
+      const v = args[`p_${f}`];
+      if (v !== undefined && v !== null && v !== '') row[f] = v;
+    });
+    row.updated_at = new Date().toISOString();
+    mockWrite('track_readiness', rows);
+    const { athlete_id: _omit, ...checkin } = row;
+    return ok({ checkin });
+  }
+  if (fn === 'get_my_checkins') {
+    const to = [args.p_to, today].sort()[0];
+    const checkins = mockRead('track_readiness')
+      .filter((r) => r.athlete_id === athleteId && r.date >= args.p_from && r.date <= to)
+      .sort((a, b) => (a.date < b.date ? -1 : 1))
+      .map(({ athlete_id: _omit, ...rest }) => rest);
+    return ok({ checkins });
+  }
+  return { data: null, error: { message: `Unknown function ${fn}` } };
+};
+
 const mockSupabase = {
   from(table) {
     return new MockSupabaseQuery(table);
+  },
+  rpc(fn, args) {
+    return mockRpc(fn, args);
   }
 };
 

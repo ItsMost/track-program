@@ -13,6 +13,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { calculateNeuroMechanicalProfile } from '../../data/loadModel.js';
+import AthleteAccessCode from './AthleteAccessCode.jsx';
 
 export default function AthleteProfileModal({ athlete, onClose, onSave, onDelete }) {
   const [formData, setFormData] = useState({
@@ -547,6 +548,10 @@ export default function AthleteProfileModal({ athlete, onClose, onSave, onDelete
 
             </div>
 
+          </div>
+
+          <div className="px-5 pb-5">
+            <AthleteAccessCode athleteId={athlete.id} athleteName={formData.name} />
           </div>
 
           {/* Footer Actions */}
