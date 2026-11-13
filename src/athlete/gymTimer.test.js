@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseDuration, parseRest, buildGymSteps, dayHasGym, formatSeconds, groupSupersets } from './gymTimer.js';
+import { parseDuration, parseRest, buildGymSteps, dayHasGym, formatSeconds, groupSupersets, summarizeExercises, estimateRemainingSec, stepsSignature, isUsableProgress } from './gymTimer.js';
 
 describe('parseDuration / parseRest', () => {
   it('reads common rest formats', () => {
@@ -73,5 +73,40 @@ describe('buildGymSteps', () => {
     expect(dayHasGym([{ type: 'tempo_extensive' }])).toBe(false);
     expect(dayHasGym([{ type: 'power', title: 'Hang Clean' }])).toBe(true);
     expect(groupSupersets([{ superSetNext: true }, {}, {}]).map((g) => g.length)).toEqual([2, 1]);
+  });
+});
+
+describe('exercise list and progress', () => {
+  const day = [
+    { title: 'Back Squat', type: 'strength_double_leg', sets: 2, reps: 4, rest: '2m' },
+    { title: 'Nordic', type: 'strength_hamstring', sets: 2, reps: 5, rest: '60s', superSetNext: true },
+    { title: 'Copenhagen', type: 'core_lateral', sets: 2, reps: 20, unit: 'sec', rest: '60s' },
+  ];
+  const steps = buildGymSteps(day, null);
+
+  it('groups sets per exercise with status and done counts', () => {
+    const ex = summarizeExercises(steps, 3, new Set([0, 1, 2]));
+    expect(ex.map((e) => [e.title, e.totalSets, e.setsDone, e.status])).toEqual([
+      ['Back Squat', 2, 2, 'done'],
+      ['Nordic', 2, 1, 'next'],
+      ['Copenhagen', 2, 0, 'current'],
+    ]);
+    expect(ex[1].superset).toBe(true);
+  });
+
+  it('estimates remaining time from sets and rests', () => {
+    // all 6 sets: 6 * 45 work + rests 120 + 0(nordic) + 60 + 0 + 60(last set rest set to 0)
+    const total = estimateRemainingSec(steps, 0);
+    expect(total).toBe(6 * 45 + steps.reduce((a, s) => a + s.restAfterSec, 0));
+    expect(estimateRemainingSec(steps, 0, 'rest', 30)).toBe(30 + total - 45 - steps[0].restAfterSec);
+  });
+
+  it('only resumes progress for the same athlete, day and program', () => {
+    const signature = stepsSignature(steps);
+    const saved = { code: 'A1', date: '2026-11-13', signature, index: 2, savedAt: Date.now() };
+    expect(isUsableProgress(saved, { code: 'A1', date: '2026-11-13', signature })).toBe(true);
+    expect(isUsableProgress(saved, { code: 'A1', date: '2026-11-12', signature })).toBe(false);
+    expect(isUsableProgress(saved, { code: 'A1', date: '2026-11-13', signature: 'changed' })).toBe(false);
+    expect(isUsableProgress({ ...saved, savedAt: Date.now() - 13 * 3600e3 }, { code: 'A1', date: '2026-11-13', signature })).toBe(false);
   });
 });

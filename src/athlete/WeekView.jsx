@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Loader2, Play } from 'lucide-react';
 import { getMyWeek } from './api';
 import { addDays, dayName, shortDate, weekDays } from './cairoDate';
-import { dayHasGym, parseRest } from './gymTimer';
+import { dayHasGym, parseRest, PROGRESS_MAX_AGE_MS } from './gymTimer';
+import { readProgress } from './sessionProgress';
 
 const prescription = (d) => {
   const sets = String(d.sets ?? '').trim();
@@ -50,6 +51,11 @@ export default function WeekView({ code, today, currentWeekStart, onStartSession
   const isCurrent = weekStart >= currentWeekStart;
   const byDate = Object.fromEntries(state.workouts.map((w) => [w.workout_date, w]));
   const days = weekDays(weekStart);
+  // A gym session this athlete left mid-way on this phone (the timer asks to continue).
+  const [inProgress] = useState(() => {
+    const p = readProgress();
+    return p && p.code === code && p.phase !== 'ready' && Date.now() - (p.savedAt || 0) < PROGRESS_MAX_AGE_MS ? p.date : null;
+  });
 
   return (
     <div className="space-y-3">
@@ -104,7 +110,7 @@ export default function WeekView({ code, today, currentWeekStart, onStartSession
                   onClick={() => onStartSession(iso, drills)}
                   className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold"
                 >
-                  <Play className="w-3.5 h-3.5" /> Start session
+                  <Play className="w-3.5 h-3.5" /> {inProgress === iso ? 'Continue session' : 'Start session'}
                 </button>
               )}
             </div>
