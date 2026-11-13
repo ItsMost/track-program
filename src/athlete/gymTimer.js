@@ -99,12 +99,13 @@ export const buildGymSteps = (dayDrills = [], athlete = null) => {
     const rounds = Math.max(...group.map(({ drill }) => Math.max(1, Math.round(parseCount(drill.sets) || 1))));
     for (let round = 1; round <= rounds; round++) {
       const inRound = group.filter(({ drill }) => round <= Math.max(1, Math.round(parseCount(drill.sets) || 1)));
-      inRound.forEach(({ drill }, pos) => {
+      inRound.forEach(({ drill, index: drillIdx }, pos) => {
         const totalSets = Math.max(1, Math.round(parseCount(drill.sets) || 1));
         const isLastInRound = pos === inRound.length - 1;
         const { setRestSec } = parseRest(drill.rest);
         steps.push({
           id: `${gIdx}-${round}-${pos}`,
+          exerciseKey: `${gIdx}-${drillIdx}`,
           title: drill.title || 'Exercise',
           setNumber: round,
           totalSets,
@@ -121,3 +122,62 @@ export const buildGymSteps = (dayDrills = [], athlete = null) => {
   if (steps.length) steps[steps.length - 1].restAfterSec = 0;
   return steps;
 };
+
+// One row per exercise for the list under the timer, in the order they first
+// appear. status: done (every set is behind the current one) | current | next.
+export const summarizeExercises = (steps = [], currentIndex = 0, doneSet = new Set()) => {
+  const map = new Map();
+  steps.forEach((s, i) => {
+    if (!map.has(s.exerciseKey)) {
+      map.set(s.exerciseKey, {
+        key: s.exerciseKey,
+        title: s.title,
+        reps: s.reps,
+        load: s.load,
+        notes: s.notes,
+        superset: s.superset,
+        supersetLabel: s.supersetLabel,
+        restSec: 0,
+        stepIndices: [],
+      });
+    }
+    const ex = map.get(s.exerciseKey);
+    ex.stepIndices.push(i);
+    if (s.restAfterSec > ex.restSec) ex.restSec = s.restAfterSec;
+  });
+  return [...map.values()].map((ex) => {
+    const last = ex.stepIndices[ex.stepIndices.length - 1];
+    const status = currentIndex > last ? 'done' : ex.stepIndices.includes(currentIndex) ? 'current' : 'next';
+    return {
+      ...ex,
+      totalSets: ex.stepIndices.length,
+      setsDone: ex.stepIndices.filter((i) => doneSet.has(i)).length,
+      status,
+    };
+  });
+};
+
+export const WORK_SEC_PER_SET = 45;
+
+// Rough seconds left: the rest running now, plus every set from the current one
+// on (work estimate + its rest).
+export const estimateRemainingSec = (steps = [], currentIndex = 0, phase = 'work', restLeftSec = 0) => {
+  let total = phase === 'rest' ? restLeftSec : 0;
+  const from = phase === 'rest' ? currentIndex + 1 : currentIndex;
+  for (let i = from; i < steps.length; i++) total += WORK_SEC_PER_SET + (steps[i].restAfterSec || 0);
+  return total;
+};
+
+// Saved progress lets the athlete leave the timer (or lose the tab) and pick up
+// where they stopped. The signature makes sure the coach did not change the day.
+export const stepsSignature = (steps = []) => steps.map((s) => `${s.exerciseKey}:${s.title}`).join('|');
+
+export const PROGRESS_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+
+export const isUsableProgress = (saved, { code, date, signature, now = Date.now() }) =>
+  !!saved &&
+  saved.code === code &&
+  saved.date === date &&
+  saved.signature === signature &&
+  typeof saved.index === 'number' &&
+  now - (saved.savedAt || 0) < PROGRESS_MAX_AGE_MS;

@@ -5,6 +5,7 @@ import WeekView from './WeekView.jsx';
 import CheckInForm from './CheckInForm.jsx';
 import GymTimer from './GymTimer.jsx';
 import ProgressView from './ProgressView.jsx';
+import ThemeToggle from './ThemeToggle.jsx';
 
 const CODE_KEY = 'tracklab_athlete_code';
 const readSavedCode = () => {
@@ -90,13 +91,16 @@ export default function AthleteApp() {
               <p className="text-xs text-slate-500 dark:text-slate-400">Track Lab</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={signOut}
-            className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white px-2 py-1.5 rounded-lg"
-          >
-            <LogOut className="w-4 h-4" /> Change code
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <ThemeToggle />
+            <button
+              type="button"
+              onClick={signOut}
+              className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white px-2 py-1.5 rounded-lg"
+            >
+              <LogOut className="w-4 h-4" /> Change code
+            </button>
+          </div>
         </div>
       </header>
 
@@ -150,7 +154,10 @@ function CodeLogin({ busy, error, onSubmit, initial }) {
   const [value, setValue] = useState(initial || '');
   const clean = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8);
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center px-4 bg-slate-50 dark:bg-slate-950 font-sans">
+    <div className="relative min-h-[100dvh] flex items-center justify-center px-4 bg-slate-50 dark:bg-slate-950 font-sans">
+      <div className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3">
+        <ThemeToggle />
+      </div>
       <form
         onSubmit={(e) => { e.preventDefault(); if (clean.length === 8) onSubmit(clean); }}
         className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-4"

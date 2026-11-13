@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Loader2, Pause, Play, SkipForward, X } from 'lucide-react';
-import { buildGymSteps, formatSeconds } from './gymTimer';
+import { BellOff, Check, ChevronDown, Flag, Loader2, Pause, Play, RotateCcw, SkipForward, X } from 'lucide-react';
+import { buildGymSteps, estimateRemainingSec, formatSeconds, isUsableProgress, stepsSignature, summarizeExercises } from './gymTimer';
+import { clearProgress, readProgress, writeProgress } from './sessionProgress';
 import { submitCheckin } from './api';
+import ThemeToggle from './ThemeToggle.jsx';
 import { addDays, dayName, shortDate } from './cairoDate';
 
 // Keep the screen on while the timer runs (Wake Lock API; ignored where unsupported).
@@ -28,59 +30,133 @@ function useWakeLock(enabled) {
   }, [enabled]);
 }
 
-// Short beep with Web Audio (the context is created on the first tap).
-function useBeep() {
+// Rest-over alarm with Web Audio (the context is created on the first tap).
+// It repeats until the athlete taps the screen, or for ALARM_MAX_MS at most.
+const ALARM_MAX_MS = 60 * 1000;
+const ALARM_EVERY_MS = 1400;
+
+function useAlarm() {
   const ctxRef = useRef(null);
+  const timerRef = useRef(null);
+  const stopAtRef = useRef(0);
+  const [ringing, setRinging] = useState(false);
+
   const unlock = () => {
     try {
       if (!ctxRef.current) ctxRef.current = new (window.AudioContext || window.webkitAudioContext)();
       if (ctxRef.current.state === 'suspended') ctxRef.current.resume();
     } catch { /* no audio */ }
   };
-  const beep = () => {
+
+  // Three loud, sharp beeps (square wave reads louder than a sine at the same level).
+  const burst = () => {
     const ctx = ctxRef.current;
     if (ctx) {
-      [0, 0.25, 0.5].forEach((t) => {
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      [0, 0.3, 0.6].forEach((t) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.frequency.value = 880;
-        gain.gain.setValueAtTime(0.25, ctx.currentTime + t);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.18);
+        osc.type = 'square';
+        osc.frequency.value = 1000;
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime + t);
+        gain.gain.exponentialRampToValueAtTime(0.8, ctx.currentTime + t + 0.01);
+        gain.gain.setValueAtTime(0.8, ctx.currentTime + t + 0.2);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + 0.24);
         osc.connect(gain).connect(ctx.destination);
         osc.start(ctx.currentTime + t);
-        osc.stop(ctx.currentTime + t + 0.2);
+        osc.stop(ctx.currentTime + t + 0.26);
       });
     }
-    try { navigator.vibrate?.([200, 100, 200]); } catch { /* no vibration */ }
+    try { navigator.vibrate?.([300, 120, 300, 120, 300]); } catch { /* no vibration */ }
   };
-  return { unlock, beep };
+
+  const stop = () => {
+    clearInterval(timerRef.current);
+    timerRef.current = null;
+    try { navigator.vibrate?.(0); } catch { /* no vibration */ }
+    setRinging(false);
+  };
+
+  const start = () => {
+    clearInterval(timerRef.current);
+    stopAtRef.current = Date.now() + ALARM_MAX_MS;
+    burst();
+    timerRef.current = setInterval(() => {
+      if (Date.now() >= stopAtRef.current) stop();
+      else burst();
+    }, ALARM_EVERY_MS);
+    setRinging(true);
+  };
+
+  useEffect(() => () => clearInterval(timerRef.current), []);
+
+  // Any tap on the screen silences it.
+  useEffect(() => {
+    if (!ringing) return undefined;
+    const onTap = () => stop();
+    document.addEventListener('pointerdown', onTap);
+    return () => document.removeEventListener('pointerdown', onTap);
+  }, [ringing]);
+
+  return { unlock, start, stop, ringing };
 }
 
 export default function GymTimer({ code, date, today, drills, athlete, onExit }) {
   const steps = useMemo(() => buildGymSteps(drills, athlete), [drills, athlete]);
+  const signature = useMemo(() => stepsSignature(steps), [steps]);
+  const [resumable, setResumable] = useState(() => {
+    const saved = readProgress();
+    return isUsableProgress(saved, { code, date, signature }) && saved.phase !== 'ready' ? saved : null;
+  });
   const [phase, setPhase] = useState('ready'); // ready | work | rest | finish
   const [index, setIndex] = useState(0);
+  const [done, setDone] = useState([]); // step indices marked "Done set"
   const [restEndsAt, setRestEndsAt] = useState(0);
   const [pausedLeft, setPausedLeft] = useState(null); // seconds left when paused
+  const [startedAt, setStartedAt] = useState(0);
+  const [pausedMs, setPausedMs] = useState(0);
+  const [pauseStart, setPauseStart] = useState(0);
+  const [finishMinutes, setFinishMinutes] = useState(0);
+  const [openKey, setOpenKey] = useState(null);
   const [now, setNow] = useState(Date.now());
-  const startedAtRef = useRef(0);
-  const pausedMsRef = useRef(0);
-  const pauseStartRef = useRef(0);
-  const { unlock, beep } = useBeep();
+  const alarm = useAlarm();
+  const unlock = alarm.unlock;
 
   useWakeLock(phase === 'work' || phase === 'rest');
 
+  const running = phase === 'work' || phase === 'rest';
   useEffect(() => {
-    if (phase !== 'rest' || pausedLeft !== null) return undefined;
+    if (!running) return undefined;
     const t = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(t);
-  }, [phase, pausedLeft]);
+  }, [running]);
+
+  // Save after every change, so closing the timer or the tab keeps the place.
+  useEffect(() => {
+    if (phase === 'ready') return;
+    writeProgress({ code, date, signature, phase, index, done, restEndsAt, pausedLeft, startedAt, pausedMs, pauseStart, finishMinutes });
+  }, [code, date, signature, phase, index, done, restEndsAt, pausedLeft, startedAt, pausedMs, pauseStart, finishMinutes]);
 
   const restLeft = pausedLeft !== null ? pausedLeft : Math.max(0, Math.ceil((restEndsAt - now) / 1000));
+  // Before "Continue", the list already shows where the saved session stopped.
+  const doneSetIdx = useMemo(() => new Set(resumable ? resumable.done || [] : done), [resumable, done]);
+  const listIndex = resumable ? resumable.index : phase === 'ready' ? -1 : index;
+  const exercises = useMemo(() => summarizeExercises(steps, listIndex, doneSetIdx), [steps, listIndex, doneSetIdx]);
+
+  const elapsedMs = () => {
+    if (!startedAt) return 0;
+    const pausing = pausedLeft !== null && pauseStart ? now - pauseStart : 0;
+    return Math.max(0, now - startedAt - pausedMs - pausing);
+  };
+
+  const finish = () => {
+    setFinishMinutes(Math.max(1, Math.round(elapsedMs() / 60000)));
+    setPhase('finish');
+  };
 
   const goNext = () => {
     if (index + 1 >= steps.length) {
-      setPhase('finish');
+      finish();
     } else {
       setIndex(index + 1);
       setPhase('work');
@@ -89,7 +165,8 @@ export default function GymTimer({ code, date, today, drills, athlete, onExit })
 
   useEffect(() => {
     if (phase === 'rest' && pausedLeft === null && restLeft === 0) {
-      beep();
+      // No alarm when the rest ran out long ago (athlete coming back to the timer).
+      if (Date.now() - restEndsAt < 5000) alarm.start();
       goNext();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -97,12 +174,37 @@ export default function GymTimer({ code, date, today, drills, athlete, onExit })
 
   const start = () => {
     unlock();
-    startedAtRef.current = Date.now();
+    clearProgress();
+    setResumable(null);
+    setIndex(0);
+    setDone([]);
+    setPausedLeft(null);
+    setPausedMs(0);
+    setPauseStart(0);
+    setStartedAt(Date.now());
+    setNow(Date.now());
     setPhase('work');
+  };
+
+  const resume = () => {
+    unlock();
+    const s = resumable;
+    setResumable(null);
+    setIndex(Math.min(s.index, steps.length - 1));
+    setDone(Array.isArray(s.done) ? s.done : []);
+    setRestEndsAt(s.restEndsAt || 0);
+    setPausedLeft(s.pausedLeft ?? null);
+    setStartedAt(s.startedAt || Date.now());
+    setPausedMs(s.pausedMs || 0);
+    setPauseStart(s.pauseStart || 0);
+    setFinishMinutes(s.finishMinutes || 0);
+    setNow(Date.now());
+    setPhase(s.phase);
   };
 
   const doneSet = () => {
     unlock();
+    setDone((d) => (d.includes(index) ? d : [...d, index]));
     const rest = steps[index].restAfterSec;
     if (rest > 0 && index + 1 < steps.length) {
       setRestEndsAt(Date.now() + rest * 1000);
@@ -117,23 +219,24 @@ export default function GymTimer({ code, date, today, drills, athlete, onExit })
   const togglePause = () => {
     if (pausedLeft === null) {
       setPausedLeft(restLeft);
-      pauseStartRef.current = Date.now();
+      setPauseStart(Date.now());
     } else {
       setRestEndsAt(Date.now() + pausedLeft * 1000);
-      pausedMsRef.current += Date.now() - pauseStartRef.current;
+      setPausedMs((ms) => ms + (Date.now() - pauseStart));
+      setPauseStart(0);
       setPausedLeft(null);
       setNow(Date.now());
     }
   };
 
   const skipRest = () => {
-    if (pausedLeft !== null) pausedMsRef.current += Date.now() - pauseStartRef.current;
+    if (pausedLeft !== null) {
+      setPausedMs((ms) => ms + (Date.now() - pauseStart));
+      setPauseStart(0);
+    }
     setPausedLeft(null);
     goNext();
   };
-
-  const minutesSoFar = () =>
-    startedAtRef.current ? Math.max(1, Math.round((Date.now() - startedAtRef.current - pausedMsRef.current) / 60000)) : 0;
 
   if (!steps.length) {
     return (
@@ -144,36 +247,98 @@ export default function GymTimer({ code, date, today, drills, athlete, onExit })
   }
 
   if (phase === 'finish') {
-    return <FinishForm code={code} date={date} today={today} minutes={minutesSoFar()} onExit={onExit} />;
+    return (
+      <FinishForm
+        code={code}
+        date={date}
+        today={today}
+        minutes={finishMinutes}
+        onExit={(saved) => {
+          if (saved) clearProgress();
+          onExit(saved);
+        }}
+      />
+    );
   }
 
-  const step = steps[index];
-  const next = steps[index + 1];
+  const list = (
+    <ExerciseList exercises={exercises} openKey={openKey} onToggle={(k) => setOpenKey(openKey === k ? null : k)} />
+  );
 
   if (phase === 'ready') {
-    const exercises = [...new Set(steps.map((s) => s.title))];
     return (
       <Screen onClose={() => onExit(false)} title={`${dayName(date)} · ${shortDate(date)}`}>
-        <p className="text-sm text-slate-600 dark:text-slate-300">{exercises.length} exercises, {steps.length} sets.</p>
-        <ol className="space-y-1.5 text-[14px]">
-          {exercises.map((t, i) => <li key={t} className="tabular-nums" dir="auto">{i + 1}. {t}</li>)}
-        </ol>
-        <button type="button" onClick={start} className="w-full py-4 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white text-base font-semibold flex items-center justify-center gap-2">
-          <Play className="w-5 h-5" /> Start session
-        </button>
-        <p className="text-xs text-slate-500 dark:text-slate-400">The screen stays on while the timer runs. A beep and vibration tell you when rest is over.</p>
+        {resumable && (
+          <div className="rounded-2xl border border-orange-300 dark:border-orange-500/60 bg-orange-50 dark:bg-orange-500/10 p-4 space-y-3">
+            <div>
+              <p className="text-sm font-semibold">You have a session in progress</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300 tabular-nums">
+                {resumable.phase === 'finish'
+                  ? 'All sets done, not saved yet'
+                  : resumable.phase === 'rest'
+                    ? `Resting after set ${Math.min(resumable.index, steps.length - 1) + 1} of ${steps.length}`
+                    : `Stopped at set ${Math.min(resumable.index, steps.length - 1) + 1} of ${steps.length}`}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={resume} className="py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold flex items-center justify-center gap-1.5">
+                <Play className="w-4 h-4" /> Continue
+              </button>
+              <button
+                type="button"
+                onClick={() => { if (window.confirm('Start over from the first set?')) start(); }}
+                className="py-3 rounded-xl border border-slate-300 dark:border-slate-600 text-sm font-semibold flex items-center justify-center gap-1.5"
+              >
+                <RotateCcw className="w-4 h-4" /> Start over
+              </button>
+            </div>
+          </div>
+        )}
+        <p className="text-sm text-slate-600 dark:text-slate-300 tabular-nums">
+          {exercises.length} exercises · {steps.length} sets · about {Math.round(estimateRemainingSec(steps, 0) / 60)} min
+        </p>
+        {list}
+        {!resumable && (
+          <button type="button" onClick={start} className="w-full py-4 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white text-base font-semibold flex items-center justify-center gap-2">
+            <Play className="w-5 h-5" /> Start session
+          </button>
+        )}
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          The screen stays on while the timer runs. When rest is over an alarm rings until you tap the screen. You can close the timer and come back: your place is kept on this phone.
+        </p>
       </Screen>
     );
   }
 
+  const step = steps[index];
+  const next = steps[index + 1];
+  const setsLeft = steps.length - index - (phase === 'rest' ? 1 : 0);
+  const remainingMin = Math.max(1, Math.round(estimateRemainingSec(steps, index, phase, restLeft) / 60));
+
   return (
-    <Screen onClose={() => { if (window.confirm('End the session now? Your sets so far are not saved until you finish.')) setPhase('finish'); }} title={`Set ${index + 1} of ${steps.length}`}>
-      <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
-        <div className="h-full bg-orange-500 transition-all" style={{ width: `${(index / steps.length) * 100}%` }} />
+    <Screen onClose={() => onExit(false)} closeLabel="Leave timer (progress is kept)" title={`Set ${index + 1} of ${steps.length}`}>
+      <div className="space-y-2">
+        <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+          <div className="h-full bg-orange-500 transition-all" style={{ width: `${((steps.length - setsLeft) / steps.length) * 100}%` }} />
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <MiniStat label="Elapsed" value={formatSeconds(elapsedMs() / 1000)} />
+          <MiniStat label="Left (est.)" value={`~${remainingMin} min`} />
+          <MiniStat label="Sets left" value={`${setsLeft} of ${steps.length}`} />
+        </div>
       </div>
 
       {phase === 'work' ? (
         <div className="space-y-4">
+          {alarm.ringing && (
+            <button
+              type="button"
+              onClick={alarm.stop}
+              className="w-full py-3 rounded-2xl bg-rose-600 text-white text-sm font-semibold flex items-center justify-center gap-2 animate-pulse"
+            >
+              <BellOff className="w-5 h-5" /> Rest over: tap to stop the alarm
+            </button>
+          )}
           <div>
             {step.superset && <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">Superset {step.supersetLabel}</p>}
             <h2 dir="auto" className="text-2xl font-semibold leading-tight">{step.title}</h2>
@@ -210,7 +375,81 @@ export default function GymTimer({ code, date, today, drills, athlete, onExit })
           </div>
         </div>
       )}
+
+      <div className="space-y-2 pt-1">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Today&apos;s exercises</h3>
+        {list}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => { if (window.confirm('Finish the session now and log it?')) finish(); }}
+        className="w-full py-2.5 rounded-xl text-sm font-medium text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/40 flex items-center justify-center gap-1.5"
+      >
+        <Flag className="w-4 h-4" /> Finish session
+      </button>
     </Screen>
+  );
+}
+
+function ExerciseList({ exercises, openKey, onToggle }) {
+  return (
+    <ol className="space-y-1.5">
+      {exercises.map((ex, i) => {
+        const open = openKey === ex.key;
+        const tone =
+          ex.status === 'current'
+            ? 'border-orange-400 dark:border-orange-500 bg-orange-50 dark:bg-orange-500/10'
+            : ex.status === 'done'
+              ? 'border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/50 opacity-60'
+              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900';
+        const badge =
+          ex.status === 'done'
+            ? 'bg-emerald-600 text-white'
+            : ex.status === 'current'
+              ? 'bg-orange-500 text-white'
+              : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300';
+        return (
+          <li key={ex.key} className={`rounded-xl border ${tone}`}>
+            <button type="button" onClick={() => onToggle(ex.key)} aria-expanded={open} className="w-full px-3 py-2.5 flex items-center gap-3 text-left">
+              <span className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold tabular-nums ${badge}`}>
+                {ex.status === 'done' ? <Check className="w-3.5 h-3.5" /> : i + 1}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span dir="auto" className="block text-[14px] font-semibold leading-snug">
+                  {ex.superset && <span className="mr-1 text-indigo-600 dark:text-indigo-400">{ex.supersetLabel}.</span>}
+                  {ex.title}
+                </span>
+                <span className="block text-xs text-slate-500 dark:text-slate-400 tabular-nums truncate">
+                  {[ex.reps, ex.load].filter(Boolean).join(' · ') || '–'}
+                </span>
+              </span>
+              <span className="shrink-0 text-xs font-semibold tabular-nums text-slate-600 dark:text-slate-300">{ex.setsDone}/{ex.totalSets}</span>
+              <ChevronDown className={`shrink-0 w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+            </button>
+            {open && (
+              <div className="px-3 pb-3 pl-12 space-y-1 text-[13px] text-slate-600 dark:text-slate-300">
+                <p className="tabular-nums">
+                  {ex.totalSets} sets{ex.reps ? ` × ${ex.reps}` : ''}{ex.restSec ? ` · rest ${formatSeconds(ex.restSec)}` : ''}
+                </p>
+                {ex.load && <p className="tabular-nums">Load: {ex.load}</p>}
+                {ex.superset && <p className="text-indigo-600 dark:text-indigo-400">Superset: no rest between the linked exercises</p>}
+                {ex.notes && <p dir="auto" className="leading-relaxed">{ex.notes}</p>}
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function MiniStat({ label, value }) {
+  return (
+    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2 py-1.5">
+      <p className="text-[11px] text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="text-sm font-semibold tabular-nums">{value}</p>
+    </div>
   );
 }
 
@@ -288,15 +527,18 @@ function Stat({ label, value }) {
   );
 }
 
-function Screen({ title, onClose, children }) {
+function Screen({ title, onClose, closeLabel = 'Close timer', children }) {
   return (
     <div className="min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans">
       <div className="max-w-md mx-auto px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-8 space-y-5">
         <div className="flex items-center justify-between">
           <h1 className="text-base font-semibold tabular-nums">{title}</h1>
-          <button type="button" onClick={onClose} className="p-2 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800" aria-label="Close timer">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <button type="button" onClick={onClose} className="p-2 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800" aria-label={closeLabel} title={closeLabel}>
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
         {children}
       </div>
