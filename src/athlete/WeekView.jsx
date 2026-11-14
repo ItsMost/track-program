@@ -4,6 +4,7 @@ import { getMyWeek } from './api';
 import { addDays, dayName, shortDate, weekDays } from './cairoDate';
 import { dayHasGym, parseRest, PROGRESS_MAX_AGE_MS } from './gymTimer';
 import { readProgress } from './sessionProgress';
+import ExerciseName from './ExerciseName.jsx';
 
 const prescription = (d) => {
   const sets = String(d.sets ?? '').trim();
@@ -121,7 +122,7 @@ export default function WeekView({ code, today, currentWeekStart, onStartSession
                 {drills.map((d, i) => (
                   <li key={d.id || i} className="px-4 py-2.5">
                     <div className="flex items-baseline justify-between gap-3">
-                      <p dir="auto" className="text-[14px] font-semibold leading-snug">{d.title}</p>
+                      <p dir="auto" className="text-[14px] font-semibold leading-snug"><ExerciseName>{d.title}</ExerciseName></p>
                       {intensity(d) && <span className="shrink-0 text-xs font-semibold text-rose-600 dark:text-rose-400 tabular-nums">{intensity(d)}</span>}
                     </div>
                     <p className="text-[13px] text-slate-700 dark:text-slate-200 tabular-nums">

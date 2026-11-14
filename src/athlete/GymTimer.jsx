@@ -4,6 +4,7 @@ import { buildGymSteps, estimateRemainingSec, formatSeconds, isUsableProgress, s
 import { clearProgress, readProgress, writeProgress } from './sessionProgress';
 import { submitCheckin } from './api';
 import ThemeToggle from './ThemeToggle.jsx';
+import ExerciseName from './ExerciseName.jsx';
 import { addDays, dayName, shortDate } from './cairoDate';
 
 // Keep the screen on while the timer runs (Wake Lock API; ignored where unsupported).
@@ -341,7 +342,7 @@ export default function GymTimer({ code, date, today, drills, athlete, onExit })
           )}
           <div>
             {step.superset && <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">Superset {step.supersetLabel}</p>}
-            <h2 dir="auto" className="text-2xl font-semibold leading-tight">{step.title}</h2>
+            <h2 dir="auto" className="text-2xl font-semibold leading-tight"><ExerciseName>{step.title}</ExerciseName></h2>
             <p className="mt-1 text-base text-slate-600 dark:text-slate-300 tabular-nums">Set {step.setNumber} of {step.totalSets}</p>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -362,7 +363,7 @@ export default function GymTimer({ code, date, today, drills, athlete, onExit })
           <p className="text-7xl font-semibold tabular-nums" aria-live="polite">{formatSeconds(restLeft)}</p>
           {next && (
             <p className="text-sm text-slate-600 dark:text-slate-300" dir="auto">
-              Next: <span className="font-semibold">{next.title}</span> · set {next.setNumber} of {next.totalSets}
+              Next: <span className="font-semibold"><ExerciseName>{next.title}</ExerciseName></span> · set {next.setNumber} of {next.totalSets}
             </p>
           )}
           <div className="grid grid-cols-2 gap-2">
@@ -418,7 +419,7 @@ function ExerciseList({ exercises, openKey, onToggle }) {
               <span className="min-w-0 flex-1">
                 <span dir="auto" className="block text-[14px] font-semibold leading-snug">
                   {ex.superset && <span className="mr-1 text-indigo-600 dark:text-indigo-400">{ex.supersetLabel}.</span>}
-                  {ex.title}
+                  <ExerciseName>{ex.title}</ExerciseName>
                 </span>
                 <span className="block text-xs text-slate-500 dark:text-slate-400 tabular-nums truncate">
                   {[ex.reps, ex.load].filter(Boolean).join(' · ') || '–'}
